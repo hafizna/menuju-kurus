@@ -2,16 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDayLog, saveDayLog, getSettings } from "@/lib/day";
 import { todayKey } from "@/lib/dates";
 import { BurnEntry, MealEntry } from "@/lib/types";
+import { getUserId } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
+  const userId = getUserId(req);
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const body = await req.json().catch(() => null);
   if (!body || (body.type !== "meal" && body.type !== "burn")) {
     return NextResponse.json({ error: "type must be 'meal' or 'burn'" }, { status: 400 });
   }
 
-  const settings = await getSettings();
+  const settings = await getSettings(userId);
   const date: string = typeof body.date === "string" ? body.date : todayKey(settings.timezone);
-  const log = await getDayLog(date);
+  const log = await getDayLog(userId, date);
 
   if (body.type === "meal") {
     const entry: MealEntry = {
@@ -37,27 +41,30 @@ export async function POST(req: NextRequest) {
     log.burns.push(entry);
   }
 
-  await saveDayLog(log);
+  await saveDayLog(userId, log);
   return NextResponse.json({ log });
 }
 
 export async function DELETE(req: NextRequest) {
+  const userId = getUserId(req);
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type");
   const id = searchParams.get("id");
-  const settings = await getSettings();
+  const settings = await getSettings(userId);
   const date = searchParams.get("date") || todayKey(settings.timezone);
 
   if (!id || (type !== "meal" && type !== "burn")) {
     return NextResponse.json({ error: "type and id required" }, { status: 400 });
   }
 
-  const log = await getDayLog(date);
+  const log = await getDayLog(userId, date);
   if (type === "meal") {
     log.meals = log.meals.filter((m) => m.id !== id);
   } else {
     log.burns = log.burns.filter((b) => b.id !== id);
   }
-  await saveDayLog(log);
+  await saveDayLog(userId, log);
   return NextResponse.json({ log });
 }

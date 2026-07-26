@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, isValidSessionToken } from "./lib/auth";
+import { SESSION_COOKIE, verifySessionToken } from "./lib/auth";
 
 // Runs on Edge runtime; keep this dependency-free (no Node crypto/redis here).
 export const config = {
@@ -15,8 +15,12 @@ export async function middleware(req: NextRequest) {
   }
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;
-  if (await isValidSessionToken(token)) {
-    return NextResponse.next();
+  const userId = await verifySessionToken(token);
+
+  if (userId) {
+    const headers = new Headers(req.headers);
+    headers.set("x-user-id", userId);
+    return NextResponse.next({ request: { headers } });
   }
 
   if (pathname.startsWith("/api/")) {

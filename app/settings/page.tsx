@@ -7,6 +7,7 @@ import type { UserSettings } from "@/lib/types";
 export default function SettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [userName, setUserName] = useState("");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -14,6 +15,9 @@ export default function SettingsPage() {
     fetch("/api/settings")
       .then((r) => r.json())
       .then((d) => setSettings(d.settings));
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((d) => setUserName(d.name ?? ""));
   }, []);
 
   async function save(e: React.FormEvent) {
@@ -45,6 +49,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-4 p-4">
       <h1 className="pt-2 text-xl font-bold">⚙️ Pengaturan</h1>
+      {userName && <p className="text-sm text-neutral-500">Masuk sebagai {userName}</p>}
 
       <form onSubmit={save} className="space-y-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
         <div>
@@ -95,7 +100,7 @@ export default function SettingsPage() {
       <section className="rounded-2xl bg-white p-4 text-sm text-neutral-500 shadow-sm dark:bg-neutral-900">
         <div className="mb-1 font-medium text-neutral-700 dark:text-neutral-300">Sinkron kalori keluar otomatis</div>
         Set up Apple Shortcuts automation untuk kirim Active Energy dari Health app ke <code>/api/health-sync</code>{" "}
-        — lihat README di repo untuk langkah lengkap.
+        pakai token khusus akun {userName || "kamu"} — lihat README di repo untuk langkah lengkap.
       </section>
 
       <button

@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, expectedSessionToken, isValidPassword } from "@/lib/auth";
+import { SESSION_COOKIE, makeSessionToken, findUserByPassword } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   const { password } = await req.json().catch(() => ({ password: "" }));
 
-  if (typeof password !== "string" || !isValidPassword(password)) {
+  const user = typeof password === "string" ? findUserByPassword(password) : null;
+  if (!user) {
     return NextResponse.json({ error: "PIN salah" }, { status: 401 });
   }
 
-  const token = await expectedSessionToken();
-  const res = NextResponse.json({ ok: true });
+  const token = await makeSessionToken(user.id);
+  const res = NextResponse.json({ ok: true, name: user.name });
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

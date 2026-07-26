@@ -14,6 +14,7 @@ interface TodayResponse {
   settings: UserSettings;
   streak: number;
   challenge: Challenge;
+  userName: string;
 }
 
 export default function DashboardPage() {
@@ -78,7 +79,10 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4 p-4">
       <header className="flex items-center justify-between pt-2">
-        <h1 className="text-xl font-bold text-brand-700 dark:text-brand-400">menuju kurus</h1>
+        <div>
+          <h1 className="text-xl font-bold text-brand-700 dark:text-brand-400">menuju kurus</h1>
+          {data.userName && <p className="text-xs text-neutral-400">Halo, {data.userName}</p>}
+        </div>
         <div className="flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-700 dark:bg-orange-950 dark:text-orange-300">
           🔥 {streak} hari streak
         </div>

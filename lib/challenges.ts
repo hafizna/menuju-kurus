@@ -18,10 +18,13 @@ export const CHALLENGES: Challenge[] = [
   { id: "sleep-early", label: "Tidur sebelum jam 11 malam" },
 ];
 
-export function challengeForDate(dateKey: string): Challenge {
+// userId is folded into the hash so two users see different challenges on
+// the same day instead of always matching each other.
+export function challengeForDate(dateKey: string, userId: string): Challenge {
+  const key = `${dateKey}:${userId}`;
   let hash = 0;
-  for (let i = 0; i < dateKey.length; i++) {
-    hash = (hash * 31 + dateKey.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   }
   return CHALLENGES[hash % CHALLENGES.length];
 }

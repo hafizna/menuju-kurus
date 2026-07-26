@@ -25,6 +25,19 @@ export function localHour(date: Date, timezone: string): number {
   return parseInt(part, 10) % 24;
 }
 
+// Converts a local wall-clock time (e.g. "07:30" on 2026-07-26 in Asia/Jakarta)
+// into a real UTC instant, so a stored wake time can be compared against
+// other timestamps regardless of what timezone the server itself runs in.
+export function zonedTimeToUtcISO(dateKey: string, hour: number, minute: number, timeZone: string): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const naiveUTC = Date.UTC(y, m - 1, d, hour, minute, 0);
+  const naiveDate = new Date(naiveUTC);
+  const tzString = naiveDate.toLocaleString("en-US", { timeZone });
+  const utcString = naiveDate.toLocaleString("en-US", { timeZone: "UTC" });
+  const offsetMs = new Date(tzString).getTime() - new Date(utcString).getTime();
+  return new Date(naiveUTC - offsetMs).toISOString();
+}
+
 export function lastNDateKeys(n: number, timezone: string): string[] {
   const keys: string[] = [];
   const now = new Date();

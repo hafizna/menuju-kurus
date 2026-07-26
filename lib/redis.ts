@@ -3,7 +3,6 @@ import { Redis } from "@upstash/redis";
 export const redis = Redis.fromEnv();
 
 export const keys = {
-  day: (date: string) => `mk:day:${date}`,
-  settings: "mk:settings",
-  streak: "mk:streak",
+  day: (userId: string, date: string) => `mk:${userId}:day:${date}`,
+  settings: (userId: string) => `mk:${userId}:settings`,
 };
