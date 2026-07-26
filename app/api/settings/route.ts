@@ -16,9 +16,15 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
+  const weightKg = Math.max(30, Number(body.weightKg) || DEFAULT_SETTINGS.weightKg);
+  const goalWeightKg = Math.min(
+    weightKg,
+    Math.max(30, Number(body.goalWeightKg) || DEFAULT_SETTINGS.goalWeightKg)
+  );
   const settings = {
     dailyTargetKcal: Math.max(800, Math.round(Number(body.dailyTargetKcal) || DEFAULT_SETTINGS.dailyTargetKcal)),
-    weightKg: Math.max(30, Number(body.weightKg) || DEFAULT_SETTINGS.weightKg),
+    weightKg,
+    goalWeightKg,
     ifWindowHours: Math.min(16, Math.max(4, Number(body.ifWindowHours) || DEFAULT_SETTINGS.ifWindowHours)),
     timezone: typeof body.timezone === "string" && body.timezone ? body.timezone : DEFAULT_SETTINGS.timezone,
     proteinTargetG: Math.max(20, Math.round(Number(body.proteinTargetG) || DEFAULT_SETTINGS.proteinTargetG)),
