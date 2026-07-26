@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+input,
+button {
+  -webkit-tap-highlight-color: transparent;
+}

@@ -1,0 +1,12 @@
+{
+  "name": "menuju kurus",
+  "short_name": "menuju kurus",
+  "description": "Pelacak kalori & rencana harian pribadi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#059669",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
