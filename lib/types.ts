@@ -35,6 +35,7 @@ export interface DayLog {
 export interface UserSettings {
   dailyTargetKcal: number;
   weightKg: number;
+  goalWeightKg: number;
   ifWindowHours: number; // eating window length for intermittent fasting
   timezone: string;
   proteinTargetG: number;
@@ -49,6 +50,7 @@ export interface StreakState {
 export const DEFAULT_SETTINGS: UserSettings = {
   dailyTargetKcal: 1800,
   weightKg: 70,
+  goalWeightKg: 65,
   ifWindowHours: 8,
   timezone: "Asia/Jakarta",
   proteinTargetG: 120,

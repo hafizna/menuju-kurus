@@ -54,70 +54,41 @@ export default function SettingsPage() {
       <form onSubmit={save} className="space-y-4 rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
         <div>
           <label className="mb-1 block text-sm text-neutral-500">Target kalori harian (kcal)</label>
-          <input
-            type="number"
-            value={settings.dailyTargetKcal}
-            onChange={(e) => setSettings({ ...settings, dailyTargetKcal: Number(e.target.value) })}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
-          />
+          <input type="number" value={settings.dailyTargetKcal} onChange={(e) => setSettings({ ...settings, dailyTargetKcal: Number(e.target.value) })} className="w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800" />
         </div>
         <div>
-          <label className="mb-1 block text-sm text-neutral-500">Berat badan (kg)</label>
-          <input
-            type="number"
-            value={settings.weightKg}
-            onChange={(e) => setSettings({ ...settings, weightKg: Number(e.target.value) })}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
-          />
-          <p className="mt-1 text-xs text-neutral-400">Dipakai untuk hitung kalori olahraga penebus.</p>
+          <label className="mb-1 block text-sm text-neutral-500">Berat badan acuan (kg)</label>
+          <input type="number" step="0.1" value={settings.weightKg} onChange={(e) => setSettings({ ...settings, weightKg: Number(e.target.value) })} className="w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800" />
+          <p className="mt-1 text-xs text-neutral-400">Dipakai untuk estimasi kalori aktivitas.</p>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm text-neutral-500">Target berat badan (kg)</label>
+          <input type="number" step="0.1" value={settings.goalWeightKg} onChange={(e) => setSettings({ ...settings, goalWeightKg: Number(e.target.value) })} className="w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800" />
+          <p className="mt-1 text-xs text-neutral-400">Dipakai untuk menghitung jarak dan perkiraan waktu menuju target.</p>
         </div>
         <div>
           <label className="mb-1 block text-sm text-neutral-500">Target protein harian (gram)</label>
-          <input
-            type="number"
-            value={settings.proteinTargetG}
-            onChange={(e) => setSettings({ ...settings, proteinTargetG: Number(e.target.value) })}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
-          />
+          <input type="number" value={settings.proteinTargetG} onChange={(e) => setSettings({ ...settings, proteinTargetG: Number(e.target.value) })} className="w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800" />
         </div>
         <div>
           <label className="mb-1 block text-sm text-neutral-500">Panjang window puasa (jam)</label>
-          <input
-            type="number"
-            value={settings.ifWindowHours}
-            onChange={(e) => setSettings({ ...settings, ifWindowHours: Number(e.target.value) })}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
-          />
+          <input type="number" value={settings.ifWindowHours} onChange={(e) => setSettings({ ...settings, ifWindowHours: Number(e.target.value) })} className="w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800" />
         </div>
         <div>
           <label className="mb-1 block text-sm text-neutral-500">Timezone</label>
-          <input
-            value={settings.timezone}
-            onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800"
-          />
+          <input value={settings.timezone} onChange={(e) => setSettings({ ...settings, timezone: e.target.value })} className="w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800" />
         </div>
-        <button
-          type="submit"
-          disabled={saving}
-          className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50"
-        >
+        <button type="submit" disabled={saving} className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">
           {saving ? "Menyimpan..." : saved ? "Tersimpan ✓" : "Simpan"}
         </button>
       </form>
 
       <section className="rounded-2xl bg-white p-4 text-sm text-neutral-500 shadow-sm dark:bg-neutral-900">
-        <div className="mb-1 font-medium text-neutral-700 dark:text-neutral-300">Sinkron kalori keluar otomatis</div>
-        Set up Apple Shortcuts automation untuk kirim Active Energy dari Health app ke <code>/api/health-sync</code>{" "}
-        pakai token khusus akun {userName || "kamu"} — lihat README di repo untuk langkah lengkap.
+        <div className="mb-1 font-medium text-neutral-700 dark:text-neutral-300">Sinkron otomatis via Apple Health</div>
+        Active Energy saat ini bisa dikirim lewat Apple Shortcuts ke <code>/api/health-sync</code>. Berat badan dan body fat dari timbangan akan menjadi tahap integrasi berikutnya setelah data Health tersedia konsisten.
       </section>
 
-      <button
-        onClick={logout}
-        className="w-full rounded-xl border border-red-300 py-3 font-medium text-red-500 dark:border-red-900"
-      >
-        Keluar
-      </button>
+      <button onClick={logout} className="w-full rounded-xl border border-red-300 py-3 font-medium text-red-500 dark:border-red-900">Keluar</button>
     </div>
   );
 }
