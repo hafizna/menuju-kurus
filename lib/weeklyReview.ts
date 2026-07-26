@@ -7,6 +7,7 @@ export interface WeeklyReview {
   avgCalories: number;
   avgProtein: number;
   successRate: number;
+  exerciseDays: number; // out of the last 7 days, how many had a burn logged
   bestDay: { date: string; net: number } | null;
   worstDay: { date: string; net: number } | null;
   recommendationFlags: string[];
@@ -30,6 +31,7 @@ export function computeWeeklyReview(
   weightTrend: WeightTrend
 ): WeeklyReview {
   const withData = last7Logs.filter((l) => l.meals.length > 0);
+  const exerciseDays = last7Logs.filter((l) => l.burns.length > 0).length;
 
   const avgCalories = withData.length
     ? Math.round(
@@ -84,5 +86,5 @@ export function computeWeeklyReview(
     recommendationFlags.push("great-week");
   }
 
-  return { weightChange, avgCalories, avgProtein, successRate, bestDay, worstDay, recommendationFlags };
+  return { weightChange, avgCalories, avgProtein, successRate, exerciseDays, bestDay, worstDay, recommendationFlags };
 }

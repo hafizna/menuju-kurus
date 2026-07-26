@@ -26,6 +26,17 @@ gratis di Vercel.
    punya PIN, target kalori, log makanan, streak, dan token sinkron Health
    sendiri-sendiri. Cukup isi `USER2_*` kalau mau pakai berdua, kosongkan
    kalau cuma untuk sendiri.
+6. **Weight Intelligence.** Halaman "Berat Badan" dengan 1-tap log ("+ Timbang
+   Hari Ini"), tren 7/14 hari, dan weekly rate (kg/minggu) yang meredam noise
+   berat air harian. Dashboard menampilkan **Health Score** (0-100) sebagai
+   satu angka gabungan dari kalori, protein, tren berat, aktivitas, dan
+   konsistensi logging — plus weekly calorie budget di samping target harian.
+7. **Ringkasan mingguan AI (opsional, manual).** Di halaman Tren ada tombol
+   "Buat ringkasan" yang mengirim 5 angka ringkasan minggu ini (tren berat,
+   rata-rata kalori/protein, hari olahraga, success rate) ke Gemini untuk
+   dibuatkan ringkasan singkat + 3 rekomendasi. Tidak jalan otomatis — hanya
+   saat kamu tap tombolnya — supaya tidak boros quota Gemini dan kamu yang
+   kontrol kapan data dikirim ke AI.
 
 ## Stack (semua free tier)
 

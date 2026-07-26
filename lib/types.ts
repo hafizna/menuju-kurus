@@ -54,6 +54,12 @@ export const DEFAULT_SETTINGS: UserSettings = {
   proteinTargetG: 120,
 };
 
+export interface WeeklySummary {
+  summary: string;
+  recommendations: string[];
+  generatedAt: string; // ISO timestamp
+}
+
 export interface WeightEntry {
   id: string;
   date: string; // YYYY-MM-DD, one entry per date (later log overwrites earlier same-day log)

@@ -35,9 +35,18 @@ interface WeeklyReviewResponse {
   flags: { id: string; label: string }[];
 }
 
+interface AiSummary {
+  summary: string;
+  recommendations: string[];
+  generatedAt: string;
+}
+
 export default function TrendsPage() {
   const [data, setData] = useState<TrendsResponse | null>(null);
   const [weekly, setWeekly] = useState<WeeklyReviewResponse | null>(null);
+  const [aiSummary, setAiSummary] = useState<AiSummary | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [aiError, setAiError] = useState("");
 
   useEffect(() => {
     fetch("/api/trends")
@@ -46,7 +55,25 @@ export default function TrendsPage() {
     fetch("/api/weekly-review")
       .then((r) => r.json())
       .then(setWeekly);
+    fetch("/api/weekly-summary")
+      .then((r) => r.json())
+      .then((d) => setAiSummary(d.summary));
   }, []);
+
+  async function generateSummary() {
+    setGenerating(true);
+    setAiError("");
+    try {
+      const res = await fetch("/api/weekly-summary", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal membuat ringkasan");
+      setAiSummary(data.summary);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "Gagal membuat ringkasan");
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   if (!data) return <div className="p-6 text-center text-neutral-400">Memuat...</div>;
 
@@ -121,6 +148,41 @@ export default function TrendsPage() {
           )}
         </section>
       )}
+
+      <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium">✨ Ringkasan AI</div>
+          <button
+            onClick={generateSummary}
+            disabled={generating}
+            className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          >
+            {generating ? "Membuat..." : aiSummary ? "Buat ulang" : "Buat ringkasan"}
+          </button>
+        </div>
+
+        {aiError && <p className="text-sm text-red-500">{aiError}</p>}
+
+        {aiSummary ? (
+          <>
+            <p className="text-sm text-neutral-600 dark:text-neutral-300">{aiSummary.summary}</p>
+            <ul className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
+              {aiSummary.recommendations.map((r, i) => (
+                <li key={i}>👉 {r}</li>
+              ))}
+            </ul>
+            <p className="text-xs text-neutral-400">
+              Dibuat{" "}
+              {new Date(aiSummary.generatedAt).toLocaleString("id-ID", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </p>
+          </>
+        ) : (
+          !generating && <p className="text-sm text-neutral-400">Belum ada ringkasan minggu ini.</p>
+        )}
+      </section>
 
       <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
         <div className="mb-3 text-sm font-medium">Kalori bersih vs target</div>
