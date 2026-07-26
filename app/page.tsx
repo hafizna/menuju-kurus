@@ -4,7 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import type { DayLog, UserSettings } from "@/lib/types";
 import type { Challenge } from "@/lib/challenges";
-import type { DaySummary } from "@/lib/day";
+import type { DaySummary, WeeklyBudget } from "@/lib/day";
+import type { WeightTrend } from "@/lib/weight";
+import type { HealthScore } from "@/lib/healthScore";
 import ExerciseCredit from "@/components/ExerciseCredit";
 
 interface TodayResponse {
@@ -15,6 +17,10 @@ interface TodayResponse {
   streak: number;
   challenge: Challenge;
   userName: string;
+  weeklyBudget: WeeklyBudget;
+  weightTrend: WeightTrend;
+  proteinToday: number;
+  healthScore: HealthScore;
 }
 
 export default function DashboardPage() {
@@ -72,9 +78,11 @@ export default function DashboardPage() {
     return <div className="p-6 text-center text-neutral-400">Memuat...</div>;
   }
 
-  const { summary, log, streak, challenge } = data;
+  const { summary, log, streak, challenge, weeklyBudget, weightTrend, proteinToday, healthScore, settings } = data;
   const pct = Math.min(100, Math.max(0, (summary.net / summary.target) * 100));
   const over = summary.net > summary.target;
+  const onTrack = healthScore.total >= 60;
+  const proteinPct = Math.min(100, Math.round((proteinToday / settings.proteinTargetG) * 100));
 
   return (
     <div className="space-y-4 p-4">
@@ -89,13 +97,60 @@ export default function DashboardPage() {
       </header>
 
       {!log.plan && (
-        <Link
-          href="/plan"
-          className="block rounded-xl bg-brand-600 px-4 py-3 text-center font-medium text-white"
-        >
+        <Link href="/plan" className="block rounded-xl bg-brand-600 px-4 py-3 text-center font-medium text-white">
           Baru bangun? Pilih rencana hari ini →
         </Link>
       )}
+
+      {/* Today's Status — outcome first */}
+      <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm text-neutral-500">Status Hari Ini</div>
+            <div className={`text-lg font-bold ${onTrack ? "text-brand-600" : "text-orange-500"}`}>
+              {onTrack ? "🟢 On Track" : "🟠 Perlu Perhatian"}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold">{healthScore.total}</div>
+            <div className="text-xs text-neutral-400">Health Score /100</div>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Link href="/weight" className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+          <div className="text-xs text-neutral-500">Tren Berat</div>
+          {weightTrend.today !== null ? (
+            <>
+              <div className="text-lg font-bold">{weightTrend.today} kg</div>
+              <div
+                className={`text-xs ${
+                  weightTrend.direction === "down"
+                    ? "text-brand-600"
+                    : weightTrend.direction === "up"
+                    ? "text-red-500"
+                    : "text-neutral-400"
+                }`}
+              >
+                {weightTrend.weeklyRate !== null
+                  ? `${weightTrend.weeklyRate > 0 ? "+" : ""}${weightTrend.weeklyRate} kg/mgg`
+                  : "belum ada tren"}
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-brand-600">+ Timbang sekarang</div>
+          )}
+        </Link>
+
+        <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+          <div className="text-xs text-neutral-500">Minggu Ini</div>
+          <div className={`text-lg font-bold ${weeklyBudget.remaining < 0 ? "text-red-500" : ""}`}>
+            {weeklyBudget.remaining >= 0 ? weeklyBudget.remaining.toLocaleString("id-ID") : 0}
+          </div>
+          <div className="text-xs text-neutral-400">kcal tersisa / minggu</div>
+        </div>
+      </div>
 
       <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
         <div className="mb-2 flex items-baseline justify-between">
@@ -105,10 +160,7 @@ export default function DashboardPage() {
           </span>
         </div>
         <div className="h-3 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
-          <div
-            className={`h-full rounded-full ${over ? "bg-red-500" : "bg-brand-500"}`}
-            style={{ width: `${pct}%` }}
-          />
+          <div className={`h-full rounded-full ${over ? "bg-red-500" : "bg-brand-500"}`} style={{ width: `${pct}%` }} />
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
           <div>
@@ -134,9 +186,21 @@ export default function DashboardPage() {
       </section>
 
       <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+        <div className="mb-2 flex items-baseline justify-between">
+          <span className="text-sm text-neutral-500">Protein hari ini</span>
+          <span className="text-sm font-medium">
+            {proteinToday} / {settings.proteinTargetG} g
+          </span>
+        </div>
+        <div className="h-3 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+          <div className="h-full rounded-full bg-blue-500" style={{ width: `${proteinPct}%` }} />
+        </div>
+      </section>
+
+      <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium">🎯 Tantangan hari ini</div>
+            <div className="text-sm font-medium">🎯 Misi Hari Ini</div>
             <div className="text-sm text-neutral-500">{challenge.label}</div>
           </div>
           <button

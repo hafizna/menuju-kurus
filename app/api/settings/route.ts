@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     weightKg: Math.max(30, Number(body.weightKg) || DEFAULT_SETTINGS.weightKg),
     ifWindowHours: Math.min(16, Math.max(4, Number(body.ifWindowHours) || DEFAULT_SETTINGS.ifWindowHours)),
     timezone: typeof body.timezone === "string" && body.timezone ? body.timezone : DEFAULT_SETTINGS.timezone,
+    proteinTargetG: Math.max(20, Math.round(Number(body.proteinTargetG) || DEFAULT_SETTINGS.proteinTargetG)),
   };
   await saveSettings(userId, settings);
   return NextResponse.json({ settings });

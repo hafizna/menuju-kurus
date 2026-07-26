@@ -20,13 +20,32 @@ interface TrendsResponse {
   streak: number;
 }
 
+interface WeeklyReview {
+  weightChange: number | null;
+  avgCalories: number;
+  avgProtein: number;
+  successRate: number;
+  bestDay: { date: string; net: number } | null;
+  worstDay: { date: string; net: number } | null;
+  recommendationFlags: string[];
+}
+
+interface WeeklyReviewResponse {
+  review: WeeklyReview;
+  flags: { id: string; label: string }[];
+}
+
 export default function TrendsPage() {
   const [data, setData] = useState<TrendsResponse | null>(null);
+  const [weekly, setWeekly] = useState<WeeklyReviewResponse | null>(null);
 
   useEffect(() => {
     fetch("/api/trends")
       .then((r) => r.json())
       .then(setData);
+    fetch("/api/weekly-review")
+      .then((r) => r.json())
+      .then(setWeekly);
   }, []);
 
   if (!data) return <div className="p-6 text-center text-neutral-400">Memuat...</div>;
@@ -47,6 +66,61 @@ export default function TrendsPage() {
           <div className="text-xs text-neutral-500">Hari streak</div>
         </div>
       </div>
+
+      {weekly && (
+        <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+          <div className="text-sm font-medium">📋 Ringkasan Minggu Ini</div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <div className="text-neutral-500">Perubahan berat</div>
+              <div className="font-semibold">
+                {weekly.review.weightChange !== null
+                  ? `${weekly.review.weightChange > 0 ? "+" : ""}${weekly.review.weightChange} kg`
+                  : "belum cukup data"}
+              </div>
+            </div>
+            <div>
+              <div className="text-neutral-500">Rata-rata kalori</div>
+              <div className="font-semibold">{weekly.review.avgCalories} kcal</div>
+            </div>
+            <div>
+              <div className="text-neutral-500">Rata-rata protein</div>
+              <div className="font-semibold">{weekly.review.avgProtein} g</div>
+            </div>
+            <div>
+              <div className="text-neutral-500">Success rate</div>
+              <div className="font-semibold">{weekly.review.successRate}%</div>
+            </div>
+          </div>
+          {(weekly.review.bestDay || weekly.review.worstDay) && (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {weekly.review.bestDay && (
+                <div>
+                  <div className="text-neutral-500">Hari terbaik</div>
+                  <div className="font-semibold text-brand-600">
+                    {weekly.review.bestDay.date.slice(5)} · {weekly.review.bestDay.net} kcal
+                  </div>
+                </div>
+              )}
+              {weekly.review.worstDay && (
+                <div>
+                  <div className="text-neutral-500">Hari terberat</div>
+                  <div className="font-semibold text-red-500">
+                    {weekly.review.worstDay.date.slice(5)} · {weekly.review.worstDay.net} kcal
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {weekly.flags.length > 0 && (
+            <ul className="space-y-1 border-t border-neutral-100 pt-3 text-sm text-neutral-600 dark:border-neutral-800 dark:text-neutral-300">
+              {weekly.flags.map((f) => (
+                <li key={f.id}>💡 {f.label}</li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
         <div className="mb-3 text-sm font-medium">Kalori bersih vs target</div>

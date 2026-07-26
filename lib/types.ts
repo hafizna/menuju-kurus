@@ -37,6 +37,7 @@ export interface UserSettings {
   weightKg: number;
   ifWindowHours: number; // eating window length for intermittent fasting
   timezone: string;
+  proteinTargetG: number;
 }
 
 export interface StreakState {
@@ -50,4 +51,14 @@ export const DEFAULT_SETTINGS: UserSettings = {
   weightKg: 70,
   ifWindowHours: 8,
   timezone: "Asia/Jakarta",
+  proteinTargetG: 120,
 };
+
+export interface WeightEntry {
+  id: string;
+  date: string; // YYYY-MM-DD, one entry per date (later log overwrites earlier same-day log)
+  weightKg: number;
+  bodyFat?: number;
+  note?: string;
+  createdAt: string; // ISO timestamp
+}
