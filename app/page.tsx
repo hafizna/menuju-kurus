@@ -7,7 +7,8 @@ import type { Challenge } from "@/lib/challenges";
 import type { DaySummary, WeeklyBudget } from "@/lib/day";
 import type { WeightTrend } from "@/lib/weight";
 import type { HealthScore } from "@/lib/healthScore";
-import { buildDailyCoach } from "@/lib/dailyCoach";
+import type { HabitStrategy } from "@/lib/habits";
+import { buildAdaptiveCoach, type CoachMoment } from "@/lib/adaptiveCoach";
 import { IconCamera, IconSearch, IconScaleWeight, IconTarget } from "@/components/icons";
 import ExerciseCredit from "@/components/ExerciseCredit";
 import DailyCoach from "@/components/DailyCoach";
@@ -25,6 +26,7 @@ interface TodayResponse {
   weightTrend: WeightTrend;
   proteinToday: number;
   healthScore: HealthScore;
+  habits: HabitStrategy;
 }
 
 export default function DashboardPage() {
@@ -36,6 +38,7 @@ export default function DashboardPage() {
   const [showWeightForm, setShowWeightForm] = useState(false);
   const [weightInput, setWeightInput] = useState("");
   const [savingWeight, setSavingWeight] = useState(false);
+  const [coachMoment, setCoachMoment] = useState<CoachMoment>("neutral");
 
   const load = useCallback(async () => {
     const res = await fetch("/api/today");
@@ -99,14 +102,23 @@ export default function DashboardPage() {
 
   if (!data) return <div className="p-6 text-center text-neutral-400">Memuat...</div>;
 
-  const { summary, log, streak, challenge, weeklyBudget, weightTrend, proteinToday, healthScore, settings } = data;
+  const { summary, log, streak, challenge, weeklyBudget, weightTrend, proteinToday, healthScore, settings, habits } = data;
   const pct = Math.min(100, Math.max(0, (summary.net / summary.target) * 100));
   const over = summary.net > summary.target;
   const surplus = Math.max(0, summary.net - summary.target);
   const onTrack = healthScore.total >= 60;
   const proteinRemaining = Math.max(0, settings.proteinTargetG - proteinToday);
   const proteinPct = Math.min(100, Math.round((proteinToday / settings.proteinTargetG) * 100));
-  const coach = buildDailyCoach({ log, summary, weeklyBudget, weightTrend, proteinToday, settings });
+  const coach = buildAdaptiveCoach({
+    log,
+    summary,
+    weeklyBudget,
+    weightTrend,
+    proteinToday,
+    settings,
+    habits,
+    moment: coachMoment,
+  });
 
   return (
     <div className="space-y-4 p-4">
@@ -126,7 +138,6 @@ export default function DashboardPage() {
         </Link>
       )}
 
-      {/* Status hari ini */}
       <section className="rounded-2xl bg-gradient-to-br from-brand-600 to-brand-700 p-4 text-white shadow-sm">
         <div className="flex items-center justify-between">
           <div>
@@ -150,7 +161,6 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Tiga tindakan utama */}
       <div className="grid grid-cols-3 gap-2">
         <Link href="/makan" className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center shadow-sm dark:bg-neutral-900">
           <IconCamera className="h-5 w-5 text-brand-600" />
@@ -186,7 +196,7 @@ export default function DashboardPage() {
         </form>
       )}
 
-      <DailyCoach coach={coach} />
+      <DailyCoach coach={coach} moment={coachMoment} onMomentChange={setCoachMoment} />
 
       <div className="grid grid-cols-2 gap-3">
         <Link href="/progress?tab=weight" className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
