@@ -41,17 +41,17 @@ function ProgressContent() {
       </header>
 
       {summary && (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-white p-3 text-center shadow-sm dark:bg-neutral-900">
-            <div className="text-lg font-bold">{summary.healthScore.total}</div>
+        <div className="grid grid-cols-3 divide-x divide-neutral-100 rounded-2xl border border-neutral-100 bg-white shadow-sm dark:divide-neutral-800 dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="p-3 text-center">
+            <div className="text-lg font-bold tabular-nums">{summary.healthScore.total}</div>
             <div className="text-xs text-neutral-500">Health Score</div>
           </div>
-          <div className="rounded-2xl bg-white p-3 text-center shadow-sm dark:bg-neutral-900">
-            <div className="text-lg font-bold text-orange-600">🔥 {summary.streak}</div>
+          <div className="p-3 text-center">
+            <div className="text-lg font-bold tabular-nums text-orange-600">🔥 {summary.streak}</div>
             <div className="text-xs text-neutral-500">Streak</div>
           </div>
-          <div className="rounded-2xl bg-white p-3 text-center shadow-sm dark:bg-neutral-900">
-            <div className="text-lg font-bold">{summary.weightTrend.today !== null ? `${summary.weightTrend.today} kg` : "-"}</div>
+          <div className="p-3 text-center">
+            <div className="text-lg font-bold tabular-nums">{summary.weightTrend.today !== null ? `${summary.weightTrend.today} kg` : "-"}</div>
             <div className="text-xs text-neutral-500">Berat</div>
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { IconCamera, IconSearch } from "@/components/icons";
+import { IconCamera, IconSearch, IconSparkle, IconBowl, IconBolt } from "@/components/icons";
 import type { DayLog } from "@/lib/types";
 
 type Tab = "catat" | "cari";
@@ -169,7 +169,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
       {error && <p className="text-center text-sm text-red-500">{error}</p>}
 
       {result && (
-        <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
           <div>
             <div className="text-lg font-semibold">{result.foodName}</div>
             <div className="text-xs text-neutral-500">
@@ -270,7 +270,7 @@ function CariTab() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="text-sm font-medium">Aku sedang mencari...</div>
         <div className="grid grid-cols-3 gap-2">
           {INTENTS.map(([value, label]) => (
@@ -315,7 +315,7 @@ function CariTab() {
 
           <section className="space-y-3">
             {result.strategy.recommendations.map((food) => (
-              <article key={food.id} className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+              <article key={food.id} className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="font-medium">{food.name}</div>
@@ -332,9 +332,11 @@ function CariTab() {
             ))}
           </section>
 
-          <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+          <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">✨ Penjelasan Gemini</div>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Penjelasan Gemini
+              </div>
               <button onClick={() => run(true)} disabled={loading} className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">
                 Buat recap
               </button>
@@ -342,8 +344,13 @@ function CariTab() {
             {result.ai ? (
               <>
                 <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">{result.ai.summary}</p>
-                <ul className="mt-2 space-y-1 text-sm">
-                  {result.ai.suggestions.map((x, i) => <li key={i}>👉 {x}</li>)}
+                <ul className="mt-2 space-y-1.5 text-sm">
+                  {result.ai.suggestions.map((x, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-400" />
+                      {x}
+                    </li>
+                  ))}
                 </ul>
               </>
             ) : (
@@ -383,15 +390,24 @@ function MealHistory({ refreshKey }: { refreshKey: number }) {
       {[...log.meals.map((m) => ({ ...m, kind: "meal" as const })), ...log.burns.map((b) => ({ ...b, kind: "burn" as const }))]
         .sort((a, b) => a.time.localeCompare(b.time))
         .map((entry) => (
-          <div key={entry.id} className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm dark:bg-neutral-900">
-            <div>
-              <div className="text-sm font-medium">{entry.kind === "meal" ? "🍽️ " + entry.foodName : "🔥 " + entry.label}</div>
-              <div className="text-xs text-neutral-500">
-                {new Date(entry.time).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+          <div key={entry.id} className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="flex items-center gap-3">
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                  entry.kind === "meal" ? "bg-brand-50 text-brand-600 dark:bg-brand-950/40" : "bg-orange-50 text-orange-600 dark:bg-orange-950/40"
+                }`}
+              >
+                {entry.kind === "meal" ? <IconBowl className="h-4 w-4" /> : <IconBolt className="h-4 w-4" />}
+              </span>
+              <div>
+                <div className="text-sm font-medium">{entry.kind === "meal" ? entry.foodName : entry.label}</div>
+                <div className="text-xs text-neutral-500">
+                  {new Date(entry.time).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className={entry.kind === "meal" ? "text-sm font-medium" : "text-sm font-medium text-brand-600"}>
+              <span className={entry.kind === "meal" ? "text-sm font-medium tabular-nums" : "text-sm font-medium tabular-nums text-brand-600"}>
                 {entry.kind === "meal" ? "+" : "-"}
                 {entry.calories} kcal
               </span>

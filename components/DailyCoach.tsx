@@ -1,4 +1,5 @@
 import type { DailyCoachResult } from "@/lib/dailyCoach";
+import { IconSparkle } from "@/components/icons";
 
 export default function DailyCoach({ coach }: { coach: DailyCoachResult }) {
   const tone =
@@ -10,21 +11,23 @@ export default function DailyCoach({ coach }: { coach: DailyCoachResult }) {
 
   return (
     <section className={`rounded-2xl border p-4 ${tone}`}>
-      <div className="mb-3">
-        <div className="text-sm font-medium">🧠 Fokus berikutnya</div>
-        <div className="text-sm text-neutral-600 dark:text-neutral-300">{coach.headline}</div>
+      <div className="mb-3 flex items-center gap-2">
+        <IconSparkle className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" />
+        <div>
+          <div className="text-sm font-semibold">Fokus berikutnya</div>
+          <div className="text-sm text-neutral-600 dark:text-neutral-300">{coach.headline}</div>
+        </div>
       </div>
-      <div className="space-y-3">
+      <ul className="space-y-3">
         {coach.recommendations.map((item) => (
-          <div key={item.id} className="flex gap-3">
-            <span className="text-lg" aria-hidden="true">{item.icon}</span>
+          <li key={item.id} className="flex gap-3 border-l-2 border-neutral-200 pl-3 dark:border-neutral-700">
             <div>
               <div className="text-sm font-medium">{item.title}</div>
               <div className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">{item.detail}</div>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

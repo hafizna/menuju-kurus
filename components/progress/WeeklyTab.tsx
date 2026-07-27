@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IconSparkle } from "@/components/icons";
 
 interface DayTrend {
   date: string;
@@ -81,20 +82,9 @@ export default function WeeklyTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl bg-white p-4 text-center shadow-sm dark:bg-neutral-900">
-          <div className="text-2xl font-bold text-brand-600">{data.successRate}%</div>
-          <div className="text-xs text-neutral-500">Success rate</div>
-        </div>
-        <div className="rounded-2xl bg-white p-4 text-center shadow-sm dark:bg-neutral-900">
-          <div className="text-2xl font-bold text-orange-600">🔥 {data.streak}</div>
-          <div className="text-xs text-neutral-500">Hari streak</div>
-        </div>
-      </div>
-
       {weekly && (
-        <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
-          <div className="text-sm font-medium">📋 Ringkasan Minggu Ini</div>
+        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="text-sm font-semibold">Ringkasan Minggu Ini</div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <div className="text-neutral-500">Perubahan berat</div>
@@ -138,18 +128,23 @@ export default function WeeklyTab() {
             </div>
           )}
           {weekly.flags.length > 0 && (
-            <ul className="space-y-1 border-t border-neutral-100 pt-3 text-sm text-neutral-600 dark:border-neutral-800 dark:text-neutral-300">
+            <ul className="space-y-1.5 border-t border-neutral-100 pt-3 text-sm text-neutral-600 dark:border-neutral-800 dark:text-neutral-300">
               {weekly.flags.map((f) => (
-                <li key={f.id}>💡 {f.label}</li>
+                <li key={f.id} className="flex gap-2">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-400" />
+                  {f.label}
+                </li>
               ))}
             </ul>
           )}
         </section>
       )}
 
-      <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-center justify-between">
-          <div className="text-sm font-medium">✨ Ringkasan AI</div>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Ringkasan AI
+          </div>
           <button
             onClick={generateSummary}
             disabled={generating}
@@ -164,9 +159,12 @@ export default function WeeklyTab() {
         {aiSummary ? (
           <>
             <p className="text-sm text-neutral-600 dark:text-neutral-300">{aiSummary.summary}</p>
-            <ul className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
+            <ul className="space-y-1.5 text-sm text-neutral-600 dark:text-neutral-300">
               {aiSummary.recommendations.map((r, i) => (
-                <li key={i}>👉 {r}</li>
+                <li key={i} className="flex gap-2">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-400" />
+                  {r}
+                </li>
               ))}
             </ul>
             <p className="text-xs text-neutral-400">
@@ -182,14 +180,14 @@ export default function WeeklyTab() {
         )}
       </section>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-3 text-sm font-medium">Kalori bersih vs target</div>
         <div className="flex h-40 items-end gap-1">
           {data.days.map((d) => {
             const heightPct = d.hasData ? Math.min(100, (Math.max(d.net, 0) / maxVal) * 100) : 4;
             const targetPct = Math.min(100, (d.target / maxVal) * 100);
             return (
-              <div key={d.date} className="relative flex flex-1 flex-col items-center justify-end">
+              <div key={d.date} className="relative flex h-full flex-1 flex-col items-center justify-end">
                 <div
                   className="absolute w-full border-t border-dashed border-neutral-300 dark:border-neutral-700"
                   style={{ bottom: `${targetPct}%` }}
@@ -217,7 +215,7 @@ export default function WeeklyTab() {
           .reverse()
           .filter((d) => d.hasData)
           .map((d) => (
-            <div key={d.date} className="flex items-center justify-between rounded-xl bg-white px-4 py-2 text-sm shadow-sm dark:bg-neutral-900">
+            <div key={d.date} className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-2 text-sm shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
               <span className="text-neutral-500">{d.date}</span>
               <span className="flex items-center gap-2">
                 {d.challengeDone && "🎯"}

@@ -12,7 +12,12 @@ const config: Config = {
           500: "#10b981",
           600: "#059669",
           700: "#047857",
+          800: "#065f46",
+          900: "#064e3b",
         },
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
     },
   },

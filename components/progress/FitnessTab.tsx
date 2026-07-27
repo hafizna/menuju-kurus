@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { FitnessIntelligence } from "@/lib/fitnessIntelligence";
+import { IconSparkle } from "@/components/icons";
 
 interface AiSummary {
   summary: string;
@@ -52,7 +53,7 @@ export default function FitnessTab() {
         </Link>
       </div>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-end justify-between">
           <div>
             <div className="text-sm text-neutral-500">{data.label} Score</div>
@@ -78,12 +79,15 @@ export default function FitnessTab() {
         <Metric label="Strength" value={`${data.strengthDays} hari`} note="minggu ini" />
       </section>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-2 text-sm font-medium">Prioritas berikutnya</div>
         {data.priorities.length ? (
           <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
             {data.priorities.map((item, index) => (
-              <li key={index}>👉 {item}</li>
+              <li key={index} className="flex gap-2">
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-400" />
+                {item}
+              </li>
             ))}
           </ul>
         ) : (
@@ -91,10 +95,12 @@ export default function FitnessTab() {
         )}
       </section>
 
-      <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium">✨ Recap Gemini</div>
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Recap Gemini
+            </div>
             <div className="text-xs text-neutral-400">Manual saja, agar hemat quota</div>
           </div>
           <button onClick={generateAi} disabled={generating} className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-medium text-white disabled:opacity-50">
@@ -123,7 +129,7 @@ export default function FitnessTab() {
 
 function Metric({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+    <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
       <div className="text-xs text-neutral-500">{label}</div>
       <div className="mt-1 text-lg font-bold">{value}</div>
       {note && <div className="text-xs text-neutral-400">{note}</div>}

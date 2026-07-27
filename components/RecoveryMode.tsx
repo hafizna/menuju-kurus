@@ -6,7 +6,7 @@ export default function RecoveryMode({ surplusKcal }: { surplusKcal: number }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+    <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
       <button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between text-left">
         <div>
           <div className="text-sm font-medium">Hari ini kebablasan?</div>

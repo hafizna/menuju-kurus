@@ -8,7 +8,7 @@ import type { DaySummary, WeeklyBudget } from "@/lib/day";
 import type { WeightTrend } from "@/lib/weight";
 import type { HealthScore } from "@/lib/healthScore";
 import { buildDailyCoach } from "@/lib/dailyCoach";
-import { IconCamera, IconSearch, IconScaleWeight } from "@/components/icons";
+import { IconCamera, IconSearch, IconScaleWeight, IconTarget } from "@/components/icons";
 import ExerciseCredit from "@/components/ExerciseCredit";
 import DailyCoach from "@/components/DailyCoach";
 import RecoveryMode from "@/components/RecoveryMode";
@@ -134,17 +134,17 @@ export default function DashboardPage() {
             <div className="text-lg font-bold">{onTrack ? "🟢 On Track" : "🟠 Perlu Perhatian"}</div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold">{healthScore.total}</div>
+            <div className="text-2xl font-bold tabular-nums">{healthScore.total}</div>
             <div className="text-xs text-brand-100">Health Score /100</div>
           </div>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3 border-t border-white/20 pt-3">
           <div>
-            <div className="text-lg font-semibold">{Math.max(0, summary.remaining)} kcal</div>
+            <div className="text-lg font-semibold tabular-nums">{Math.max(0, summary.remaining)} kcal</div>
             <div className="text-xs text-brand-100">Sisa kalori</div>
           </div>
           <div>
-            <div className="text-lg font-semibold">{proteinRemaining} g</div>
+            <div className="text-lg font-semibold tabular-nums">{proteinRemaining} g</div>
             <div className="text-xs text-brand-100">Sisa protein</div>
           </div>
         </div>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
       </div>
 
       {showWeightForm && (
-        <form onSubmit={saveWeight} className="flex items-center gap-2 rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+        <form onSubmit={saveWeight} className="flex items-center gap-2 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
           <input
             autoFocus
             value={weightInput}
@@ -189,7 +189,7 @@ export default function DashboardPage() {
       <DailyCoach coach={coach} />
 
       <div className="grid grid-cols-2 gap-3">
-        <Link href="/progress?tab=weight" className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+        <Link href="/progress?tab=weight" className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
           <div className="text-xs text-neutral-500">Tren Berat</div>
           {weightTrend.today !== null ? (
             <>
@@ -203,7 +203,7 @@ export default function DashboardPage() {
           )}
         </Link>
 
-        <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+        <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
           <div className="text-xs text-neutral-500">Minggu Ini</div>
           <div className={`text-lg font-bold ${weeklyBudget.remaining < 0 ? "text-red-500" : ""}`}>
             {weeklyBudget.remaining >= 0 ? weeklyBudget.remaining.toLocaleString("id-ID") : 0}
@@ -212,7 +212,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-2 flex items-baseline justify-between">
           <span className="text-sm text-neutral-500">Kalori bersih hari ini</span>
           <span className={`text-sm font-medium ${over ? "text-red-500" : "text-brand-600"}`}>{summary.net} / {summary.target} kcal</span>
@@ -225,7 +225,7 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-2 flex items-baseline justify-between">
           <span className="text-sm text-neutral-500">Protein hari ini</span>
           <span className="text-sm font-medium">{proteinToday} / {settings.proteinTargetG} g</span>
@@ -235,9 +235,15 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
-        <div className="flex items-center justify-between">
-          <div><div className="text-sm font-medium">🎯 Misi Hari Ini</div><div className="text-sm text-neutral-500">{challenge.label}</div></div>
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <IconTarget className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" />
+            <div>
+              <div className="text-sm font-semibold">Misi Hari Ini</div>
+              <div className="text-sm text-neutral-500">{challenge.label}</div>
+            </div>
+          </div>
           <button onClick={toggleChallenge} aria-label="Tandai misi selesai" className={`h-8 w-8 shrink-0 rounded-full border-2 text-lg ${log.challengeDone ? "border-brand-500 bg-brand-500 text-white" : "border-neutral-300 text-transparent dark:border-neutral-700"}`}>✓</button>
         </div>
       </section>
@@ -245,7 +251,7 @@ export default function DashboardPage() {
       {over && <RecoveryMode surplusKcal={surplus} />}
       {over && <ExerciseCredit extraKcal={surplus} />}
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <button
           onClick={() => setShowBurnForm((v) => !v)}
           className="flex w-full items-center justify-between text-sm font-medium text-neutral-500"

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DayLog, PlanType } from "@/lib/types";
+import { IconClock, IconBowl, IconSparkle } from "@/components/icons";
 
 interface Suggestion {
   recommended: PlanType;
@@ -67,10 +68,12 @@ export default function PlanPage() {
 
   return (
     <div className="space-y-4 p-4">
-      <h1 className="pt-2 text-xl font-bold">🎯 Rencana Hari Ini</h1>
+      <h1 className="pt-2 text-xl font-bold">Rencana Hari Ini</h1>
 
-      <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
-        <div className="text-sm font-medium">⏰ Jam berapa kamu bangun tadi?</div>
+      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <IconClock className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Jam berapa kamu bangun tadi?
+        </div>
         <form onSubmit={submitWakeTime} className="flex gap-2">
           <input
             type="time"
@@ -102,8 +105,9 @@ export default function PlanPage() {
             </div>
           )}
 
-          <p className="rounded-xl bg-white px-4 py-3 text-sm text-neutral-600 shadow-sm dark:bg-neutral-900 dark:text-neutral-300">
-            💡 {suggestion.reason}
+          <p className="flex gap-2 rounded-xl border-l-2 border-brand-400 bg-white px-4 py-3 text-sm text-neutral-600 shadow-sm dark:bg-neutral-900 dark:text-neutral-300">
+            <IconSparkle className="mt-0.5 h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" />
+            {suggestion.reason}
           </p>
 
           <button
@@ -116,7 +120,9 @@ export default function PlanPage() {
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="font-semibold">⏱️ Intermittent Fasting</span>
+              <span className="flex items-center gap-2 font-semibold">
+                <IconClock className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Intermittent Fasting
+              </span>
               {suggestion.recommended === "if" && (
                 <span className="rounded-full bg-brand-500 px-2 py-0.5 text-xs text-white">Rekomendasi</span>
               )}
@@ -136,7 +142,9 @@ export default function PlanPage() {
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="font-semibold">🍽️ Defisit Kalori</span>
+              <span className="flex items-center gap-2 font-semibold">
+                <IconBowl className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Defisit Kalori
+              </span>
               {suggestion.recommended === "deficit" && (
                 <span className="rounded-full bg-brand-500 px-2 py-0.5 text-xs text-white">Rekomendasi</span>
               )}
