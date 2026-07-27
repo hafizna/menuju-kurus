@@ -1,9 +1,11 @@
+import { generateGeminiJson } from "./geminiClient";
+
 export interface WeeklySummaryInput {
-  weightTrend: number | null; // kg/week, negative = losing
-  weeklyCalories: number; // avg daily calorie intake this week
-  protein: number; // avg daily protein (g) this week
-  exercise: number; // days out of 7 with an exercise/burn logged
-  successRate: number; // 0-100
+  weightTrend: number | null;
+  weeklyCalories: number;
+  protein: number;
+  exercise: number;
+  successRate: number;
 }
 
 export interface WeeklySummaryResult {
@@ -25,9 +27,6 @@ const RESPONSE_SCHEMA = {
   required: ["summary", "recommendations"],
 };
 
-// Deliberately receives only these 5 numbers — no meal names, no dates, no
-// free text — so there's nothing concrete for the model to hallucinate
-// details about. It must reason from the numbers alone.
 const SYSTEM_PROMPT = `Kamu adalah asisten ringkasan mingguan untuk aplikasi pelacak kalori & berat badan pribadi.
 
 ATURAN PENTING:
@@ -40,46 +39,16 @@ Tugas:
 2. "recommendations": tepat 3 rekomendasi singkat dan actionable untuk minggu depan, berdasarkan angka yang diberikan.`;
 
 export async function generateWeeklySummary(input: WeeklySummaryInput): Promise<WeeklySummaryResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY env var is not set");
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: `${SYSTEM_PROMPT}\n\nData:\n${JSON.stringify(input, null, 2)}` }],
-          },
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: RESPONSE_SCHEMA,
-          temperature: 0.3,
-        },
-      }),
-    }
-  );
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Gemini API error ${res.status}: ${text.slice(0, 300)}`);
-  }
-
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini returned no summary");
-
-  const parsed = JSON.parse(text);
-  const recommendations = Array.isArray(parsed.recommendations)
-    ? parsed.recommendations.slice(0, 3).map((r: unknown) => String(r))
-    : [];
+  const parsed = await generateGeminiJson<WeeklySummaryResult>({
+    parts: [{ text: `${SYSTEM_PROMPT}\n\nData:\n${JSON.stringify(input, null, 2)}` }],
+    responseSchema: RESPONSE_SCHEMA,
+    emptyResponseMessage: "Gemini returned no summary",
+  });
 
   return {
     summary: String(parsed.summary ?? ""),
-    recommendations,
+    recommendations: Array.isArray(parsed.recommendations)
+      ? parsed.recommendations.slice(0, 3).map((item: unknown) => String(item))
+      : [],
   };
 }
