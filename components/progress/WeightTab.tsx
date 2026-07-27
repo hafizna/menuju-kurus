@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import type { WeightEntry } from "@/lib/types";
 import type { WeightTrend } from "@/lib/weight";
 import WeightChart from "@/components/WeightChart";
+import WeightForecastCard from "@/components/WeightForecastCard";
 
-export default function WeightPage() {
+export default function WeightTab() {
   const [entries, setEntries] = useState<WeightEntry[]>([]);
   const [trend, setTrend] = useState<WeightTrend | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -60,9 +61,7 @@ export default function WeightPage() {
   }
 
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="pt-2 text-xl font-bold">⚖️ Berat Badan</h1>
-
+    <div className="space-y-4">
       {!showForm ? (
         <button
           onClick={() => setShowForm(true)}
@@ -101,11 +100,7 @@ export default function WeightPage() {
               />
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => setShowDetail(true)}
-              className="text-xs text-neutral-400 underline"
-            >
+            <button type="button" onClick={() => setShowDetail(true)} className="text-xs text-neutral-400 underline">
               + tambah detail (body fat / catatan)
             </button>
           )}
@@ -148,6 +143,8 @@ export default function WeightPage() {
         </div>
       )}
 
+      {trend && <WeightForecastCard trend={trend} />}
+
       <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
         <div className="mb-2 text-sm font-medium text-neutral-500">Grafik 30 catatan terakhir</div>
         <WeightChart entries={entries} />
@@ -161,10 +158,7 @@ export default function WeightPage() {
             .reverse()
             .slice(0, 14)
             .map((e) => (
-              <div
-                key={e.id}
-                className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm dark:bg-neutral-900"
-              >
+              <div key={e.id} className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm dark:bg-neutral-900">
                 <div>
                   <div className="text-sm font-medium">{e.weightKg} kg</div>
                   <div className="text-xs text-neutral-500">

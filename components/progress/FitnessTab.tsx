@@ -9,7 +9,7 @@ interface AiSummary {
   recommendations: string[];
 }
 
-export default function FitnessPage() {
+export default function FitnessTab() {
   const [data, setData] = useState<FitnessIntelligence | null>(null);
   const [ai, setAi] = useState<AiSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,20 +44,22 @@ export default function FitnessPage() {
   const statusText = data.scoreLabel === "on-track" ? "On track" : data.scoreLabel === "building" ? "Sedang dibangun" : "Perlu perhatian";
 
   return (
-    <div className="space-y-4 p-4">
-      <header className="flex items-start justify-between pt-2">
-        <div>
-          <h1 className="text-xl font-bold">🏃 Fitness Intelligence</h1>
-          <p className="text-sm text-neutral-500">Fokus: {data.label}</p>
-        </div>
-        <Link href="/settings" className="text-sm text-brand-600">Ubah goal</Link>
-      </header>
+    <div className="space-y-4">
+      <div className="flex items-start justify-between">
+        <p className="text-sm text-neutral-500">Fokus: {data.label}</p>
+        <Link href="/settings" className="text-sm text-brand-600">
+          Ubah goal
+        </Link>
+      </div>
 
       <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-neutral-900">
         <div className="flex items-end justify-between">
           <div>
             <div className="text-sm text-neutral-500">{data.label} Score</div>
-            <div className="text-4xl font-bold">{data.score}<span className="text-base text-neutral-400">/100</span></div>
+            <div className="text-4xl font-bold">
+              {data.score}
+              <span className="text-base text-neutral-400">/100</span>
+            </div>
           </div>
           <div className="text-right">
             <div className="text-sm font-medium text-brand-600">{statusText}</div>
@@ -80,7 +82,9 @@ export default function FitnessPage() {
         <div className="mb-2 text-sm font-medium">Prioritas berikutnya</div>
         {data.priorities.length ? (
           <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
-            {data.priorities.map((item, index) => <li key={index}>👉 {item}</li>)}
+            {data.priorities.map((item, index) => (
+              <li key={index}>👉 {item}</li>
+            ))}
           </ul>
         ) : (
           <p className="text-sm text-neutral-500">Pertahankan pola saat ini dan terus kumpulkan data.</p>
@@ -102,13 +106,17 @@ export default function FitnessPage() {
           <>
             <p className="text-sm text-neutral-600 dark:text-neutral-300">{ai.summary}</p>
             <ul className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
-              {ai.recommendations.map((item, index) => <li key={index}>• {item}</li>)}
+              {ai.recommendations.map((item, index) => (
+                <li key={index}>• {item}</li>
+              ))}
             </ul>
           </>
         )}
       </section>
 
-      <p className="px-1 text-xs text-neutral-400">Bukan diagnosis medis. VO₂ max dan body fat dari wearable atau smart scale adalah estimasi; keputusan memakai tren, bukan satu angka.</p>
+      <p className="px-1 text-xs text-neutral-400">
+        Bukan diagnosis medis. VO₂ max dan body fat dari wearable atau smart scale adalah estimasi; keputusan memakai tren, bukan satu angka.
+      </p>
     </div>
   );
 }

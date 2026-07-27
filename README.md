@@ -14,9 +14,20 @@ Aplikasi personal untuk calorie tracking, weight management, fitness intelligenc
 8. **AI recap manual.** Gemini hanya dipanggil saat user menekan tombol recap, agar penggunaan free tier tetap terkontrol.
 9. **Dua user terpisah.** Satu deployment dapat dipakai dua orang dengan PIN, settings, Redis keys, dan Health Sync token terpisah.
 
+## Navigasi
+
+Empat tab di bottom nav, disusun sebagai alur keputusan harian, bukan daftar fitur:
+
+- **Home** (`/`) — status hari ini (Health Score, sisa kalori, sisa protein), Daily Coach ("fokus berikutnya"), dan tiga tindakan utama: Catat Makan, Aku Lapar, Catat Berat.
+- **Makan** (`/makan`) — dua mode dalam satu halaman: "Catat makanan" (foto → estimasi Gemini) dan "Butuh rekomendasi" (Nutrition/Satiety Intelligence), plus riwayat makan hari ini.
+- **Progress** (`/progress`) — ringkasan Health Score/streak/berat di atas, lalu tab Berat, Fitness, dan Mingguan (weekly review + AI summary).
+- **Profil** (`/settings`) — "Program Saya": Program & target, Data tubuh, Aktivitas & fitness, Integrasi, Akun.
+
+Rencana harian (`/plan`, pilih Intermittent Fasting atau Defisit Kalori berdasarkan jam bangun) diakses kontekstual dari Home, bukan sebagai tab tersendiri.
+
 ## Nutrition Intelligence
 
-Halaman `/nutrition` menyediakan:
+Tersedia di tab **Makan**, mode "Butuh rekomendasi", menyediakan:
 
 - Hunger mode: lapar, manis, gurih, renyah, comfort food, atau cepat dibuat.
 - Objective filters: volume besar, protein tinggi, serat tinggi, kalori tipis, dan vegetarian.

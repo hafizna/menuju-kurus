@@ -41,7 +41,7 @@ interface AiSummary {
   generatedAt: string;
 }
 
-export default function TrendsPage() {
+export default function WeeklyTab() {
   const [data, setData] = useState<TrendsResponse | null>(null);
   const [weekly, setWeekly] = useState<WeeklyReviewResponse | null>(null);
   const [aiSummary, setAiSummary] = useState<AiSummary | null>(null);
@@ -80,9 +80,7 @@ export default function TrendsPage() {
   const maxVal = Math.max(...data.days.map((d) => Math.max(d.net, d.target)), 1);
 
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="pt-2 text-xl font-bold">📈 Tren 14 Hari</h1>
-
+    <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl bg-white p-4 text-center shadow-sm dark:bg-neutral-900">
           <div className="text-2xl font-bold text-brand-600">{data.successRate}%</div>
@@ -219,10 +217,7 @@ export default function TrendsPage() {
           .reverse()
           .filter((d) => d.hasData)
           .map((d) => (
-            <div
-              key={d.date}
-              className="flex items-center justify-between rounded-xl bg-white px-4 py-2 text-sm shadow-sm dark:bg-neutral-900"
-            >
+            <div key={d.date} className="flex items-center justify-between rounded-xl bg-white px-4 py-2 text-sm shadow-sm dark:bg-neutral-900">
               <span className="text-neutral-500">{d.date}</span>
               <span className="flex items-center gap-2">
                 {d.challengeDone && "🎯"}
