@@ -1,8 +1,9 @@
 export type PlanType = "if" | "deficit";
+export type FitnessGoal = "weight_loss" | "very_lean" | "athletic" | "muscle_gain";
 
 export interface MealEntry {
   id: string;
-  time: string; // ISO timestamp
+  time: string;
   foodName: string;
   calories: number;
   protein_g: number;
@@ -14,17 +15,17 @@ export interface MealEntry {
 
 export interface BurnEntry {
   id: string;
-  time: string; // ISO timestamp
+  time: string;
   calories: number;
   label: string;
   source: "manual" | "shortcuts";
 }
 
 export interface DayLog {
-  date: string; // YYYY-MM-DD
-  wakeTime?: string; // ISO timestamp
+  date: string;
+  wakeTime?: string;
   plan?: PlanType;
-  eatingWindowStart?: string; // ISO timestamp, for IF
+  eatingWindowStart?: string;
   eatingWindowHours?: number;
   meals: MealEntry[];
   burns: BurnEntry[];
@@ -36,9 +37,15 @@ export interface UserSettings {
   dailyTargetKcal: number;
   weightKg: number;
   goalWeightKg: number;
-  ifWindowHours: number; // eating window length for intermittent fasting
+  ifWindowHours: number;
   timezone: string;
   proteinTargetG: number;
+  fitnessGoal: FitnessGoal;
+  targetBodyFatPercent: number | null;
+  vo2Max: number | null;
+  restingHeartRate: number | null;
+  cardioMinutesWeekly: number;
+  strengthDaysWeekly: number;
 }
 
 export interface StreakState {
@@ -54,19 +61,25 @@ export const DEFAULT_SETTINGS: UserSettings = {
   ifWindowHours: 8,
   timezone: "Asia/Jakarta",
   proteinTargetG: 120,
+  fitnessGoal: "weight_loss",
+  targetBodyFatPercent: null,
+  vo2Max: null,
+  restingHeartRate: null,
+  cardioMinutesWeekly: 0,
+  strengthDaysWeekly: 0,
 };
 
 export interface WeeklySummary {
   summary: string;
   recommendations: string[];
-  generatedAt: string; // ISO timestamp
+  generatedAt: string;
 }
 
 export interface WeightEntry {
   id: string;
-  date: string; // YYYY-MM-DD, one entry per date (later log overwrites earlier same-day log)
+  date: string;
   weightKg: number;
   bodyFat?: number;
   note?: string;
-  createdAt: string; // ISO timestamp
+  createdAt: string;
 }
