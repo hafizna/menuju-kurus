@@ -10,7 +10,7 @@ Menuju Kurus diposisikan sebagai **personal nutrition decision assistant**: logi
 2. **Daily calorie tracking.** Catat makanan dan kalori keluar secara manual atau lewat Apple Shortcuts untuk Active Energy.
 3. **Weight Intelligence.** Log berat, rata-rata 7/14 hari, weekly rate, grafik, target berat, dan ETA menuju target.
 4. **Health Score & Weekly Budget.** Menggabungkan kalori, protein, tren berat, aktivitas, dan konsistensi.
-5. **Daily Decision Coach & Recovery Mode.** Memberi prioritas harian tanpa puasa kompensasi atau olahraga sebagai hukuman.
+5. **Personal Adaptive Coach & Recovery Mode.** Meranking fokus berikutnya dari status hari ini, budget mingguan, tren berat, pola 28 hari, dan konteks lapar/craving/makan di luar—tanpa puasa kompensasi atau olahraga sebagai hukuman.
 6. **Fitness Intelligence.** Goal profile `weight_loss`, `very_lean`, `athletic`, atau `muscle_gain`, disertai VO₂ max, resting heart rate, cardio minutes, strength days, goal score, dan recap Gemini opsional.
 7. **Nutrition Intelligence / Satiety Intelligence.** Menjawab “apa keputusan makan terbaik saat ini?” berdasarkan sisa kalori, sisa protein, goal, craving, objective, dan bahan yang tersedia.
 8. **Restaurant Intelligence.** Cari menu Indonesia tanpa foto, lihat asumsi porsi dan ranking kontekstual, lalu simpan sebagai estimasi manual.
@@ -22,12 +22,25 @@ Menuju Kurus diposisikan sebagai **personal nutrition decision assistant**: logi
 
 Empat tab di bottom nav, disusun sebagai alur keputusan harian, bukan daftar fitur:
 
-- **Home** (`/`) — status hari ini (Health Score, sisa kalori, sisa protein), Daily Coach ("fokus berikutnya"), dan tiga tindakan utama: Catat Makan, Aku Lapar, Catat Berat.
+- **Home** (`/`) — status hari ini dan Personal Adaptive Coach dengan konteks Sekarang, Lapar, Sangat lapar, Craving, atau Makan di luar.
 - **Makan** (`/makan`) — tiga konteks: Catat (foto + Nutrition Intelligence), Restoran (menu Indonesia tanpa foto), dan Kebiasaan (quick add + pola 28 hari), plus riwayat makan hari ini.
 - **Progress** (`/progress`) — ringkasan Health Score/streak/berat di atas, lalu tab Berat, Fitness, dan Mingguan (weekly review + AI summary).
 - **Profil** (`/settings`) — "Program Saya": Program & target, Data tubuh, Aktivitas & fitness, Integrasi, Akun.
 
 Rencana harian (`/plan`, pilih Intermittent Fasting atau Defisit Kalori berdasarkan jam bangun) diakses kontekstual dari Home, bukan sebagai tab tersendiri.
+
+## Personal Adaptive Coach
+
+Tersedia langsung di **Home**:
+
+- Menggabungkan status kalori dan protein hari ini, budget mingguan, tren berat, goal aktif, serta Habit Intelligence 28 hari.
+- Pengguna dapat memberi konteks langsung: lapar, sangat lapar, craving, atau makan di luar.
+- Maksimal tiga prioritas ditentukan oleh engine TypeScript lokal dan selalu disertai dasar data.
+- Menu kebiasaan hanya digunakan untuk personalisasi saat data sudah cukup.
+- Coach dapat mengarahkan ke Satiety Intelligence, Restaurant Intelligence, Habit quick add, rencana harian, atau grafik berat.
+- Menu yang melebihi sisa budget tidak dilarang; aplikasi menjelaskan pilihan porsi dan trade-off-nya.
+- Penurunan berat yang terlalu cepat memicu saran untuk tidak menambah defisit.
+- Tingkat personalisasi ditampilkan sebagai awal, sedang, atau tinggi berdasarkan kesiapan pola dan tren berat.
 
 ## Nutrition Intelligence
 
@@ -68,16 +81,16 @@ Tersedia di **Makan → Kebiasaan**:
 ## Arsitektur keputusan
 
 ```text
-Data harian + Settings + Goal + Habit history
-                    ↓
+Data harian + Settings + Goal + Habit history + User context
+                              ↓
 Deterministic TypeScript engines
-                    ↓
-Structured recommendation / insight
-                    ↓
+                              ↓
+Ranked decision + evidence + next action
+                              ↓
 Gemini explanation (manual only)
 ```
 
-Gemini tidak menjadi sumber logika utama. Engine lokal menghitung ranking, score, remaining calories, remaining protein, pola kebiasaan, dan safety constraints terlebih dahulu.
+Gemini tidak menjadi sumber logika utama. Engine lokal menghitung ranking, score, remaining calories, remaining protein, pola kebiasaan, trade-off, dan safety constraints terlebih dahulu.
 
 ## Stack
 
@@ -144,16 +157,18 @@ Endpoint mengganti total Active Energy hari itu, bukan menumpuk setiap sync.
 - VO₂ max dan body fat dari wearable/smart scale dianggap estimasi perangkat.
 - Gemini dilarang mengarang makanan, aktivitas, diagnosis, usia, jenis kelamin, atau riwayat medis.
 - Habit Intelligence tidak menyimpulkan pola terlalu dini dan tidak mengklaim hubungan sebab-akibat.
+- Personal Adaptive Coach tidak otomatis memperketat defisit dan tidak melarang makanan berdasarkan satu hari.
 - Perubahan target penting tetap memerlukan persetujuan user.
 
 ## Product roadmap
 
-Lihat [`ROADMAP.md`](./ROADMAP.md). Fase integrasi berakhir pada Sprint 10 — Personal Adaptive Coach.
+Lihat [`ROADMAP.md`](./ROADMAP.md). Fase integrasi Sprint 7–10 telah selesai.
 
 ## Batasan saat ini
 
 - Maksimal dua user, bukan sistem registrasi umum.
 - Foto makanan tidak disimpan.
 - Estimasi foto, menu restoran, MET, VO₂ max, body fat, Fullness Score, dan ETA berat adalah perkiraan.
-- Habit Intelligence bergantung pada konsistensi dan kualitas catatan pengguna.
+- Habit Intelligence dan Adaptive Coach bergantung pada konsistensi dan kualitas catatan pengguna.
+- Konteks lapar/craving dipilih manual dan tidak disimpan sebagai diagnosis atau profil psikologis.
 - Health sync masih melalui Shortcuts, bukan aplikasi iOS native.
