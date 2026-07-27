@@ -50,4 +50,4 @@ export const DEFAULT_SETTINGS: UserSettings = {
 };
 
 export interface WeeklySummary { summary: string; recommendations: string[]; generatedAt: string; }
-export interface WeightEntry { id: string; date: string; weightKg: number; bodyFat?: number; note?: string; createdAt: string; }
+export interface WeightEntry { id: string; date: string; weightKg: number; bodyFat?: number; note?: string; createdAt: string; source?: "manual" | "shortcuts"; }

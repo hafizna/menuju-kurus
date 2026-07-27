@@ -10,12 +10,13 @@ Sprint awal membangun calorie tracking, weight intelligence, health score, weekl
 
 ## Fase integrasi
 
-### Sprint 7 — Apple Health Sync V2
+### Sprint 7 — Apple Health Sync V2 ✅
 
-- Sinkronisasi berat dan body fat.
-- Sinkronisasi VO₂ max dan resting heart rate.
-- Sinkronisasi workout duration dan active energy.
-- Konflik data diselesaikan secara eksplisit, bukan menumpuk nilai setiap sync.
+- Sinkronisasi berat dan body fat lewat `/api/health-sync` (satu entry per hari, menimpa bukan menumpuk).
+- Sinkronisasi VO₂ max dan resting heart rate ke Settings sebagai nilai terbaru.
+- Sinkronisasi workout duration (`cardioMinutesWeekly`) dan active energy.
+- Setiap field independen dan opsional — field yang tidak dikirim di satu sync tidak menghapus nilai dari sync sebelumnya. Konflik diselesaikan secara eksplisit (overwrite per field), bukan menumpuk nilai setiap sync.
+- Tidak mencakup "strength days" otomatis — Shortcuts tidak punya cara reliable menghitung hari latihan beban dari HealthKit, jadi field itu tetap manual di Settings.
 
 ### Sprint 8 — Restaurant Intelligence ✅
 

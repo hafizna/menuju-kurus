@@ -99,7 +99,17 @@ export default function SettingsPage() {
         <button type="submit" disabled={saving} className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">{saving ? "Menyimpan..." : saved ? "Tersimpan ✓" : "Simpan Program"}</button>
       </form>
 
-      <Section title="Integrasi"><p className="text-sm text-neutral-500">Active Energy sudah bisa dikirim melalui Apple Shortcuts. Data tubuh dan fitness lain akan disambungkan pada Health Sync V2.</p></Section>
+      <Section title="Integrasi" description="Semua lewat satu automation Apple Shortcuts — lihat README untuk setup lengkap.">
+        <ul className="space-y-1.5 text-sm text-neutral-500">
+          <li>• Active Energy → kalori keluar hari ini</li>
+          <li>• Berat badan &amp; body fat % → catatan berat hari ini</li>
+          <li>• VO₂ max &amp; resting heart rate → metrik fitness terbaru</li>
+          <li>• Durasi kardio mingguan → target aktivitas</li>
+        </ul>
+        <p className="mt-3 text-xs text-neutral-400">
+          Setiap sync menimpa nilai sebelumnya (bukan menumpuk), dan field yang tidak dikirim Shortcuts tidak akan menghapus nilai yang sudah ada.
+        </p>
+      </Section>
       <Section title="Akun"><button onClick={logout} className="w-full rounded-xl border border-red-300 py-3 font-medium text-red-500 dark:border-red-900">Keluar</button></Section>
     </div>
   );

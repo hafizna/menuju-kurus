@@ -132,23 +132,70 @@ Sanity check sebelum merge/deploy:
 npm run build
 ```
 
-## Apple Health Active Energy Sync
+## Apple Health Sync
 
-Karena ini web app, HealthKit tidak bisa dibaca langsung. Gunakan Apple Shortcuts:
+Ini web app, jadi HealthKit **tidak bisa** dibaca langsung dari browser — tidak ada
+API web untuk HealthKit, dan tidak ada tombol "Connect Apple Health" yang mungkin
+dibuat dari sisi web (beda dengan Google Fit/Strava yang punya REST API). Satu-satunya
+jembatan yang tersedia adalah **Apple Shortcuts**, yang jalan sebagai automation di
+HP dan POST snapshot ke `/api/health-sync`.
 
-1. Find Health Samples → Active Energy → Start Date is Today.
-2. Calculate Statistics / Sum.
-3. POST ke `https://<domain>/api/health-sync`.
-4. Header: `Authorization: Bearer <USER_HEALTH_SYNC_TOKEN>`.
-5. JSON body:
+`/api/health-sync` menerima kombinasi field apa pun berikut — semuanya opsional,
+kirim yang berhasil kamu baca dari Health saja (mis. tanpa Apple Watch, `vo2Max` dan
+`restingHeartRate` memang tidak akan ada):
 
 ```json
 {
-  "calories": 450
+  "calories": 450,
+  "weightKg": 81.8,
+  "bodyFatPercent": 24.2,
+  "vo2Max": 38.5,
+  "restingHeartRate": 62,
+  "cardioMinutesWeekly": 90
 }
 ```
 
-Endpoint mengganti total Active Energy hari itu, bukan menumpuk setiap sync.
+Setiap field **menimpa** nilai sebelumnya (bukan menumpuk), dan field yang tidak
+dikirim di satu sync **tidak menghapus** nilai yang sudah tersimpan dari sync
+sebelumnya — jadi automation boleh gagal membaca satu-dua metrik tanpa merusak yang
+lain. `calories` dan `weightKg`/`bodyFatPercent` masuk ke catatan hari itu (kalori
+keluar & berat badan); `vo2Max`, `restingHeartRate`, `cardioMinutesWeekly` masuk ke
+Settings sebagai nilai terbaru.
+
+### Setup Shortcuts (satu automation untuk semua)
+
+1. Buka app **Shortcuts** → tab **Automation** → **+** → **Create Personal
+   Automation** → pilih trigger (misalnya **Time of Day**, jalan tiap pagi/malam,
+   atau **App** saat buka app tertentu) → matikan **Ask Before Running**.
+2. Untuk tiap metrik yang mau disinkron, tambahkan pasangan action **Find Health
+   Samples where** (pilih tipe data + rentang tanggal) lalu **Calculate
+   Statistics** (Sum/Average/Latest sesuai kebutuhan), simpan hasilnya sebagai
+   variable:
+
+   | Metrik | Tipe Health | Rentang | Statistik |
+   |---|---|---|---|
+   | `calories` | Active Energy | Start Date is Today | Sum |
+   | `weightKg` | Body Mass | Start Date is Today (atau 7 hari terakhir) | Latest/Average |
+   | `bodyFatPercent` | Body Fat Percentage | sama seperti Body Mass | Latest/Average |
+   | `vo2Max` | VO2 Max | 7–30 hari terakhir | Latest |
+   | `restingHeartRate` | Resting Heart Rate | Start Date is Today | Average |
+   | `cardioMinutesWeekly` | Workout Duration (filter kardio) atau Exercise Minutes | 7 hari terakhir | Sum |
+
+   Kalau suatu metrik tidak ada datanya (mis. tidak pakai Apple Watch), lewati saja
+   pasangan action-nya — tidak perlu dipaksakan.
+3. Tambahkan action **Dictionary**, isi key-key di atas dengan variable yang sesuai
+   (hapus key yang datanya tidak tersedia).
+4. Tambahkan action **Get Contents of URL**:
+   - URL: `https://<domain-vercel-kamu>/api/health-sync`
+   - Method: `POST`
+   - Headers: `Authorization: Bearer <USER_HEALTH_SYNC_TOKEN milikmu>`
+   - Request Body: **JSON**, isi dengan Dictionary dari langkah 3
+5. Simpan. Tiap automation ini jalan, Settings/Progress/Weight otomatis ter-update
+   sesuai metrik yang berhasil dibaca.
+
+Kalau tidak mau ribet setup semua sekaligus, mulai dari `calories` saja (paling
+simpel, 1 pasang action) lalu tambah metrik lain belakangan — endpoint yang sama
+menerima payload sebagian.
 
 ## Prinsip keselamatan produk
 

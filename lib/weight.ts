@@ -14,7 +14,7 @@ async function saveWeightEntries(userId: string, entries: WeightEntry[]): Promis
 // One weigh-in per date — logging again the same day overwrites the earlier entry.
 export async function upsertWeightEntry(
   userId: string,
-  input: { date: string; weightKg: number; bodyFat?: number; note?: string }
+  input: { date: string; weightKg: number; bodyFat?: number; note?: string; source?: "manual" | "shortcuts" }
 ): Promise<WeightEntry[]> {
   const entries = await getWeightEntries(userId);
   const entry: WeightEntry = {
@@ -24,6 +24,7 @@ export async function upsertWeightEntry(
     bodyFat: input.bodyFat,
     note: input.note,
     createdAt: new Date().toISOString(),
+    source: input.source ?? "manual",
   };
   const next = [...entries.filter((e) => e.date !== input.date), entry].sort((a, b) =>
     a.date.localeCompare(b.date)
