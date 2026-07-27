@@ -1,4 +1,5 @@
 import type { SatietyStrategy, SatietyStrategyInput } from "./satiety";
+import { generateGeminiJson } from "./geminiClient";
 
 const RESPONSE_SCHEMA = {
   type: "OBJECT",
@@ -9,11 +10,12 @@ const RESPONSE_SCHEMA = {
   required: ["summary", "suggestions"],
 };
 
-export async function generateSatietySummary(input: SatietyStrategyInput, strategy: SatietyStrategy) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY env var is not set");
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+interface SatietyAiResult {
+  summary: string;
+  suggestions: string[];
+}
 
+export async function generateSatietySummary(input: SatietyStrategyInput, strategy: SatietyStrategy) {
   const payload = {
     goal: input.goal,
     intent: input.intent,
@@ -40,20 +42,12 @@ Fullness Score adalah estimasi heuristik, bukan fakta klinis.
 Jangan menyarankan puasa kompensasi, muntah, olahraga sebagai hukuman, atau target ekstrem.
 Tulis satu ringkasan singkat dan tepat 3 saran praktis. Bila pantry kosong, sebut contoh sebagai opsi, bukan bahan yang pasti tersedia.`;
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: `${system}\n\nData:\n${JSON.stringify(payload, null, 2)}` }] }],
-      generationConfig: { responseMimeType: "application/json", responseSchema: RESPONSE_SCHEMA, temperature: 0.25 },
-    }),
+  const parsed = await generateGeminiJson<SatietyAiResult>({
+    parts: [{ text: `${system}\n\nData:\n${JSON.stringify(payload, null, 2)}` }],
+    responseSchema: RESPONSE_SCHEMA,
+    emptyResponseMessage: "Gemini returned no satiety summary",
   });
 
-  if (!res.ok) throw new Error(`Gemini API error ${res.status}: ${(await res.text()).slice(0, 240)}`);
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini returned no satiety summary");
-  const parsed = JSON.parse(text);
   return {
     summary: String(parsed.summary ?? ""),
     suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.slice(0, 3).map(String) : [],
