@@ -1,168 +1,125 @@
 # menuju kurus
 
-Aplikasi pelacak kalori & rencana harian. Dibuat simpel, mobile-first, untuk
-dipakai berdua (kamu + 1 orang lain, masing-masing data terpisah), jalan
-gratis di Vercel.
+Aplikasi personal untuk calorie tracking, weight management, fitness intelligence, dan keputusan makan sehari-hari. Dibuat mobile-first dengan Next.js, Gemini, Upstash Redis, dan Vercel free tier.
 
-## Fitur
+## Fitur utama
 
-1. **Foto makanan → estimasi kalori.** Upload/ambil foto dari HP, dianalisa
-   pakai Gemini (Google AI Studio, free tier) untuk estimasi kalori & makro.
-   Foto **tidak pernah disimpan** ke server — hanya dipakai sesaat untuk
-   dikirim ke Gemini lalu dibuang, hasilnya (teks) yang disimpan.
-2. **Kalori keluar harian.** Input manual di dashboard, atau otomatis lewat
-   automation Apple Shortcuts yang kirim Active Energy dari app Health ke
-   `/api/health-sync` (lihat panduan di bawah).
-3. **Rencana harian berbasis jam bangun.** Buka halaman "Rencana", masukkan
-   jam kamu bangun tadi (bukan jam buka app — bisa beda kalau baru sempat
-   buka HP belakangan), lalu app kasih saran program yang cocok hari itu
-   (Intermittent Fasting kalau bangun siang, Defisit Kalori terjadwal kalau
-   bangun pagi). Keputusan akhir tetap di tangan kamu, saran cuma penanda.
-4. **Gamifikasi.** Streak counter (hari berturut-turut berhasil di bawah
-   target kalori) + tantangan harian yang berganti tiap hari (beda tiap
-   user). Kalau kalori hari ini kelebihan, dashboard otomatis kasih saran
-   olahraga (lari berapa km / cardio berapa menit) buat nebus kelebihannya.
-5. **2 user terpisah.** Satu deployment bisa dipakai berdua — masing-masing
-   punya PIN, target kalori, log makanan, streak, dan token sinkron Health
-   sendiri-sendiri. Cukup isi `USER2_*` kalau mau pakai berdua, kosongkan
-   kalau cuma untuk sendiri.
-6. **Weight Intelligence.** Halaman "Berat Badan" dengan 1-tap log ("+ Timbang
-   Hari Ini"), tren 7/14 hari, dan weekly rate (kg/minggu) yang meredam noise
-   berat air harian. Dashboard menampilkan **Health Score** (0-100) sebagai
-   satu angka gabungan dari kalori, protein, tren berat, aktivitas, dan
-   konsistensi logging — plus weekly calorie budget di samping target harian.
-7. **Ringkasan mingguan AI (opsional, manual).** Di halaman Tren ada tombol
-   "Buat ringkasan" yang mengirim 5 angka ringkasan minggu ini (tren berat,
-   rata-rata kalori/protein, hari olahraga, success rate) ke Gemini untuk
-   dibuatkan ringkasan singkat + 3 rekomendasi. Tidak jalan otomatis — hanya
-   saat kamu tap tombolnya — supaya tidak boros quota Gemini dan kamu yang
-   kontrol kapan data dikirim ke AI.
+1. **Foto makanan → estimasi kalori dan makro.** Foto diproses in-memory, dikirim ke Gemini, lalu dibuang. Hanya hasil teks yang disimpan.
+2. **Daily calorie tracking.** Catat makanan dan kalori keluar secara manual atau lewat Apple Shortcuts untuk Active Energy.
+3. **Weight Intelligence.** Log berat, rata-rata 7/14 hari, weekly rate, grafik, target berat, dan ETA menuju target.
+4. **Health Score & Weekly Budget.** Menggabungkan kalori, protein, tren berat, aktivitas, dan konsistensi.
+5. **Daily Decision Coach & Recovery Mode.** Memberi prioritas harian tanpa puasa kompensasi atau olahraga sebagai hukuman.
+6. **Fitness Intelligence.** Goal profile `weight_loss`, `very_lean`, `athletic`, atau `muscle_gain`, disertai VO₂ max, resting heart rate, cardio minutes, strength days, goal score, dan recap Gemini opsional.
+7. **Nutrition Intelligence / Satiety Intelligence.** Membantu menjawab “apa keputusan makan terbaik saat ini?” berdasarkan sisa kalori, sisa protein, goal, craving, objective, dan bahan yang tersedia.
+8. **AI recap manual.** Gemini hanya dipanggil saat user menekan tombol recap, agar penggunaan free tier tetap terkontrol.
+9. **Dua user terpisah.** Satu deployment dapat dipakai dua orang dengan PIN, settings, Redis keys, dan Health Sync token terpisah.
 
-## Stack (semua free tier)
+## Nutrition Intelligence
 
-- **Next.js 14 (App Router)** + Tailwind, deploy ke **Vercel** (Hobby/free plan)
-- **Google Gemini API** (`gemini-2.5-flash`) untuk vision/analisa foto makanan —
-  free tier di [Google AI Studio](https://aistudio.google.com/apikey), tidak perlu kartu kredit
-- **Upstash Redis** (integrasi Vercel Marketplace, free tier) untuk simpan log
-  harian, target, dan streak per user — data kecil (tidak ada foto), jadi
-  cukup ringan
-- PIN login sederhana per user (cookie HMAC, tanpa database sesi) supaya URL
-  publik tidak sembarangan dipakai orang lain / menghabiskan quota Gemini
-  kamu
+Halaman `/nutrition` menyediakan:
 
-## Kenapa tidak simpan foto?
+- Hunger mode: lapar, manis, gurih, renyah, comfort food, atau cepat dibuat.
+- Objective filters: volume besar, protein tinggi, serat tinggi, kalori tipis, dan vegetarian.
+- Pantry input berupa daftar bahan yang tersedia.
+- Deterministic ranking dari food library lokal.
+- **Fullness Score 1–5** berdasarkan kombinasi volume, protein, serat, dan kepadatan energi.
+- Target meal budget berdasarkan sisa kalori dan protein hari itu.
+- Penjelasan “kenapa ini disarankan?”.
+- Gemini recap opsional dengan tepat tiga saran praktis.
 
-Karena dianggap tidak perlu histori foto untuk personal use, foto makanan
-dianalisa in-memory di server lalu langsung dibuang — tidak pernah ditulis ke
-Redis atau disk. Yang disimpan cuma hasil analisanya (nama makanan, kalori,
-makro) sebagai teks kecil. Ini otomatis lebih hemat daripada "hapus setelah
-seminggu" karena memang tidak pernah tersimpan sama sekali.
+Fullness Score adalah heuristik produk, bukan pengukuran klinis. Rekomendasi tidak dimaksudkan untuk diagnosis atau terapi medis.
 
-## Setup
+## Arsitektur keputusan
 
-### 1. Google Gemini API key
+```text
+Data harian + Settings + Goal
+              ↓
+Deterministic TypeScript engines
+              ↓
+Structured recommendation
+              ↓
+Gemini explanation (manual only)
+```
 
-1. Buka https://aistudio.google.com/apikey, login dengan akun Google.
-2. Klik "Create API key" → copy key-nya.
+Gemini tidak menjadi sumber logika utama. Engine lokal menghitung ranking, score, remaining calories, remaining protein, dan safety constraints terlebih dahulu.
 
-### 2. Upstash Redis
+## Stack
 
-Cara termudah: dari dashboard project Vercel kamu → tab **Storage** → **Marketplace
-Database Providers** → pilih **Upstash** → buat database Redis (free tier) →
-connect ke project ini. Vercel otomatis mengisi env var
-`UPSTASH_REDIS_REST_URL` dan `UPSTASH_REDIS_REST_TOKEN`.
+- Next.js 14 App Router + Tailwind CSS
+- Vercel Hobby/free plan
+- Google Gemini API, default `gemini-2.5-flash`
+- Upstash Redis REST API
+- HMAC session cookie dengan PIN login
+- Apple Shortcuts sebagai bridge ke Apple Health
 
-Alternatif manual: buat database di https://console.upstash.com (free tier),
-lalu copy `UPSTASH_REDIS_REST_URL` dan `UPSTASH_REDIS_REST_TOKEN` dari tab
-"REST API".
+## Environment variables
 
-### 3. Environment variables
-
-Isi berdasarkan `.env.example`:
-
-| Var | Keterangan |
+| Variable | Keterangan |
 |---|---|
-| `SESSION_SECRET` | string acak panjang bebas, buat tanda tangan cookie sesi (bukan PIN) |
-| `USER1_NAME`, `USER1_PASSWORD` | nama & PIN user pertama (wajib) |
-| `USER1_HEALTH_SYNC_TOKEN` | token rahasia bikin sendiri, buat autentikasi Apple Shortcuts user 1 |
-| `USER2_NAME`, `USER2_PASSWORD`, `USER2_HEALTH_SYNC_TOKEN` | sama seperti di atas untuk user kedua — kosongkan semua kalau hanya dipakai sendiri |
-| `GEMINI_API_KEY` | dari langkah 1 |
-| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | dari langkah 2 |
+| `SESSION_SECRET` | string acak panjang untuk tanda tangan cookie |
+| `USER1_NAME` | nama user pertama |
+| `USER1_PASSWORD` | PIN/password user pertama |
+| `USER1_HEALTH_SYNC_TOKEN` | token rahasia buatan sendiri untuk Apple Shortcuts |
+| `USER2_NAME` | opsional, kosongkan bila hanya satu user |
+| `USER2_PASSWORD` | opsional |
+| `USER2_HEALTH_SYNC_TOKEN` | opsional |
+| `GEMINI_API_KEY` | API key dari Google AI Studio |
+| `GEMINI_MODEL` | opsional, default `gemini-2.5-flash` |
+| `UPSTASH_REDIS_REST_URL` | URL Redis dari Upstash/Vercel |
+| `UPSTASH_REDIS_REST_TOKEN` | token Redis dari Upstash/Vercel |
 
-Login otomatis mendeteksi siapa yang masuk berdasarkan PIN mana yang cocok —
-tidak perlu pilih nama user di layar login, cukup 1 kolom PIN.
+Untuk local development gunakan `.env.local`. Untuk production isi melalui Vercel Project Settings → Environment Variables.
 
-Untuk local dev, copy ke `.env.local`. Untuk Vercel, isi di Project Settings → Environment Variables.
-
-### 4. Deploy ke Vercel
+## Menjalankan lokal
 
 ```bash
 npm install
-npm run build   # opsional, sanity check lokal
+npm run dev
 ```
 
-Push repo ini ke GitHub lalu import ke [vercel.com/new](https://vercel.com/new),
-atau pakai Vercel CLI (`vercel --prod`). Set environment variables di atas
-sebelum/selama deploy.
+Sanity check sebelum merge/deploy:
 
-### 5. (Opsional) Sinkron kalori keluar otomatis dari iPhone via Apple Shortcuts
+```bash
+npm run build
+```
 
-Karena app ini web-based, tidak bisa akses HealthKit langsung. Solusinya pakai
-**Shortcuts** (app bawaan iPhone, gratis, tanpa app tambahan). Ulangi langkah
-ini di HP masing-masing user, dengan token milik user itu sendiri
-(`USER1_HEALTH_SYNC_TOKEN` / `USER2_HEALTH_SYNC_TOKEN`):
+## Apple Health Active Energy Sync
 
-1. Buka app **Shortcuts** → tab **Automation** → **+** → **Create Personal Automation**.
-2. Pilih trigger sesukamu, misalnya **Time of Day** (jalan tiap jam tertentu)
-   atau **App** → saat buka app tertentu. Matikan "Ask Before Running" biar
-   jalan otomatis di background.
-3. Add action **Find Health Samples where** → tipe **Active Energy** → filter
-   **Start Date is Today**.
-4. Add action **Calculate Statistics** (atau **Sum**) dari hasil di atas untuk
-   dapat total kalori terbakar hari ini.
-5. Add action **Get Contents of URL**:
-   - URL: `https://<domain-vercel-kamu>/api/health-sync`
-   - Method: `POST`
-   - Headers: `Authorization: Bearer <isi dengan HEALTH_SYNC_TOKEN milikmu>`
-   - Request Body: JSON → `{"calories": <hasil langkah 4>}`
-6. Simpan. Tiap automation ini jalan, dashboard app otomatis update kalori
-   terbakar hari ini punya user yang sesuai tokennya (menimpa angka
-   sebelumnya dengan total terbaru, bukan menumpuk).
+Karena ini web app, HealthKit tidak bisa dibaca langsung. Gunakan Apple Shortcuts:
 
-Kalau ribet / device bukan iPhone, cukup pakai input manual "Catat kalori
-keluar" di dashboard — sudah cukup untuk pemakaian sehari-hari.
+1. Find Health Samples → Active Energy → Start Date is Today.
+2. Calculate Statistics / Sum.
+3. POST ke `https://<domain>/api/health-sync`.
+4. Header: `Authorization: Bearer <USER_HEALTH_SYNC_TOKEN>`.
+5. JSON body:
 
-## Cara kerja logika utama
+```json
+{
+  "calories": 450
+}
+```
 
-- **Hari** dihitung berdasarkan timezone di Settings (default `Asia/Jakarta`),
-  bukan UTC server, supaya pergantian hari sesuai jam lokal kamu.
-- **Rencana harian**: begitu kamu isi jam bangun di halaman Rencana, jam itu
-  (dikonversi dari waktu lokal ke waktu sebenarnya) dipakai sebagai patokan
-  saran (≥ jam 9 → saran IF, < jam 9 → saran defisit) dan sebagai jangkar
-  window makan kalau pilih IF. Bukan jam saat kamu kebetulan buka halamannya
-  — bisa diubah lagi kalau salah input.
-- **Sukses harian** (dipakai buat streak & success rate): kalori bersih
-  (masuk − keluar) hari itu ≤ target, dan minimal ada 1 meal tercatat (hari
-  kosong tidak dihitung sukses).
-- **Streak**: dihitung on-demand per user dengan menelusuri mundur dari
-  kemarin, berhenti di hari pertama yang gagal/kosong. Tidak perlu cron job.
-- **Saran olahraga penebus**: pakai rumus MET standar
-  (`kcal/menit = MET × 3.5 × berat(kg) / 200`), dengan beberapa pilihan
-  aktivitas (lari, jalan cepat, lompat tali, sepeda, HIIT).
-- **Multi-user**: cookie sesi berisi `userId` + tanda tangan HMAC (pakai
-  `SESSION_SECRET`), tanpa perlu tabel sesi di database. Semua data di Redis
-  diberi prefix per user (`mk:<userId>:...`) supaya benar-benar terpisah.
+Endpoint mengganti total Active Energy hari itu, bukan menumpuk setiap sync.
 
-## Belum sempat / sengaja belum dibuat
+## Prinsip keselamatan produk
 
-- **Integrasi kalender/jadwal harian** untuk ikut mempertimbangkan rencana
-  hari itu — ide bagus untuk pemakaian yang lebih "profesional", tapi
-  disengaja belum dibuat dulu supaya tetap simpel.
-- Tidak ada histori/penyimpanan foto makanan sama sekali (lihat penjelasan
-  di atas).
-- Sinkron Health hanya lewat Apple Shortcuts (bukan integrasi HealthKit
-  native), karena ini web app, bukan app iOS native.
-- Estimasi kalori dari foto & rumus olahraga adalah **perkiraan**, bukan
-  pengukuran presisi — cukup untuk keperluan tracking harian.
-- Maksimal 2 user (via `USER1_*`/`USER2_*`), bukan sistem akun umum dengan
-  pendaftaran bebas.
+- Tidak mendorong puasa kompensasi, muntah, atau olahraga sebagai hukuman.
+- Very lean mode tidak mengejar body-fat serendah mungkin.
+- VO₂ max dan body fat dari wearable/smart scale dianggap estimasi perangkat.
+- Gemini dilarang mengarang makanan, aktivitas, diagnosis, usia, jenis kelamin, atau riwayat medis.
+- Perubahan target penting tetap memerlukan persetujuan user.
+
+## Roadmap setelah Sprint 6
+
+- Body reference dan program-calorie engine: BMI, BMR/TDEE, target kalori sesuai goal.
+- Apple Health Sync V2: berat, body fat, VO₂ max, resting heart rate, workout duration.
+- Meal swap dan “Can I Eat This?” berbasis hasil analisis foto.
+- Restaurant and pantry intelligence.
+- Habit learning dan adaptive coaching setelah data penggunaan mencukupi.
+
+## Batasan saat ini
+
+- Maksimal dua user, bukan sistem registrasi umum.
+- Foto makanan tidak disimpan.
+- Estimasi foto, MET, VO₂ max, body fat, Fullness Score, dan ETA berat adalah perkiraan.
+- Health sync masih melalui Shortcuts, bukan aplikasi iOS native.
