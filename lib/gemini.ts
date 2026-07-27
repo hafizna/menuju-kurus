@@ -1,3 +1,5 @@
+import { generateGeminiJson } from "./geminiClient";
+
 export interface FoodAnalysis {
   foodName: string;
   calories: number;
@@ -33,43 +35,15 @@ and describe them in foodName. Respond only with the requested JSON fields:
 - confidence: "low" | "medium" | "high" based on how clearly you could identify the food`;
 
 export async function analyzeFoodPhoto(imageBase64: string, mimeType: string): Promise<FoodAnalysis> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY env var is not set");
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const parsed = await generateGeminiJson<FoodAnalysis>({
+    parts: [
+      { text: PROMPT },
+      { inline_data: { mime_type: mimeType, data: imageBase64 } },
+    ],
+    responseSchema: RESPONSE_SCHEMA,
+    emptyResponseMessage: "Gemini returned no analysis",
+  });
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: PROMPT },
-              { inline_data: { mime_type: mimeType, data: imageBase64 } },
-            ],
-          },
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: RESPONSE_SCHEMA,
-          temperature: 0.2,
-        },
-      }),
-    }
-  );
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Gemini API error ${res.status}: ${text.slice(0, 300)}`);
-  }
-
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini returned no analysis");
-
-  const parsed = JSON.parse(text);
   return {
     foodName: String(parsed.foodName ?? "Makanan tidak dikenali"),
     calories: Math.max(0, Math.round(Number(parsed.calories) || 0)),
