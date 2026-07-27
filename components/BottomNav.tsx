@@ -7,7 +7,7 @@ const ITEMS = [
   { href: "/", label: "Home", icon: "🏠" },
   { href: "/log-food", label: "Makan", icon: "📷" },
   { href: "/weight", label: "Berat", icon: "⚖️" },
-  { href: "/plan", label: "Rencana", icon: "🎯" },
+  { href: "/fitness", label: "Fitness", icon: "🏃" },
   { href: "/trends", label: "Tren", icon: "📈" },
   { href: "/settings", label: "Setting", icon: "⚙️" },
 ];
@@ -25,9 +25,7 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs ${
-                active ? "text-brand-600 dark:text-brand-400" : "text-neutral-400"
-              }`}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] ${active ? "text-brand-600 dark:text-brand-400" : "text-neutral-400"}`}
             >
               <span className="text-lg leading-none">{item.icon}</span>
               {item.label}
