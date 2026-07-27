@@ -1,0 +1,52 @@
+# Menuju Kurus — Product Roadmap
+
+Menuju Kurus diposisikan sebagai **personal nutrition decision assistant**, bukan sekadar aplikasi penghitung kalori.
+
+Logika utama tetap deterministic dan dapat diuji. AI hanya menjelaskan keputusan yang sudah dihitung oleh engine lokal; AI tidak menentukan target, ranking, atau aturan keselamatan.
+
+## Fondasi produk
+
+Sprint awal membangun calorie tracking, weight intelligence, health score, weekly review, decision coach, fitness goal profile, dan satiety intelligence.
+
+## Fase integrasi
+
+### Sprint 7 — Apple Health Sync V2
+
+- Sinkronisasi berat dan body fat.
+- Sinkronisasi VO₂ max dan resting heart rate.
+- Sinkronisasi workout duration dan active energy.
+- Konflik data diselesaikan secara eksplisit, bukan menumpuk nilai setiap sync.
+
+### Sprint 8 — Restaurant Intelligence
+
+- Pencarian menu restoran Indonesia tanpa foto.
+- Library lokal untuk warteg, rumah makan Padang, ayam, bakso/mi, soto, fast food, dan kafe.
+- Ranking berdasarkan sisa kalori, sisa protein, rasa kenyang, goal aktif, dan kecocokan pencarian.
+- Koreksi porsi sebelum disimpan.
+- Pencatatan sebagai estimasi manual dengan catatan asumsi yang transparan.
+
+### Sprint 9 — Habit Intelligence
+
+- Menu dan waktu makan yang paling sering berulang.
+- Quick add dari kebiasaan pengguna.
+- Deteksi pola yang membantu atau menghambat goal.
+- Rekomendasi berdasarkan data penggunaan yang cukup, bukan asumsi dini.
+
+### Sprint 10 — Personal Adaptive Coach
+
+- Menyesuaikan prioritas harian berdasarkan tren berat, kepatuhan, aktivitas, rasa lapar, dan pola makan.
+- Menjelaskan trade-off keputusan makan secara kontekstual.
+- Tidak menggunakan puasa kompensasi, muntah, atau olahraga sebagai hukuman.
+- AI tetap menjadi explanation layer di atas deterministic decision engine.
+
+## Positioning
+
+Produk pembanding umumnya unggul pada satu domain: logging, detail nutrisi, adaptive calorie target, atau behavioral coaching. Menuju Kurus menggabungkan:
+
+- decision engine,
+- satiety intelligence,
+- goal-aware coaching,
+- context-aware meal suggestions,
+- AI explanation tanpa menyerahkan logika keputusan kepada chatbot.
+
+Kombinasi ini membuat produk lebih dekat ke personal nutrition decision assistant daripada aplikasi diet konvensional.
