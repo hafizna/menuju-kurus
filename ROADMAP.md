@@ -17,7 +17,7 @@ Sprint awal membangun calorie tracking, weight intelligence, health score, weekl
 - Sinkronisasi workout duration dan active energy.
 - Konflik data diselesaikan secara eksplisit, bukan menumpuk nilai setiap sync.
 
-### Sprint 8 — Restaurant Intelligence
+### Sprint 8 — Restaurant Intelligence ✅
 
 - Pencarian menu restoran Indonesia tanpa foto.
 - Library lokal untuk warteg, rumah makan Padang, ayam, bakso/mi, soto, fast food, dan kafe.
@@ -25,12 +25,13 @@ Sprint awal membangun calorie tracking, weight intelligence, health score, weekl
 - Koreksi porsi sebelum disimpan.
 - Pencatatan sebagai estimasi manual dengan catatan asumsi yang transparan.
 
-### Sprint 9 — Habit Intelligence
+### Sprint 9 — Habit Intelligence ✅
 
-- Menu dan waktu makan yang paling sering berulang.
-- Quick add dari kebiasaan pengguna.
-- Deteksi pola yang membantu atau menghambat goal.
-- Rekomendasi berdasarkan data penggunaan yang cukup, bukan asumsi dini.
+- Analisis rolling 28 hari atas menu dan waktu makan yang paling sering berulang.
+- Quick add memakai rata-rata kalori, makro, dan asumsi porsi dari catatan pengguna sendiri.
+- Tahap kesiapan data: insufficient, learning, dan ready.
+- Insight baru aktif setelah minimal 10 hari tercatat dan 20 makanan, sehingga aplikasi tidak menyimpulkan kebiasaan terlalu dini.
+- Pola yang membantu atau perlu diperhatikan ditampilkan sebagai sinyal, bukan klaim sebab-akibat.
 
 ### Sprint 10 — Personal Adaptive Coach
 
@@ -47,6 +48,7 @@ Produk pembanding umumnya unggul pada satu domain: logging, detail nutrisi, adap
 - satiety intelligence,
 - goal-aware coaching,
 - context-aware meal suggestions,
+- habit intelligence dari data pengguna sendiri,
 - AI explanation tanpa menyerahkan logika keputusan kepada chatbot.
 
 Kombinasi ini membuat produk lebih dekat ke personal nutrition decision assistant daripada aplikasi diet konvensional.
