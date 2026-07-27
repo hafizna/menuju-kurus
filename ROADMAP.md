@@ -33,12 +33,16 @@ Sprint awal membangun calorie tracking, weight intelligence, health score, weekl
 - Insight baru aktif setelah minimal 10 hari tercatat dan 20 makanan, sehingga aplikasi tidak menyimpulkan kebiasaan terlalu dini.
 - Pola yang membantu atau perlu diperhatikan ditampilkan sebagai sinyal, bukan klaim sebab-akibat.
 
-### Sprint 10 — Personal Adaptive Coach
+### Sprint 10 — Personal Adaptive Coach ✅
 
-- Menyesuaikan prioritas harian berdasarkan tren berat, kepatuhan, aktivitas, rasa lapar, dan pola makan.
-- Menjelaskan trade-off keputusan makan secara kontekstual.
-- Tidak menggunakan puasa kompensasi, muntah, atau olahraga sebagai hukuman.
-- AI tetap menjadi explanation layer di atas deterministic decision engine.
+- Menggabungkan status kalori/protein hari ini, budget mingguan, tren berat, goal, dan Habit Intelligence.
+- Menerima konteks langsung dari pengguna: lapar, sangat lapar, craving, atau makan di luar.
+- Memberikan maksimal tiga prioritas yang diranking secara deterministic, disertai bukti data dan tindakan berikutnya.
+- Menggunakan menu berulang pengguna sebagai saran hanya setelah data kebiasaan siap.
+- Menjelaskan trade-off porsi ketika menu biasa lebih besar daripada budget yang tersisa, tanpa melarang makanan.
+- Mendeteksi tren penurunan berat yang terlalu cepat agar aplikasi tidak menambah defisit secara agresif.
+- Recovery tetap tidak menggunakan puasa kompensasi, muntah, atau olahraga sebagai hukuman.
+- AI tetap menjadi explanation layer opsional; AI tidak menentukan prioritas coach.
 
 ## Positioning
 
@@ -49,6 +53,7 @@ Produk pembanding umumnya unggul pada satu domain: logging, detail nutrisi, adap
 - goal-aware coaching,
 - context-aware meal suggestions,
 - habit intelligence dari data pengguna sendiri,
+- personal adaptive coaching,
 - AI explanation tanpa menyerahkan logika keputusan kepada chatbot.
 
 Kombinasi ini membuat produk lebih dekat ke personal nutrition decision assistant daripada aplikasi diet konvensional.
