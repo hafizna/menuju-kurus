@@ -176,14 +176,16 @@ export function buildAdaptiveCoach(input: AdaptiveCoachInput): AdaptiveCoachResu
     });
   }
 
-  if (surplus > 0) {
+  if (surplus > 0 || weeklyOver) {
     recommendations.push({
       id: "recovery",
       title: "Tidak perlu menghukum diri",
       detail: weeklyOver
-        ? "Hentikan upaya mengejar angka hari ini. Kembali ke target normal besok dan jaga keputusan beberapa hari ke depan tanpa puasa kompensasi."
+        ? "Jangan menekan kalori lebih rendah untuk membayar minggu ini. Jalankan target normal pada makan berikutnya dan beberapa hari ke depan tanpa puasa kompensasi."
         : "Budget mingguan masih dapat menyerap sebagian variasi hari ini. Lanjutkan secara normal dan berhenti saat cukup kenyang.",
-      evidence: `${surplus} kcal di atas target hari ini${weeklyOver ? " · budget mingguan terlampaui" : ""}`,
+      evidence: surplus > 0
+        ? `${surplus} kcal di atas target hari ini${weeklyOver ? " · budget mingguan terlampaui" : ""}`
+        : `Budget mingguan terlampaui ${Math.abs(weeklyBudget.remaining)} kcal`,
       priority: 140,
     });
   }
