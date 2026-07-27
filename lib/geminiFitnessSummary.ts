@@ -1,4 +1,5 @@
 import type { FitnessIntelligence } from "./fitnessIntelligence";
+import { generateGeminiJson } from "./geminiClient";
 
 export interface FitnessSummaryResult {
   summary: string;
@@ -22,22 +23,12 @@ Sesuaikan interpretasi dengan goal pengguna: weight loss, very lean, athletic, a
 Berikan ringkasan Bahasa Indonesia 80-120 kata dan tepat 3 rekomendasi singkat yang actionable.`;
 
 export async function generateFitnessSummary(input: FitnessIntelligence): Promise<FitnessSummaryResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY env var is not set");
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\nData:\n${JSON.stringify(input, null, 2)}` }] }],
-      generationConfig: { responseMimeType: "application/json", responseSchema: RESPONSE_SCHEMA, temperature: 0.25 },
-    }),
+  const parsed = await generateGeminiJson<FitnessSummaryResult>({
+    parts: [{ text: `${SYSTEM_PROMPT}\n\nData:\n${JSON.stringify(input, null, 2)}` }],
+    responseSchema: RESPONSE_SCHEMA,
+    emptyResponseMessage: "Gemini returned no summary",
   });
-  if (!res.ok) throw new Error(`Gemini API error ${res.status}: ${(await res.text()).slice(0, 250)}`);
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini returned no summary");
-  const parsed = JSON.parse(text);
+
   return {
     summary: String(parsed.summary ?? ""),
     recommendations: Array.isArray(parsed.recommendations)
