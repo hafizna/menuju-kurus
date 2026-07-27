@@ -6,6 +6,7 @@ import { getUserId } from "@/lib/session";
 import { getUserById } from "@/lib/users";
 import { getWeightEntries, computeWeightTrend } from "@/lib/weight";
 import { computeHealthScore } from "@/lib/healthScore";
+import { buildHabitStrategy } from "@/lib/habits";
 
 export async function GET(req: NextRequest) {
   const userId = getUserId(req);
@@ -14,11 +15,12 @@ export async function GET(req: NextRequest) {
   const settings = await getSettings(userId);
   const date = todayKey(settings.timezone);
 
-  const [last7Logs, weightEntries] = await Promise.all([
-    getLastNDayLogs(userId, 7, settings.timezone),
+  const [last28Logs, weightEntries] = await Promise.all([
+    getLastNDayLogs(userId, 28, settings.timezone),
     getWeightEntries(userId),
   ]);
-  const log = last7Logs[last7Logs.length - 1]; // today is the last entry (oldest -> newest)
+  const last7Logs = last28Logs.slice(-7);
+  const log = last28Logs[last28Logs.length - 1];
 
   const summary = summarizeDay(log, settings.dailyTargetKcal);
   const streak = await computeStreak(userId, settings.timezone, settings.dailyTargetKcal);
@@ -33,6 +35,7 @@ export async function GET(req: NextRequest) {
     weightTrend,
     last7Logs,
   });
+  const habits = buildHabitStrategy(last28Logs, settings);
 
   return NextResponse.json({
     date,
@@ -46,5 +49,6 @@ export async function GET(req: NextRequest) {
     weightTrend,
     proteinToday,
     healthScore,
+    habits,
   });
 }
