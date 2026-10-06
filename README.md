@@ -94,7 +94,7 @@ AI (Gemini maupun DeepSeek) tidak menjadi sumber logika utama. Engine lokal meng
 
 ## Stack
 
-- Next.js 14 App Router + Tailwind CSS
+- Next.js 16 App Router + Tailwind CSS (middleware.ts masih dipakai — deprecated di 16 tapi belum dihapus, lihat catatan di `middleware.ts`)
 - Vercel Hobby/free plan
 - Google Gemini API untuk analisa foto makanan (vision), default `gemini-2.5-flash`
 - DeepSeek API (OpenAI-compatible) untuk AI recap teks-only: weekly summary, fitness recap, satiety recap
