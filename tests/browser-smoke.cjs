@@ -1,6 +1,6 @@
 const http = require("node:http");
 const { spawn } = require("node:child_process");
-const { randomBytes } = require("node:crypto");
+const { randomBytes, scryptSync } = require("node:crypto");
 const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
 const { chromium } = require("playwright-core");
@@ -21,6 +21,13 @@ put("mk:u3:settings", {
   weightKg: 77.4,
   goalWeightKg: 72,
   programConfigured: true,
+});
+const testPin = "483920";
+const pinSalt = randomBytes(16).toString("hex");
+put("mk:u3:pin", {
+  hash: scryptSync(testPin, pinSalt, 64).toString("hex"),
+  salt: pinSalt,
+  setAt: new Date().toISOString(),
 });
 put("mk:u3:weight", [
   {
@@ -150,7 +157,6 @@ let child, browser;
 (async () => {
   await new Promise((resolve) => backend.listen(0, "127.0.0.1", resolve));
   const backendPort = backend.address().port;
-  const password = randomBytes(12).toString("hex");
   const portProbe = http.createServer();
   await new Promise((resolve) => portProbe.listen(0, "127.0.0.1", resolve));
   const appPort = portProbe.address().port;
@@ -170,9 +176,9 @@ let child, browser;
       env: {
         ...process.env,
         SESSION_SECRET: randomBytes(32).toString("hex"),
-        USER1_PASSWORD: "",
-        USER2_PASSWORD: "",
-        USER3_PASSWORD: password,
+        USER1_EMAIL: "",
+        USER2_EMAIL: "",
+        USER3_EMAIL: "test-user-3@example.com",
         USER3_NAME: "Pengguna uji",
         UPSTASH_REDIS_REST_URL: `http://127.0.0.1:${backendPort}`,
         UPSTASH_REDIS_REST_TOKEN: redisToken,
@@ -207,7 +213,8 @@ let child, browser;
   const page = await context.newPage();
   page.on("pageerror", (error) => browserErrors.push(error.message));
   await page.goto(`http://127.0.0.1:${appPort}/login`);
-  await page.locator("input[type=password]").fill(password);
+  await page.getByRole("button", { name: "Masuk dengan PIN", exact: true }).click();
+  await page.locator("input[type=password]").fill(testPin);
   await page.getByRole("button", { name: "Masuk", exact: true }).click();
   await page.waitForURL(`http://127.0.0.1:${appPort}/`);
   await page.getByText(/\/ 1800 kcal$/).first().waitFor();

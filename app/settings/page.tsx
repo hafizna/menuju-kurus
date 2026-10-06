@@ -110,7 +110,12 @@ export default function SettingsPage() {
           Setiap sync menimpa nilai sebelumnya (bukan menumpuk), dan field yang tidak dikirim Shortcuts tidak akan menghapus nilai yang sudah ada.
         </p>
       </Section>
-      <Section title="Akun"><button onClick={logout} className="w-full rounded-xl border border-red-300 py-3 font-medium text-red-500 dark:border-red-900">Keluar</button></Section>
+      <Section title="Akun">
+        <div className="space-y-2">
+          <button onClick={() => router.push("/account/set-pin")} className="w-full rounded-xl border border-neutral-300 py-3 font-medium text-neutral-700 dark:border-neutral-700 dark:text-neutral-200">Ubah PIN</button>
+          <button onClick={logout} className="w-full rounded-xl border border-red-300 py-3 font-medium text-red-500 dark:border-red-900">Keluar</button>
+        </div>
+      </Section>
     </div>
   );
 }

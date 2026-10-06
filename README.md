@@ -16,7 +16,7 @@ Menuju Kurus diposisikan sebagai **personal nutrition decision assistant**: logi
 8. **Restaurant Intelligence.** Cari menu Indonesia tanpa foto, lihat asumsi porsi dan ranking kontekstual, lalu simpan sebagai estimasi manual.
 9. **Habit Intelligence.** Pelajari menu berulang dan waktu makan dalam rolling 28 hari, lalu quick add dari rata-rata catatan pengguna sendiri.
 10. **AI recap manual.** Gemini (foto makanan) dan DeepSeek (recap teks) hanya dipanggil saat user menekan tombol, agar penggunaan tetap terkontrol.
-11. **Tiga user terpisah.** Satu deployment dapat dipakai hingga tiga orang dengan PIN, settings, Redis keys, dan Health Sync token terpisah.
+11. **Hingga lima user terpisah.** Satu deployment dapat dipakai hingga lima orang, masing-masing dengan login sendiri (Google Sign-In digate lewat allowlist email + PIN 6 digit untuk masuk cepat sehari-hari), settings, Redis keys, dan Health Sync token terpisah.
 
 ## Navigasi
 
@@ -99,7 +99,7 @@ AI (Gemini maupun DeepSeek) tidak menjadi sumber logika utama. Engine lokal meng
 - Google Gemini API untuk analisa foto makanan (vision), default `gemini-2.5-flash`
 - DeepSeek API (OpenAI-compatible) untuk AI recap teks-only: weekly summary, fitness recap, satiety recap
 - Upstash Redis REST API
-- HMAC session cookie dengan PIN login
+- HMAC session cookie; login via Google Sign-In (gated allowlist) + PIN harian (hashed, scrypt)
 - Apple Shortcuts sebagai bridge ke Apple Health
 
 ## Dua provider AI, dua peran berbeda
@@ -126,19 +126,41 @@ Otomatis"/"Recap Otomatis" (bukan "AI") supaya jelas bedanya. Begitu
 tanpa perlu ubah kode. Foto makanan tidak terpengaruh sama sekali — itu
 selalu lewat Gemini, independen dari toggle ini.
 
+## Login: Google Sign-In (gated) + PIN harian
+
+Tidak ada form registrasi publik — ini bukan aplikasi dengan sistem akun terbuka.
+Flow-nya:
+
+1. **Landing `/login`** menampilkan dua pilihan: "Masuk dengan PIN" (user yang sudah pernah daftar) atau "Daftar / masuk dengan Google" (pertama kali, atau lupa PIN).
+2. **Google Sign-In** memverifikasi identitas lewat Google, lalu dicocokkan ke allowlist `USERn_EMAIL` di env var. Email yang tidak ada di allowlist ditolak (`Email ini belum terdaftar`) — jadi sekalipun orang asing punya akun Google, mereka tetap tidak bisa masuk dan memakai kuota Gemini/DeepSeek kamu.
+3. Login Google pertama kali untuk suatu user diarahkan ke `/account/set-pin` untuk membuat PIN 6 digit (disimpan **ter-hash** dengan scrypt + salt per user di Redis — bukan plaintext seperti sistem PIN env var sebelumnya).
+4. Setelah PIN dibuat, login sehari-hari cukup lewat PIN di `/login` (cepat, tanpa redirect ke Google). Percobaan PIN dibatasi (rate-limited) per IP untuk mencegah brute-force terhadap PIN 6 digit.
+5. **Lupa PIN** = login lagi lewat Google (selama email masih di allowlist), lalu ganti PIN dari Profil → Akun → "Ubah PIN".
+
+### Setup Google OAuth (sekali saja)
+
+1. Buka [Google Cloud Console](https://console.cloud.google.com/) → buat/pilih project → **APIs & Services → OAuth consent screen**. Pilih User type **External**, isi info dasar, lalu di tab **Test users** (selama app belum "Published") tambahkan email-email yang akan jadi user — email ini harus sama persis dengan `USERn_EMAIL` di bawah.
+2. **APIs & Services → Credentials → Create Credentials → OAuth client ID**, tipe **Web application**.
+3. Di **Authorized redirect URIs**, tambahkan `https://<domain-vercel-kamu>/api/auth/google/callback` (dan `http://localhost:3000/api/auth/google/callback` untuk development lokal).
+4. Salin **Client ID** dan **Client secret** ke `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+
+Catatan: selama OAuth consent screen masih mode **Testing**, hanya email yang didaftarkan di "Test users" yang bisa login — ini sebenarnya lapisan gate tambahan di luar allowlist `USERn_EMAIL` sendiri, dan tidak perlu di-"Publish" untuk app pribadi/testing kecil seperti ini (publish hanya perlu kalau mau dibuka untuk publik umum).
+
 ## Environment variables
 
 | Variable | Keterangan |
 |---|---|
 | `SESSION_SECRET` | string acak panjang untuk tanda tangan cookie |
+| `GOOGLE_CLIENT_ID` | dari Google Cloud Console OAuth client, lihat setup di atas |
+| `GOOGLE_CLIENT_SECRET` | dari Google Cloud Console OAuth client |
 | `USER1_NAME` | nama user pertama |
-| `USER1_PASSWORD` | PIN/password user pertama |
+| `USER1_EMAIL` | email Gmail yang digate untuk user pertama (harus cocok persis saat Sign in with Google) |
 | `USER1_HEALTH_SYNC_TOKEN` | token rahasia buatan sendiri untuk Apple Shortcuts |
 | `USER2_NAME` | opsional, kosongkan bila hanya satu user |
-| `USER2_PASSWORD` | opsional |
+| `USER2_EMAIL` | opsional |
 | `USER2_HEALTH_SYNC_TOKEN` | opsional |
 | `USER3_NAME` .. `USER5_NAME` | nama user ke-3/4/5, opsional |
-| `USER3_PASSWORD` .. `USER5_PASSWORD` | mengaktifkan slot user ke-3/4/5, opsional |
+| `USER3_EMAIL` .. `USER5_EMAIL` | mengaktifkan slot user ke-3/4/5, opsional |
 | `USER3_HEALTH_SYNC_TOKEN` .. `USER5_HEALTH_SYNC_TOKEN` | token Apple Shortcuts user ke-3/4/5, opsional |
 | `GEMINI_API_KEY` | API key dari Google AI Studio — wajib untuk foto makanan |
 | `GEMINI_MODEL` | opsional, default `gemini-2.5-flash` |
@@ -147,7 +169,7 @@ selalu lewat Gemini, independen dari toggle ini.
 | `UPSTASH_REDIS_REST_URL` | URL Redis dari Upstash/Vercel |
 | `UPSTASH_REDIS_REST_TOKEN` | token Redis dari Upstash/Vercel |
 
-Setiap user harus memakai password dan Health Sync token yang berbeda; duplikasi kredensial ditolak agar login/sync tidak memilih akun yang salah. Mengosongkan password menonaktifkan slot tersebut; identitas `u1`-`u5` tetap stabil. Maksimal 5 slot (`USER1_*`..`USER5_*`).
+Setiap user harus memakai email dan Health Sync token yang berbeda; duplikasi ditolak agar login/sync tidak memilih akun yang salah. Mengosongkan `USERn_EMAIL` menonaktifkan slot tersebut; identitas `u1`-`u5` tetap stabil, dan PIN yang sudah pernah dibuat untuk slot itu tetap tersimpan di Redis kalau slot diaktifkan lagi. Maksimal 5 slot (`USER1_*`..`USER5_*`).
 
 Untuk local development gunakan `.env.local`. Untuk production isi melalui Vercel Project Settings → Environment Variables.
 
@@ -274,7 +296,7 @@ Lihat [`ROADMAP.md`](./ROADMAP.md). Fase integrasi Sprint 7–10 telah selesai.
 
 ## Batasan saat ini
 
-- Maksimal lima user, bukan sistem registrasi umum.
+- Maksimal lima user; registrasi hanya lewat Google Sign-In yang digate allowlist email di env var, bukan sistem registrasi publik/terbuka.
 - Foto makanan tidak disimpan.
 - Estimasi foto, menu restoran, MET, VO₂ max, body fat, Fullness Score, dan ETA berat adalah perkiraan.
 - Habit Intelligence dan Adaptive Coach bergantung pada konsistensi dan kualitas catatan pengguna.

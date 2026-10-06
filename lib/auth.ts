@@ -1,6 +1,9 @@
-import { getUsers, AppUser } from "./users";
+import { getUsers } from "./users";
 
 export const SESSION_COOKIE = "mk_session";
+// Short-lived cookies used only across the Google OAuth redirect round-trip.
+export const OAUTH_STATE_COOKIE = "mk_oauth_state";
+export const OAUTH_NEXT_COOKIE = "mk_oauth_next";
 
 // Uses Web Crypto (SubtleCrypto) instead of Node's `crypto` module because this
 // also runs inside Next.js Edge middleware, which doesn't support node:crypto.
@@ -26,19 +29,13 @@ async function hmacHex(message: string): Promise<string> {
     .join("");
 }
 
-function constantTimeEqual(a: string, b: string): boolean {
+export function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) {
     diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
   return diff === 0;
-}
-
-export function findUserByPassword(candidate: string): AppUser | null {
-  const matches = getUsers().filter((user) => constantTimeEqual(candidate, user.password));
-  // The login form selects a user by password; duplicate passwords are ambiguous.
-  return matches.length === 1 ? matches[0] : null;
 }
 
 // Cookie value is "<userId>.<hmac(userId)>" — stateless (no server-side

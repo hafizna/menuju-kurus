@@ -11,6 +11,8 @@ const accesses = [];
 const redis = {
   async get(key) { accesses.push(key); return store.has(key) ? structuredClone(store.get(key)) : null; },
   async set(key, value) { accesses.push(key); store.set(key, structuredClone(value)); return 'OK'; },
+  async incr(key) { accesses.push(key); const next = (store.get(key) ?? 0) + 1; store.set(key, next); return next; },
+  async expire(key) { accesses.push(key); return 1; },
   async eval(script, evalKeys, args) {
     const key=evalKeys[0]; accesses.push(key);
     const expected=JSON.parse(args[0]);
@@ -30,10 +32,13 @@ const keys = {
 const redisPath = require.resolve('../lib/redis');
 require.cache[redisPath] = { id: redisPath, filename: redisPath, loaded: true, exports: { redis, keys } };
 const auth = require('../lib/auth');
-const { getUsers, findUserByHealthSyncToken } = require('../lib/users');
+const { getUsers, findUserByHealthSyncToken, findUserByEmail } = require('../lib/users');
+const pin = require('../lib/pin');
 const { middleware } = require('../middleware');
 const logRoute = require('../app/api/log/route');
-const authRoute = require('../app/api/auth/route');
+const pinLoginRoute = require('../app/api/auth/pin/route');
+const accountPinRoute = require('../app/api/account/pin/route');
+const googleCallbackRoute = require('../app/api/auth/google/callback/route');
 const healthRoute = require('../app/api/health-sync/route');
 const todayRoute = require('../app/api/today/route');
 const trendsRoute = require('../app/api/trends/route');
@@ -53,33 +58,92 @@ beforeEach(() => {
   store.clear(); accesses.length = 0;
   for (const n of [1, 2, 3]) {
     process.env[`USER${n}_NAME`] = `Test user ${n}`;
-    process.env[`USER${n}_PASSWORD`] = `test-password-${n}`;
+    process.env[`USER${n}_EMAIL`] = `test-user-${n}@example.com`;
     process.env[`USER${n}_HEALTH_SYNC_TOKEN`] = `test-health-${n}`;
   }
+  process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
+  process.env.GOOGLE_CLIENT_SECRET = 'test-google-client-secret';
 });
 
-test('three slots retain stable identities; missing password disables only its slot', () => {
+test('three slots retain stable identities; missing email disables only its slot', () => {
   assert.deepEqual(getUsers().map((user) => user.id), ['u1', 'u2', 'u3']);
-  delete process.env.USER2_PASSWORD;
+  delete process.env.USER2_EMAIL;
   assert.deepEqual(getUsers().map((user) => user.id), ['u1', 'u3']);
 });
 
-test('third user login produces a valid session, spoofed header is overwritten, revoked user is rejected', async () => {
-  const response = await authRoute.POST(request('/api/auth', 'POST', { password: 'test-password-3' }, null));
+test('PIN login produces a valid session, spoofed header is overwritten, revoked user is rejected', async () => {
+  await pin.setPin('u3', '135790');
+  const response = await pinLoginRoute.POST(request('/api/auth/pin', 'POST', { pin: '135790' }, null));
   assert.equal(response.status, 200);
   const token = response.cookies.get(auth.SESSION_COOKIE).value;
   assert.equal(await auth.verifySessionToken(token), 'u3');
   const result = await middleware(request('/api/today', 'GET', undefined, 'u1', { cookie: `${auth.SESSION_COOKIE}=${token}` }));
   assert.equal(result.headers.get('x-middleware-request-x-user-id'), 'u3');
-  delete process.env.USER3_PASSWORD;
+  delete process.env.USER3_EMAIL;
   assert.equal(await auth.verifySessionToken(token), null);
   assert.equal((await middleware(request('/api/today', 'GET', undefined, 'u1', { cookie: `${auth.SESSION_COOKIE}=${token}` }))).status, 401);
   assert.equal((await middleware(request('/api/today', 'GET', undefined, 'u1'))).status, 401);
 });
 
-test('ambiguous passwords or sync tokens fail closed rather than choosing another user', () => {
-  process.env.USER3_PASSWORD = process.env.USER1_PASSWORD;
-  assert.equal(auth.findUserByPassword('test-password-1'), null);
+test('wrong PIN is rejected and repeated failures from one IP get rate-limited', async () => {
+  await pin.setPin('u3', '111222');
+  for (let i = 0; i < 10; i++) {
+    const res = await pinLoginRoute.POST(request('/api/auth/pin', 'POST', { pin: '000000' }, null, { 'x-forwarded-for': '203.0.113.5' }));
+    assert.equal(res.status, 401);
+  }
+  const blocked = await pinLoginRoute.POST(request('/api/auth/pin', 'POST', { pin: '111222' }, null, { 'x-forwarded-for': '203.0.113.5' }));
+  assert.equal(blocked.status, 429);
+  const stillFine = await pinLoginRoute.POST(request('/api/auth/pin', 'POST', { pin: '111222' }, null, { 'x-forwarded-for': '198.51.100.9' }));
+  assert.equal(stillFine.status, 200);
+});
+
+test('account PIN endpoint requires auth and validates format/confirmation before storing', async () => {
+  assert.equal((await accountPinRoute.POST(request('/api/account/pin', 'POST', { pin: '123456', confirmPin: '123456' }, null))).status, 401);
+  assert.equal((await accountPinRoute.POST(request('/api/account/pin', 'POST', { pin: '123', confirmPin: '123' }))).status, 400);
+  assert.equal((await accountPinRoute.POST(request('/api/account/pin', 'POST', { pin: '123456', confirmPin: '654321' }))).status, 400);
+  const response = await accountPinRoute.POST(request('/api/account/pin', 'POST', { pin: '246810', confirmPin: '246810' }));
+  assert.equal(response.status, 200);
+  assert.equal(await pin.verifyPin('u3', '246810'), true);
+});
+
+test('Google callback rejects a state mismatch and an email outside the allowlist, but logs in an allowed email', async () => {
+  const originalFetch = global.fetch;
+  const identity = { aud: 'test-google-client-id', email: 'test-user-3@example.com', email_verified: 'true' };
+  global.fetch = async (url) => {
+    const u = String(url);
+    // Check the longer/more specific path first — "tokeninfo" contains
+    // "token" as a substring, so the order here matters.
+    if (u.includes('oauth2.googleapis.com/tokeninfo')) return { ok: true, json: async () => identity };
+    if (u.includes('oauth2.googleapis.com/token')) return { ok: true, json: async () => ({ id_token: 'fake-id-token' }) };
+    throw new Error('unexpected fetch ' + u);
+  };
+  try {
+    const mismatch = await googleCallbackRoute.GET(new NextRequest('http://localhost/api/auth/google/callback?code=abc&state=wrong', {
+      headers: { cookie: `${auth.OAUTH_STATE_COOKIE}=right` },
+    }));
+    assert.ok(mismatch.headers.get('location').includes('error=state_mismatch'));
+
+    const allowed = await googleCallbackRoute.GET(new NextRequest('http://localhost/api/auth/google/callback?code=abc&state=right', {
+      headers: { cookie: `${auth.OAUTH_STATE_COOKIE}=right; ${auth.OAUTH_NEXT_COOKIE}=%2Fprogress` },
+    }));
+    const sessionCookie = allowed.cookies.get(auth.SESSION_COOKIE);
+    assert.ok(sessionCookie);
+    assert.equal(await auth.verifySessionToken(sessionCookie.value), 'u3');
+    assert.ok(allowed.headers.get('location').endsWith('/account/set-pin'));
+
+    identity.email = 'stranger@example.com';
+    const rejected = await googleCallbackRoute.GET(new NextRequest('http://localhost/api/auth/google/callback?code=abc&state=right', {
+      headers: { cookie: `${auth.OAUTH_STATE_COOKIE}=right` },
+    }));
+    assert.ok(rejected.headers.get('location').includes('error=not_allowed'));
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('ambiguous emails or sync tokens fail closed rather than choosing another user', () => {
+  process.env.USER3_EMAIL = process.env.USER1_EMAIL;
+  assert.equal(findUserByEmail('test-user-1@example.com'), null);
   process.env.USER3_HEALTH_SYNC_TOKEN = process.env.USER1_HEALTH_SYNC_TOKEN;
   assert.equal(findUserByHealthSyncToken('test-health-1'), null);
 });
