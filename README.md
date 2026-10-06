@@ -113,6 +113,19 @@ Konsekuensi teknis: DeepSeek tidak punya constraint `responseSchema` seketat Gem
 
 Semua panggilan AI (baik Gemini maupun DeepSeek) tetap manual — hanya jalan saat tombol "Buat recap"/"Buat ringkasan" ditekan, bukan otomatis saat halaman dibuka.
 
+### DeepSeek opsional: fallback template tanpa biaya
+
+`DEEPSEEK_API_KEY` boleh dikosongkan sepenuhnya — cocok untuk fase testing dengan
+user non-paying. Tanpa key, `lib/weeklySummaryAi.ts`, `lib/fitnessSummaryAi.ts`,
+dan `lib/satietyAi.ts` otomatis memakai fallback template deterministik:
+kalimat dirangkai dari angka/data yang sudah dihitung engine lokal (bukan
+dari model AI sama sekali), jadi tombol "Buat recap" tetap berfungsi dan
+nggak ada biaya sama sekali. UI menandai hasil ini sebagai "Ringkasan
+Otomatis"/"Recap Otomatis" (bukan "AI") supaya jelas bedanya. Begitu
+`DEEPSEEK_API_KEY` diisi, ketiga fitur otomatis pindah ke DeepSeek beneran
+tanpa perlu ubah kode. Foto makanan tidak terpengaruh sama sekali — itu
+selalu lewat Gemini, independen dari toggle ini.
+
 ## Environment variables
 
 | Variable | Keterangan |
@@ -124,17 +137,17 @@ Semua panggilan AI (baik Gemini maupun DeepSeek) tetap manual — hanya jalan sa
 | `USER2_NAME` | opsional, kosongkan bila hanya satu user |
 | `USER2_PASSWORD` | opsional |
 | `USER2_HEALTH_SYNC_TOKEN` | opsional |
-| `USER3_NAME` | nama user ketiga, opsional |
-| `USER3_PASSWORD` | mengaktifkan slot user ketiga, opsional |
-| `USER3_HEALTH_SYNC_TOKEN` | token Apple Shortcuts user ketiga, opsional |
+| `USER3_NAME` .. `USER5_NAME` | nama user ke-3/4/5, opsional |
+| `USER3_PASSWORD` .. `USER5_PASSWORD` | mengaktifkan slot user ke-3/4/5, opsional |
+| `USER3_HEALTH_SYNC_TOKEN` .. `USER5_HEALTH_SYNC_TOKEN` | token Apple Shortcuts user ke-3/4/5, opsional |
 | `GEMINI_API_KEY` | API key dari Google AI Studio — wajib untuk foto makanan |
 | `GEMINI_MODEL` | opsional, default `gemini-2.5-flash` |
-| `DEEPSEEK_API_KEY` | API key dari platform.deepseek.com (prepaid) — untuk 3 recap teks-only; kalau kosong, tombol recap tersebut akan error tapi foto makanan tetap jalan |
+| `DEEPSEEK_API_KEY` | API key dari platform.deepseek.com (prepaid), opsional — tanpa ini, 3 fitur recap teks tetap jalan pakai template deterministik gratis (lihat bawah), bukan error |
 | `DEEPSEEK_MODEL` | opsional, default `deepseek-chat` |
 | `UPSTASH_REDIS_REST_URL` | URL Redis dari Upstash/Vercel |
 | `UPSTASH_REDIS_REST_TOKEN` | token Redis dari Upstash/Vercel |
 
-Setiap user harus memakai password dan Health Sync token yang berbeda; duplikasi kredensial ditolak agar login/sync tidak memilih akun yang salah. Mengosongkan password menonaktifkan slot tersebut; identitas `u1`, `u2`, dan `u3` tetap stabil.
+Setiap user harus memakai password dan Health Sync token yang berbeda; duplikasi kredensial ditolak agar login/sync tidak memilih akun yang salah. Mengosongkan password menonaktifkan slot tersebut; identitas `u1`-`u5` tetap stabil. Maksimal 5 slot (`USER1_*`..`USER5_*`).
 
 Untuk local development gunakan `.env.local`. Untuk production isi melalui Vercel Project Settings → Environment Variables.
 
@@ -261,7 +274,7 @@ Lihat [`ROADMAP.md`](./ROADMAP.md). Fase integrasi Sprint 7–10 telah selesai.
 
 ## Batasan saat ini
 
-- Maksimal tiga user, bukan sistem registrasi umum.
+- Maksimal lima user, bukan sistem registrasi umum.
 - Foto makanan tidak disimpan.
 - Estimasi foto, menu restoran, MET, VO₂ max, body fat, Fullness Score, dan ETA berat adalah perkiraan.
 - Habit Intelligence dan Adaptive Coach bergantung pada konsistensi dan kualitas catatan pengguna.

@@ -239,7 +239,7 @@ type SatietyResult = {
     mealCalorieBudget: number; proteinTargetG: number; message: string; dataNote: string;
     recommendations: Array<{ id: string; name: string; serving: string; calories: number; proteinG: number; fiberG: number; fullnessScore: number; why: string }>;
   };
-  ai?: { summary: string; suggestions: string[] } | null;
+  ai?: { summary: string; suggestions: string[]; source: "ai" | "template" } | null;
   aiError?: string;
 };
 
@@ -335,12 +335,18 @@ function CariTab() {
           <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Penjelasan AI
+                <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                {result.ai?.source === "template" ? "Penjelasan Otomatis" : "Penjelasan AI"}
               </div>
               <button onClick={() => run(true)} disabled={loading} className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">
                 Buat recap
               </button>
             </div>
+            {result.ai?.source === "template" && (
+              <p className="mt-1 text-xs text-neutral-400">
+                Dibuat dari data langsung tanpa AI (DeepSeek belum diaktifkan) — tetap gratis.
+              </p>
+            )}
             {result.ai ? (
               <>
                 <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">{result.ai.summary}</p>

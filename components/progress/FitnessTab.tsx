@@ -8,6 +8,7 @@ import { IconSparkle } from "@/components/icons";
 interface AiSummary {
   summary: string;
   recommendations: string[];
+  source: "ai" | "template";
 }
 
 export default function FitnessTab() {
@@ -150,7 +151,7 @@ export default function FitnessTab() {
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold">
               <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" />{" "}
-              Recap AI
+              {ai?.source === "template" ? "Recap Otomatis" : "Recap AI"}
             </div>
             <div className="text-xs text-neutral-400">
               Manual saja, agar hemat quota
@@ -165,6 +166,11 @@ export default function FitnessTab() {
           </button>
         </div>
         {error && <p className="text-sm text-red-500">{error}</p>}
+        {ai?.source === "template" && (
+          <p className="text-xs text-neutral-400">
+            Dibuat dari data langsung tanpa AI (DeepSeek belum diaktifkan) — tetap gratis.
+          </p>
+        )}
         {ai && (
           <>
             <p className="text-sm text-neutral-600 dark:text-neutral-300">

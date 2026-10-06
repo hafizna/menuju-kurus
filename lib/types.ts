@@ -90,6 +90,7 @@ export interface WeeklySummary {
   summary: string;
   recommendations: string[];
   generatedAt: string;
+  source: "ai" | "template";
 }
 export interface WeightEntry {
   id: string;

@@ -43,6 +43,7 @@ interface AiSummary {
   summary: string;
   recommendations: string[];
   generatedAt: string;
+  source: "ai" | "template";
 }
 
 export default function WeeklyTab() {
@@ -192,7 +193,8 @@ export default function WeeklyTab() {
       <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Ringkasan AI
+            <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+            {aiSummary?.source === "template" ? "Ringkasan Otomatis" : "Ringkasan AI"}
           </div>
           <button
             onClick={generateSummary}
@@ -204,6 +206,12 @@ export default function WeeklyTab() {
         </div>
 
         {aiError && <p className="text-sm text-red-500">{aiError}</p>}
+
+        {aiSummary?.source === "template" && (
+          <p className="text-xs text-neutral-400">
+            Dibuat dari data langsung tanpa AI (DeepSeek belum diaktifkan) — tetap gratis.
+          </p>
+        )}
 
         {aiSummary ? (
           <>
