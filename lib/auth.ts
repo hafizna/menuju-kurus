@@ -36,10 +36,9 @@ function constantTimeEqual(a: string, b: string): boolean {
 }
 
 export function findUserByPassword(candidate: string): AppUser | null {
-  for (const u of getUsers()) {
-    if (constantTimeEqual(candidate, u.password)) return u;
-  }
-  return null;
+  const matches = getUsers().filter((user) => constantTimeEqual(candidate, user.password));
+  // The login form selects a user by password; duplicate passwords are ambiguous.
+  return matches.length === 1 ? matches[0] : null;
 }
 
 // Cookie value is "<userId>.<hmac(userId)>" — stateless (no server-side
@@ -55,5 +54,5 @@ export async function verifySessionToken(token: string | undefined): Promise<str
   const userId = token.slice(0, dot);
   const sig = token.slice(dot + 1);
   const expected = await hmacHex(userId);
-  return constantTimeEqual(sig, expected) ? userId : null;
+  return constantTimeEqual(sig, expected) && getUsers().some((user) => user.id === userId) ? userId : null;
 }

@@ -1,3 +1,4 @@
+import { TARGET_FEEDBACK_MIN_RATIO } from "./energy";
 import type { DayLog, UserSettings } from "./types";
 import type { DaySummary, WeeklyBudget } from "./day";
 import type { WeightTrend } from "./weight";
@@ -29,8 +30,18 @@ export function buildDailyCoach(input: CoachInput): DailyCoachResult {
   const { log, summary, weeklyBudget, weightTrend, proteinToday, settings } = input;
   const recommendations: CoachRecommendation[] = [];
   const proteinRemaining = Math.max(0, settings.proteinTargetG - proteinToday);
-  const surplus = Math.max(0, summary.net - summary.target);
+  const surplus = Math.max(0, summary.caloriesIn - summary.target);
   const weeklyOver = weeklyBudget.remaining < 0;
+
+  if (summary.foodLogStatus === "complete" && summary.caloriesIn < summary.target * TARGET_FEEDBACK_MIN_RATIO) {
+    recommendations.push({
+      id: "check-intake",
+      icon: "🍽️",
+      title: "Tinjau kecukupan makan dan catatan",
+      detail: "Periksa makanan yang mungkin belum tercatat; asupan lebih rendah tidak otomatis lebih baik dan tidak perlu memperbesar defisit.",
+      priority: 110,
+    });
+  }
 
   if (proteinRemaining >= 25) {
     recommendations.push({
@@ -49,7 +60,7 @@ export function buildDailyCoach(input: CoachInput): DailyCoachResult {
       title: "Tidak perlu menghukum diri",
       detail: weeklyOver
         ? "Berhenti mengejar angka hari ini. Kembali ke pola normal pada waktu makan berikutnya dan jaga porsi beberapa hari ke depan."
-        : "Budget mingguan masih memberi ruang. Lanjutkan hari secara normal dan hentikan makan saat sudah cukup kenyang.",
+        : "Catatan sejauh ini belum melewati budget mingguan; periksa kelengkapan catatan. Lanjutkan hari secara normal dan hentikan makan saat sudah cukup kenyang.",
       priority: 95,
     });
   } else if (summary.remaining > 500 && log.meals.length > 0) {
@@ -93,7 +104,7 @@ export function buildDailyCoach(input: CoachInput): DailyCoachResult {
   }
 
   const selected = recommendations.sort((a, b) => b.priority - a.priority).slice(0, 3);
-  const status = surplus >= 400 || weeklyOver ? "recover" : surplus > 0 || proteinRemaining >= 40 ? "watch" : "on-track";
+  const status = surplus >= 400 || weeklyOver ? "recover" : !summary.onTrack || surplus > 0 || proteinRemaining >= 40 ? "watch" : "on-track";
 
   return {
     status,

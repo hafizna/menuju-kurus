@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       source: body.source === "photo" ? "photo" : "manual",
     };
     log.meals.push(entry);
+    log.foodLogComplete = false;
   } else {
     const entry: BurnEntry = {
       id: crypto.randomUUID(),
@@ -62,9 +63,31 @@ export async function DELETE(req: NextRequest) {
   const log = await getDayLog(userId, date);
   if (type === "meal") {
     log.meals = log.meals.filter((m) => m.id !== id);
+    log.foodLogComplete = false;
   } else {
     log.burns = log.burns.filter((b) => b.id !== id);
   }
+  await saveDayLog(userId, log);
+  return NextResponse.json({ log });
+}
+
+// Confirmation concerns food intake only; changing activity does not reopen it.
+export async function PATCH(req: NextRequest) {
+  const userId = getUserId(req);
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body.foodLogComplete !== "boolean") {
+    return NextResponse.json({ error: "foodLogComplete must be a boolean" }, { status: 400 });
+  }
+  const settings = await getSettings(userId);
+  const today = todayKey(settings.timezone);
+  const date = body.date === undefined ? today : body.date;
+  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date || date > today) {
+    return NextResponse.json({ error: "date must be a valid day, not in the future" }, { status: 400 });
+  }
+  const log = await getDayLog(userId, date);
+  log.foodLogComplete = body.foodLogComplete;
   await saveDayLog(userId, log);
   return NextResponse.json({ log });
 }

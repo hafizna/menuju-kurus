@@ -1,7 +1,9 @@
+import { upsertBodyCheckIn } from "@/lib/bodyStore";
+import { validMeasurementDate, BODY_LABELS } from "@/lib/body";
 import { NextRequest, NextResponse } from "next/server";
 import { getDayLog, saveDayLog, getSettings, saveSettings } from "@/lib/day";
 import { todayKey } from "@/lib/dates";
-import { getUsers } from "@/lib/users";
+import { findUserByHealthSyncToken } from "@/lib/users";
 import { upsertWeightEntry } from "@/lib/weight";
 
 function numberOrUndefined(value: unknown): number | undefined {
@@ -24,13 +26,14 @@ export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "");
 
-  const user = getUsers().find((u) => u.healthSyncToken && u.healthSyncToken === token);
+  const user = findUserByHealthSyncToken(token);
   if (!token || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await req.json().catch(() => null);
-  if (!body) return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  if (!body)
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
 
   const calories = numberOrUndefined(body.calories);
   const weightKg = numberOrUndefined(body.weightKg);
@@ -42,21 +45,49 @@ export async function POST(req: NextRequest) {
   const hasAnyField =
     calories !== undefined ||
     weightKg !== undefined ||
+    bodyFatPercent !== undefined ||
     vo2Max !== undefined ||
     restingHeartRate !== undefined ||
     cardioMinutesWeekly !== undefined;
 
   if (!hasAnyField) {
     return NextResponse.json(
-      { error: "Provide at least one of: calories, weightKg, vo2Max, restingHeartRate, cardioMinutesWeekly" },
-      { status: 400 }
+      {
+        error:
+          "Provide at least one of: calories, weightKg, bodyFatPercent, vo2Max, restingHeartRate, cardioMinutesWeekly",
+      },
+      { status: 400 },
     );
   }
 
   const settings = await getSettings(user.id);
-  const date: string = typeof body.date === "string" ? body.date : todayKey(settings.timezone);
+  const date: string =
+    typeof body.date === "string" ? body.date : todayKey(settings.timezone);
 
-  if (calories !== undefined && calories > 0) {
+  const today = todayKey(settings.timezone);
+  if (!validMeasurementDate(date, today))
+    return NextResponse.json(
+      { error: "Invalid measurement date" },
+      { status: 400 },
+    );
+  if (calories !== undefined && calories < 0)
+    return NextResponse.json(
+      { error: "Invalid Active Energy" },
+      { status: 400 },
+    );
+  if (weightKg !== undefined && (weightKg < 1 || weightKg > 400))
+    return NextResponse.json({ error: "Invalid weight" }, { status: 400 });
+  if (
+    bodyFatPercent !== undefined &&
+    (bodyFatPercent < BODY_LABELS.bodyFatPercent.min ||
+      bodyFatPercent > BODY_LABELS.bodyFatPercent.max)
+  )
+    return NextResponse.json(
+      { error: "Invalid body fat percentage" },
+      { status: 400 },
+    );
+
+  if (calories !== undefined && calories >= 0) {
     const log = await getDayLog(user.id, date);
     const existing = log.burns.find((b) => b.source === "shortcuts");
     if (existing) {
@@ -80,14 +111,33 @@ export async function POST(req: NextRequest) {
       weightKg,
       bodyFat: bodyFatPercent,
       source: "shortcuts",
+      heightCm: date === today ? (settings.heightCm ?? undefined) : undefined,
     });
   }
 
+  if (bodyFatPercent !== undefined && weightKg === undefined) {
+    await upsertBodyCheckIn(
+      user.id,
+      date,
+      { bodyFatPercent },
+      "shortcuts",
+      date === today ? settings.heightCm : undefined,
+    );
+  }
+
   const settingsPatch: Partial<typeof settings> = {};
-  if (vo2Max !== undefined) settingsPatch.vo2Max = Math.min(90, Math.max(10, vo2Max));
-  if (restingHeartRate !== undefined) settingsPatch.restingHeartRate = Math.min(140, Math.max(30, restingHeartRate));
+  if (vo2Max !== undefined)
+    settingsPatch.vo2Max = Math.min(90, Math.max(10, vo2Max));
+  if (restingHeartRate !== undefined)
+    settingsPatch.restingHeartRate = Math.min(
+      140,
+      Math.max(30, restingHeartRate),
+    );
   if (cardioMinutesWeekly !== undefined) {
-    settingsPatch.cardioMinutesWeekly = Math.min(1000, Math.max(0, Math.round(cardioMinutesWeekly)));
+    settingsPatch.cardioMinutesWeekly = Math.min(
+      1000,
+      Math.max(0, Math.round(cardioMinutesWeekly)),
+    );
   }
   if (Object.keys(settingsPatch).length > 0) {
     await saveSettings(user.id, { ...settings, ...settingsPatch });
@@ -96,9 +146,9 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     synced: {
-      calories: calories !== undefined && calories > 0,
+      calories: calories !== undefined && calories >= 0,
       weightKg: weightKg !== undefined && weightKg > 0,
-      bodyFatPercent: bodyFatPercent !== undefined && weightKg !== undefined && weightKg > 0,
+      bodyFatPercent: bodyFatPercent !== undefined,
       vo2Max: vo2Max !== undefined,
       restingHeartRate: restingHeartRate !== undefined,
       cardioMinutesWeekly: cardioMinutesWeekly !== undefined,

@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const userId = getUserId(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const summary = await redis.get<WeeklySummary>(keys.weeklySummary(userId));
+  const summary = await redis.get<WeeklySummary>(keys.weeklySummary(userId) + ":intake-v2");
   return NextResponse.json({ summary: summary ?? null });
 }
 
@@ -37,12 +37,14 @@ export async function POST(req: NextRequest) {
     protein: review.avgProtein,
     exercise: review.exerciseDays,
     successRate: review.successRate,
+    completedFoodDays: review.completedDays,
+    totalDays: review.totalDays,
   };
 
   try {
     const result = await generateWeeklySummary(input);
     const summary: WeeklySummary = { ...result, generatedAt: new Date().toISOString() };
-    await redis.set(keys.weeklySummary(userId), summary);
+    await redis.set(keys.weeklySummary(userId) + ":intake-v2", summary);
     return NextResponse.json({ summary, input });
   } catch (err) {
     console.error(err);

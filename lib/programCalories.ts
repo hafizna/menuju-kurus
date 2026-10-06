@@ -54,7 +54,8 @@ export function computeProgramRecommendation(settings: UserSettings): ProgramRec
 
   if (bmi < 18.5 && adjustment < 0) {
     adjustment = 0;
-    notes.push("BMI berada di bawah 18,5, sehingga engine tidak menyarankan defisit kalori.");
+    notes.push("Target adalah asupan makan; aktivitas rutin sudah tercakup dan Active Energy tidak otomatis menambah budget.");
+  notes.push("BMI berada di bawah 18,5, sehingga engine tidak menyarankan defisit kalori.");
   }
   if (bmi < 20 && fitnessGoal === "very_lean") {
     adjustment = 0;
@@ -63,6 +64,7 @@ export function computeProgramRecommendation(settings: UserSettings): ProgramRec
   if (bmi >= 30 && adjustment < -0.2) adjustment = -0.2;
   if (fitnessGoal === "athletic") notes.push("Target athletic dimulai dari maintenance; evaluasi berdasarkan performa dan tren berat.");
   if (fitnessGoal === "muscle_gain") notes.push("Surplus dibuat konservatif untuk membatasi kenaikan lemak yang tidak perlu.");
+  notes.push("Target adalah asupan makan; aktivitas rutin sudah tercakup dan Active Energy tidak otomatis menambah budget.");
   notes.push("BMI adalah alat skrining dan dapat kurang tepat pada orang dengan massa otot tinggi.");
 
   const minimum = biologicalSex === "male" ? 1500 : 1200;

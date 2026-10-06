@@ -1,5 +1,6 @@
 import { DayLog } from "./types";
-import { DaySummary } from "./day";
+import type { DaySummary } from "./energy";
+import { foodLogStatus, TARGET_FEEDBACK_MIN_RATIO } from "./energy";
 import { WeightTrend } from "./weight";
 
 export interface HealthScore {
@@ -16,10 +17,13 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 function caloriesScore(summary: DaySummary): number {
-  if (summary.net <= summary.target) return 30;
-  const over = summary.net - summary.target;
-  const falloffRange = Math.max(summary.target * 0.5, 1);
-  return Math.round(clamp(30 * (1 - over / falloffRange), 0, 30));
+  if (summary.foodLogStatus !== "complete" || summary.target <= 0) return 0;
+  const ratio = summary.caloriesIn / summary.target;
+  if (ratio < TARGET_FEEDBACK_MIN_RATIO) {
+    return Math.round(clamp(30 * ratio / TARGET_FEEDBACK_MIN_RATIO, 0, 29));
+  }
+  if (ratio <= 1) return 30;
+  return Math.round(clamp(30 * (1 - (ratio - 1) / 0.5), 0, 30));
 }
 
 function proteinScore(proteinG: number, proteinTargetG: number): number {
@@ -46,7 +50,7 @@ function activityScore(caloriesOut: number): number {
 
 function consistencyScore(last7Logs: DayLog[]): number {
   if (last7Logs.length === 0) return 0;
-  const daysWithData = last7Logs.filter((l) => l.meals.length > 0).length;
+  const daysWithData = last7Logs.filter((l) => foodLogStatus(l) === "complete").length;
   return Math.round(15 * (daysWithData / last7Logs.length));
 }
 

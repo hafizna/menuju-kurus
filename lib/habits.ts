@@ -1,3 +1,4 @@
+import { summarizeDay, foodLogStatus } from "./energy";
 import type { DayLog, MealEntry, UserSettings } from "./types";
 
 export type HabitReadiness = "insufficient" | "learning" | "ready";
@@ -177,11 +178,8 @@ function buildInsights(
 ): HabitInsight[] {
   if (state === "insufficient") return [];
 
-  const loggedLogs = logs.filter((log) => log.meals.length > 0);
-  const onTrackDays = loggedLogs.filter((log) => {
-    const net = log.meals.reduce((sum, meal) => sum + meal.calories, 0) - log.burns.reduce((sum, burn) => sum + burn.calories, 0);
-    return net <= settings.dailyTargetKcal;
-  }).length;
+  const loggedLogs = logs.filter((log) => foodLogStatus(log) === "complete");
+  const onTrackDays = loggedLogs.filter((log) => summarizeDay(log, settings.dailyTargetKcal).onTrack).length;
   const onTrackPercent = loggedLogs.length ? Math.round((onTrackDays / loggedLogs.length) * 100) : 0;
   const insights: HabitInsight[] = [];
 
@@ -224,14 +222,14 @@ function buildInsights(
     insights.push({
       id: "on-track-rate",
       tone: onTrackPercent >= 70 ? "supportive" : onTrackPercent < 45 ? "watch" : "neutral",
-      title: `${onTrackPercent}% hari tercatat berada dalam target`,
+      title: `${onTrackPercent}% hari lengkap berada di rentang feedback target`,
       detail:
         onTrackPercent >= 70
           ? "Konsistensi harian terlihat lebih kuat daripada mengejar hari yang sempurna."
           : onTrackPercent < 45
-            ? "Pola ini belum menunjukkan penyebab. Gunakan sebagai sinyal untuk meninjau porsi, menu berulang, dan hari dengan aktivitas rendah."
+            ? "Pola ini belum menunjukkan penyebab. Gunakan sebagai sinyal untuk meninjau porsi, menu berulang, dan kelengkapan catatan."
             : "Pola masih campuran dan sebaiknya dilihat bersama tren berat serta rasa lapar.",
-      evidence: `${onTrackDays} dari ${loggedLogs.length} hari dengan catatan`,
+      evidence: `${onTrackDays} dari ${loggedLogs.length} hari dengan catatan lengkap`,
     });
   }
 

@@ -1,5 +1,14 @@
+import { getBodyCheckIns } from "@/lib/bodyStore";
+import { mergeBodySnapshots } from "@/lib/body";
+import { buildBodyResponse } from "@/lib/bodyResponse";
 import { NextRequest, NextResponse } from "next/server";
-import { getSettings, getLastNDayLogs, summarizeDay, computeStreak, computeWeeklyBudget } from "@/lib/day";
+import {
+  getSettings,
+  getLastNDayLogs,
+  summarizeDay,
+  computeStreak,
+  computeWeeklyBudget,
+} from "@/lib/day";
 import { todayKey } from "@/lib/dates";
 import { challengeForDate } from "@/lib/challenges";
 import { getUserId } from "@/lib/session";
@@ -10,20 +19,22 @@ import { buildHabitStrategy } from "@/lib/habits";
 
 export async function GET(req: NextRequest) {
   const userId = getUserId(req);
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const settings = await getSettings(userId);
   const date = todayKey(settings.timezone);
 
-  const [last28Logs, weightEntries] = await Promise.all([
+  const [last28Logs, weightEntries, checkIns] = await Promise.all([
     getLastNDayLogs(userId, 28, settings.timezone),
     getWeightEntries(userId),
+    getBodyCheckIns(userId),
   ]);
   const last7Logs = last28Logs.slice(-7);
   const log = last28Logs[last28Logs.length - 1];
 
   const summary = summarizeDay(log, settings.dailyTargetKcal);
-  const streak = await computeStreak(userId, settings.timezone, settings.dailyTargetKcal);
+  const streak = await computeStreak(userId, settings.timezone);
   const challenge = challengeForDate(date, userId);
   const weeklyBudget = computeWeeklyBudget(last7Logs, settings.dailyTargetKcal);
   const weightTrend = computeWeightTrend(weightEntries, settings.timezone);
@@ -50,5 +61,11 @@ export async function GET(req: NextRequest) {
     proteinToday,
     healthScore,
     habits,
+    bodyResponse: buildBodyResponse(
+      date,
+      28,
+      last28Logs,
+      mergeBodySnapshots(weightEntries, checkIns),
+    ),
   });
 }

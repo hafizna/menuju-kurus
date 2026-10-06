@@ -2,10 +2,12 @@ import { generateGeminiJson } from "./geminiClient";
 
 export interface WeeklySummaryInput {
   weightTrend: number | null;
-  weeklyCalories: number;
-  protein: number;
+  weeklyCalories: number | null;
+  protein: number | null;
   exercise: number;
-  successRate: number;
+  successRate: number | null;
+  completedFoodDays: number;
+  totalDays: number;
 }
 
 export interface WeeklySummaryResult {
@@ -32,6 +34,7 @@ const SYSTEM_PROMPT = `Kamu adalah asisten ringkasan mingguan untuk aplikasi pel
 ATURAN PENTING:
 - Kamu HANYA boleh menggunakan angka-angka pada data JSON di bawah. JANGAN mengarang aktivitas, jenis makanan, tanggal, atau detail apa pun yang tidak ada di data.
 - Jika sebuah nilai null, jangan berasumsi atau berpura-pura ada datanya — cukup lewati atau sebut sebagai "belum ada data".
+- weeklyCalories adalah rata-rata asupan dari hari dengan catatan lengkap, bukan kalori bersih atau total mingguan. Hari yang belum lengkap tidak dianggap asupan nol. Sebutkan cakupan completedFoodDays/totalDays. Aktivitas tidak menambah budget makan dan tidak perlu ditebus.
 - Nada: suportif tapi jujur. Kalau datanya kurang baik, katakan apa adanya, jangan hanya memuji.
 
 Tugas:

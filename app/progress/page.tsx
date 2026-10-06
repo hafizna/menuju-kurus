@@ -1,87 +1,102 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { IconScale, IconActivity, IconCalendarCheck } from "@/components/icons";
-import WeightTab from "@/components/progress/WeightTab";
+import { Suspense, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import BodyTab from "@/components/progress/BodyTab";
+import OverviewTab from "@/components/progress/OverviewTab";
 import FitnessTab from "@/components/progress/FitnessTab";
 import WeeklyTab from "@/components/progress/WeeklyTab";
 
-type Tab = "weight" | "fitness" | "weekly";
-
-const TABS: { id: Tab; label: string; icon: (props: { className?: string }) => JSX.Element }[] = [
-  { id: "weight", label: "Berat", icon: IconScale },
-  { id: "fitness", label: "Fitness", icon: IconActivity },
-  { id: "weekly", label: "Mingguan", icon: IconCalendarCheck },
-];
-
-interface Summary {
-  streak: number;
-  healthScore: { total: number };
-  weightTrend: { today: number | null };
-}
-
+const TABS = [
+  { id: "overview", label: "Ringkasan" },
+  { id: "body", label: "Tubuh" },
+  { id: "fitness", label: "Fitness" },
+  { id: "weekly", label: "Mingguan" },
+] as const;
+type Tab = (typeof TABS)[number]["id"];
 function ProgressContent() {
-  const searchParams = useSearchParams();
-  const initialTab = TABS.find((t) => t.id === searchParams.get("tab"))?.id ?? "weight";
-  const [tab, setTab] = useState<Tab>(initialTab);
-  const [summary, setSummary] = useState<Summary | null>(null);
-
-  useEffect(() => {
-    fetch("/api/today")
-      .then((r) => r.json())
-      .then((d) => setSummary({ streak: d.streak, healthScore: d.healthScore, weightTrend: d.weightTrend }));
-  }, []);
-
+  const router = useRouter();
+  const params = useSearchParams();
+  const requested = params.get("tab");
+  const tab: Tab =
+    requested === "weight"
+      ? "body"
+      : (TABS.find((entry) => entry.id === requested)?.id ?? "overview");
+  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  function selectTab(next: Tab) {
+    const query = new URLSearchParams(params.toString());
+    query.set("tab", next);
+    router.replace(`/progress?${query.toString()}`, { scroll: false });
+  }
   return (
     <div className="space-y-4 p-4">
       <header className="pt-2">
         <h1 className="text-xl font-bold">Progress</h1>
-        <p className="text-sm text-neutral-500">Tren berat, fitness, dan evaluasi mingguan.</p>
+        <p className="mt-1 text-sm text-neutral-500">
+          Perubahan tubuh, aktivitas, dan kebiasaan dari waktu ke waktu.
+        </p>
       </header>
-
-      {summary && (
-        <div className="grid grid-cols-3 divide-x divide-neutral-100 rounded-2xl border border-neutral-100 bg-white shadow-sm dark:divide-neutral-800 dark:border-neutral-800 dark:bg-neutral-900">
-          <div className="p-3 text-center">
-            <div className="text-lg font-bold tabular-nums">{summary.healthScore.total}</div>
-            <div className="text-xs text-neutral-500">Health Score</div>
-          </div>
-          <div className="p-3 text-center">
-            <div className="text-lg font-bold tabular-nums text-orange-600">🔥 {summary.streak}</div>
-            <div className="text-xs text-neutral-500">Streak</div>
-          </div>
-          <div className="p-3 text-center">
-            <div className="text-lg font-bold tabular-nums">{summary.weightTrend.today !== null ? `${summary.weightTrend.today} kg` : "-"}</div>
-            <div className="text-xs text-neutral-500">Berat</div>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-3 gap-1 rounded-2xl bg-neutral-100 p-1 dark:bg-neutral-900">
-        {TABS.map(({ id, label, icon: Icon }) => (
+      <div
+        className="grid grid-cols-4 gap-1 rounded-2xl bg-neutral-100 p-1 dark:bg-neutral-900"
+        role="tablist"
+        aria-label="Bagian Progress"
+      >
+        {TABS.map((entry, index) => (
           <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs font-medium transition-colors ${
-              tab === id ? "bg-white text-brand-700 shadow-sm dark:bg-neutral-800 dark:text-brand-400" : "text-neutral-500"
-            }`}
+            key={entry.id}
+            ref={(element) => {
+              buttons.current[index] = element;
+            }}
+            id={`tab-${entry.id}`}
+            role="tab"
+            aria-selected={tab === entry.id}
+            aria-controls={`panel-${entry.id}`}
+            tabIndex={tab === entry.id ? 0 : -1}
+            onClick={() => selectTab(entry.id)}
+            onKeyDown={(event) => {
+              let target: number | null = null;
+              if (event.key === "ArrowRight")
+                target = (index + 1) % TABS.length;
+              if (event.key === "ArrowLeft")
+                target = (index - 1 + TABS.length) % TABS.length;
+              if (event.key === "Home") target = 0;
+              if (event.key === "End") target = TABS.length - 1;
+              if (target !== null) {
+                event.preventDefault();
+                selectTab(TABS[target].id);
+                buttons.current[target]?.focus();
+              }
+            }}
+            className={`rounded-xl px-1 py-3 text-xs font-medium transition-colors ${tab === entry.id ? "bg-white text-brand-700 shadow-sm dark:bg-neutral-800 dark:text-brand-400" : "text-neutral-500"}`}
           >
-            <Icon className="h-4 w-4" />
-            {label}
+            {entry.label}
           </button>
         ))}
       </div>
-
-      {tab === "weight" && <WeightTab />}
-      {tab === "fitness" && <FitnessTab />}
-      {tab === "weekly" && <WeeklyTab />}
+      <div
+        key={tab}
+        role="tabpanel"
+        id={`panel-${tab}`}
+        aria-labelledby={`tab-${tab}`}
+        tabIndex={0}
+      >
+        {tab === "overview" && (
+          <OverviewTab onCheckIn={() => selectTab("body")} />
+        )}
+        {tab === "body" && <BodyTab />}
+        {tab === "fitness" && <FitnessTab />}
+        {tab === "weekly" && <WeeklyTab />}
+      </div>
     </div>
   );
 }
-
 export default function ProgressPage() {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <p className="p-6 text-center text-neutral-500">Memuat progress...</p>
+      }
+    >
       <ProgressContent />
     </Suspense>
   );

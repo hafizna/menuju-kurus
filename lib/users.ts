@@ -5,12 +5,12 @@ export interface AppUser {
   healthSyncToken?: string;
 }
 
-// Up to 2 users, configured entirely via env vars (USER1_*, USER2_*).
+// Up to 3 users, configured entirely via env vars (USER1_*, USER2_*, USER3_*).
 // A slot is only active if its PASSWORD is set, so this also works with
 // just one user configured.
 export function getUsers(): AppUser[] {
   const users: AppUser[] = [];
-  for (const n of [1, 2] as const) {
+  for (const n of [1, 2, 3] as const) {
     const password = process.env[`USER${n}_PASSWORD`];
     if (!password) continue;
     users.push({
@@ -25,4 +25,10 @@ export function getUsers(): AppUser[] {
 
 export function getUserById(id: string): AppUser | undefined {
   return getUsers().find((u) => u.id === id);
+}
+
+export function findUserByHealthSyncToken(token: string): AppUser | null {
+  if (!token) return null;
+  const matches = getUsers().filter((user) => user.healthSyncToken === token);
+  return matches.length === 1 ? matches[0] : null;
 }
