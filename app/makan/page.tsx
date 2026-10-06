@@ -9,7 +9,7 @@ type Tab = "catat" | "cari";
 
 function segClass(active: boolean) {
   return `flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-medium transition-colors ${
-    active ? "bg-white text-brand-700 shadow-sm dark:bg-neutral-800 dark:text-brand-400" : "text-neutral-500"
+    active ? "bg-white text-brand-700 shadow-xs dark:bg-neutral-800 dark:text-brand-400" : "text-neutral-500"
   }`;
 }
 
@@ -169,7 +169,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
       {error && <p className="text-center text-sm text-red-500">{error}</p>}
 
       {result && (
-        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
           <div>
             <div className="text-lg font-semibold">{result.foodName}</div>
             <div className="text-xs text-neutral-500">
@@ -270,7 +270,7 @@ function CariTab() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="text-sm font-medium">Aku sedang mencari...</div>
         <div className="grid grid-cols-3 gap-2">
           {INTENTS.map(([value, label]) => (
@@ -315,7 +315,7 @@ function CariTab() {
 
           <section className="space-y-3">
             {result.strategy.recommendations.map((food) => (
-              <article key={food.id} className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+              <article key={food.id} className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="font-medium">{food.name}</div>
@@ -332,7 +332,7 @@ function CariTab() {
             ))}
           </section>
 
-          <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Penjelasan AI
@@ -390,7 +390,7 @@ function MealHistory({ refreshKey }: { refreshKey: number }) {
       {[...log.meals.map((m) => ({ ...m, kind: "meal" as const })), ...log.burns.map((b) => ({ ...b, kind: "burn" as const }))]
         .sort((a, b) => a.time.localeCompare(b.time))
         .map((entry) => (
-          <div key={entry.id} className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          <div key={entry.id} className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
             <div className="flex items-center gap-3">
               <span
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${

@@ -70,7 +70,7 @@ export default function WeightTab() {
           + Timbang Hari Ini
         </button>
       ) : (
-        <form onSubmit={save} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <form onSubmit={save} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
           <div className="flex items-center gap-2">
             <input
               autoFocus
@@ -125,7 +125,7 @@ export default function WeightTab() {
       )}
 
       {trend && (
-        <div className="grid grid-cols-2 divide-x divide-y divide-neutral-100 rounded-2xl border border-neutral-100 bg-white shadow-sm dark:divide-neutral-800 dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="grid grid-cols-2 divide-x divide-y divide-neutral-100 rounded-2xl border border-neutral-100 bg-white shadow-xs dark:divide-neutral-800 dark:border-neutral-800 dark:bg-neutral-900">
           <StatTile label="Hari ini" value={trend.today !== null ? `${trend.today} kg` : "-"} />
           <StatTile label="Rata-rata 7 hari" value={trend.avg7 !== null ? `${trend.avg7} kg` : "-"} />
           <StatTile label="Rata-rata 14 hari" value={trend.avg14 !== null ? `${trend.avg14} kg` : "-"} />
@@ -145,7 +145,7 @@ export default function WeightTab() {
 
       {trend && <WeightForecastCard trend={trend} />}
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-2 text-sm font-medium text-neutral-500">Grafik 30 catatan terakhir</div>
         <WeightChart entries={entries} />
       </section>
@@ -158,7 +158,7 @@ export default function WeightTab() {
             .reverse()
             .slice(0, 14)
             .map((e) => (
-              <div key={e.id} className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+              <div key={e.id} className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
                 <div>
                   <div className="text-sm font-medium">{e.weightKg} kg</div>
                   <div className="text-xs text-neutral-500">

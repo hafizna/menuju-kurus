@@ -131,7 +131,7 @@ export default function WeeklyTab() {
     <div className="space-y-4">
       {loadError && <p role="alert" className="text-sm text-red-500">{loadError}</p>}
       {weekly && (
-        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
           <div className="text-sm font-semibold">Ringkasan Minggu Ini</div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
@@ -189,7 +189,7 @@ export default function WeeklyTab() {
         </section>
       )}
 
-      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Ringkasan AI
@@ -229,7 +229,7 @@ export default function WeeklyTab() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-3 text-sm font-medium">Asupan tercatat vs target</div>
         <div className="flex h-40 items-end gap-1">
           {data.days.map((d) => {
@@ -265,7 +265,7 @@ export default function WeeklyTab() {
           .slice()
           .reverse()
           .map((d) => (
-            <div key={d.date} className="rounded-xl border border-neutral-100 bg-white px-4 py-3 text-sm shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+            <div key={d.date} className="rounded-xl border border-neutral-100 bg-white px-4 py-3 text-sm shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
               <div className="flex items-center justify-between">
                 <span className="text-neutral-500">{d.date}</span>
                 <b>{d.hasData ? `${d.caloriesIn} kcal` : "Belum dicatat"}</b>

@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 function linkClass(active: boolean): string {
   return `rounded-xl px-2 py-2.5 text-center text-xs font-medium transition-colors ${
     active
-      ? "bg-white text-brand-700 shadow-sm dark:bg-neutral-800 dark:text-brand-300"
+      ? "bg-white text-brand-700 shadow-xs dark:bg-neutral-800 dark:text-brand-300"
       : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200"
   }`;
 }

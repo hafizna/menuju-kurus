@@ -108,7 +108,7 @@ export default function HabitIntelligence() {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-400">Kesiapan data</p>
@@ -134,7 +134,7 @@ export default function HabitIntelligence() {
         </div>
         {strategy.recurringMeals.length ? (
           strategy.recurringMeals.map((meal) => (
-            <article key={meal.key} className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+            <article key={meal.key} className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-medium">{meal.name}</div>
@@ -163,7 +163,7 @@ export default function HabitIntelligence() {
       </section>
 
       {strategy.mealWindows.length > 0 && (
-        <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
           <h2 className="font-semibold">Waktu makan yang tercatat</h2>
           <div className="mt-3 space-y-3">
             {strategy.mealWindows.map((window) => (

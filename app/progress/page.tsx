@@ -67,7 +67,7 @@ function ProgressContent() {
                 buttons.current[target]?.focus();
               }
             }}
-            className={`rounded-xl px-1 py-3 text-xs font-medium transition-colors ${tab === entry.id ? "bg-white text-brand-700 shadow-sm dark:bg-neutral-800 dark:text-brand-400" : "text-neutral-500"}`}
+            className={`rounded-xl px-1 py-3 text-xs font-medium transition-colors ${tab === entry.id ? "bg-white text-brand-700 shadow-xs dark:bg-neutral-800 dark:text-brand-400" : "text-neutral-500"}`}
           >
             {entry.label}
           </button>

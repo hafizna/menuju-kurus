@@ -115,6 +115,6 @@ export default function SettingsPage() {
   );
 }
 
-function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) { return <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><div className="mb-3"><h2 className="text-sm font-semibold">{title}</h2>{description && <p className="mt-0.5 text-xs text-neutral-400">{description}</p>}</div>{children}</section>; }
+function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) { return <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900"><div className="mb-3"><h2 className="text-sm font-semibold">{title}</h2>{description && <p className="mt-0.5 text-xs text-neutral-400">{description}</p>}</div>{children}</section>; }
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block"><span className="mb-1 block text-sm text-neutral-500">{label}</span>{children}</label>; }
 function Stat({ label, value, note }: { label: string; value: string; note: string }) { return <div className="rounded-xl bg-neutral-50 p-3 dark:bg-neutral-800"><div className="text-xs text-neutral-500">{label}</div><div className="mt-1 font-bold tabular-nums">{value}</div><div className="text-xs text-neutral-400">{note}</div></div>; }

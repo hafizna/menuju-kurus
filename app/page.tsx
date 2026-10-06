@@ -238,7 +238,7 @@ export default function DashboardPage() {
         </Link>
       )}
 
-      <section className="rounded-2xl bg-gradient-to-br from-brand-600 to-brand-700 p-4 text-white shadow-sm">
+      <section className="rounded-2xl bg-linear-to-br from-brand-600 to-brand-700 p-4 text-white shadow-xs">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm text-brand-100">Status Hari Ini</div>
@@ -278,21 +278,21 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-2">
         <Link
           href="/makan"
-          className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center shadow-sm dark:bg-neutral-900"
+          className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center shadow-xs dark:bg-neutral-900"
         >
           <IconCamera className="h-5 w-5 text-brand-600" />
           <span className="text-xs font-medium">Catat Makan</span>
         </Link>
         <Link
           href="/makan?mode=cari"
-          className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center shadow-sm dark:bg-neutral-900"
+          className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center shadow-xs dark:bg-neutral-900"
         >
           <IconSearch className="h-5 w-5 text-brand-600" />
           <span className="text-xs font-medium">Aku Lapar</span>
         </Link>
         <button
           onClick={() => setShowWeightForm((v) => !v)}
-          className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center shadow-sm dark:bg-neutral-900"
+          className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center shadow-xs dark:bg-neutral-900"
         >
           <IconScaleWeight className="h-5 w-5 text-brand-600" />
           <span className="text-xs font-medium">Catat Berat</span>
@@ -302,7 +302,7 @@ export default function DashboardPage() {
       {showWeightForm && (
         <form
           onSubmit={saveWeight}
-          className="flex items-center gap-2 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+          className="flex items-center gap-2 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900"
         >
           <input
             autoFocus
@@ -332,7 +332,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 gap-3">
         <Link
           href="/progress?tab=weight"
-          className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+          className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900"
         >
           <div className="text-xs text-neutral-500">Tren Berat</div>
           {weightTrend.today !== null ? (
@@ -351,7 +351,7 @@ export default function DashboardPage() {
           )}
         </Link>
 
-        <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
           <div className="text-xs text-neutral-500">Minggu Ini</div>
           <div
             className={`text-lg font-bold ${weeklyBudget.remaining < 0 ? "text-red-500" : ""}`}
@@ -370,7 +370,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-2 flex items-baseline justify-between">
           <span className="text-sm text-neutral-500">Asupan hari ini</span>
           <span
@@ -443,7 +443,7 @@ export default function DashboardPage() {
           )}
       </section>
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-2 flex items-baseline justify-between">
           <span className="text-sm text-neutral-500">Protein hari ini</span>
           <span className="text-sm font-medium">
@@ -458,7 +458,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <IconTarget className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" />
@@ -479,7 +479,7 @@ export default function DashboardPage() {
 
       {over && <RecoveryMode surplusKcal={surplus} />}
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <button
           onClick={() => setShowBurnForm((v) => !v)}
           className="flex w-full items-center justify-between text-sm font-medium text-neutral-500"

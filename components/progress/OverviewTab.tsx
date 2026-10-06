@@ -84,7 +84,7 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
               type="button"
               aria-pressed={days === value}
               onClick={() => setDays(value)}
-              className={`rounded-lg px-3 py-2 text-xs ${days === value ? "bg-white shadow-sm dark:bg-neutral-800" : "text-neutral-500"}`}
+              className={`rounded-lg px-3 py-2 text-xs ${days === value ? "bg-white shadow-xs dark:bg-neutral-800" : "text-neutral-500"}`}
             >
               {value} hari
             </button>

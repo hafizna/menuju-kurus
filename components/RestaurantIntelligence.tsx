@@ -118,7 +118,7 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
 
   return (
     <div className="space-y-4">
-      <form onSubmit={search} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <form onSubmit={search} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div>
           <div className="text-sm font-semibold">Cari menu Indonesia tanpa foto</div>
           <p className="mt-1 text-xs text-neutral-500">
@@ -181,7 +181,7 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
                       type="button"
                       onClick={() => setPortion(value)}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ${
-                        portion === value ? "bg-white text-brand-700 shadow-sm dark:bg-neutral-800 dark:text-brand-300" : "text-neutral-500"
+                        portion === value ? "bg-white text-brand-700 shadow-xs dark:bg-neutral-800 dark:text-brand-300" : "text-neutral-500"
                       }`}
                     >
                       {value}x
@@ -199,7 +199,7 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
                 const adjustedFit = adjustedDelta <= 0 ? "pas" : adjustedDelta <= 150 ? "masih_masuk" : "melewati";
 
                 return (
-                  <article key={meal.id} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                  <article key={meal.id} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="font-semibold">{meal.name}</div>

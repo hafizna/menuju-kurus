@@ -59,7 +59,7 @@ export default function FitnessTab() {
         </Link>
       </div>
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-end justify-between">
           <div>
             <div className="text-sm text-neutral-500">{data.label} Score</div>
@@ -127,7 +127,7 @@ export default function FitnessTab() {
         />
       </section>
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-2 text-sm font-medium">Prioritas berikutnya</div>
         {data.priorities.length ? (
           <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
@@ -145,7 +145,7 @@ export default function FitnessTab() {
         )}
       </section>
 
-      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold">
@@ -197,7 +197,7 @@ function Metric({
   note?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
       <div className="text-xs text-neutral-500">{label}</div>
       <div className="mt-1 text-lg font-bold">{value}</div>
       {note && <div className="text-xs text-neutral-400">{note}</div>}

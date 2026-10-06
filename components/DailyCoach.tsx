@@ -76,7 +76,7 @@ export default function DailyCoach({
             <div className="mt-0.5 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">{item.detail}</div>
             <div className="mt-1 text-[11px] text-neutral-500">Dasar: {item.evidence}</div>
             {item.href && item.actionLabel && (
-              <Link href={item.href} className="mt-2 inline-flex rounded-lg bg-white px-2.5 py-1.5 text-xs font-medium text-brand-700 shadow-sm dark:bg-neutral-900 dark:text-brand-300">
+              <Link href={item.href} className="mt-2 inline-flex rounded-lg bg-white px-2.5 py-1.5 text-xs font-medium text-brand-700 shadow-xs dark:bg-neutral-900 dark:text-brand-300">
                 {item.actionLabel} →
               </Link>
             )}
