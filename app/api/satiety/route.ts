@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserId } from "@/lib/session";
 import { getSettings, getLastNDayLogs, summarizeDay } from "@/lib/day";
 import { buildSatietyStrategy, type HungerIntent, type NutritionObjective } from "@/lib/satiety";
-import { generateSatietySummary } from "@/lib/geminiSatiety";
+import { generateSatietySummary } from "@/lib/satietyAi";
 
 export const maxDuration = 30;
 

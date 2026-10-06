@@ -335,7 +335,7 @@ function CariTab() {
           <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Penjelasan Gemini
+                <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" /> Penjelasan AI
               </div>
               <button onClick={() => run(true)} disabled={loading} className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">
                 Buat recap

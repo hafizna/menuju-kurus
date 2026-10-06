@@ -1,6 +1,6 @@
 # menuju kurus
 
-Aplikasi personal untuk calorie tracking, weight management, fitness intelligence, dan keputusan makan sehari-hari. Dibuat mobile-first dengan Next.js, Gemini, Upstash Redis, dan Vercel free tier.
+Aplikasi personal untuk calorie tracking, weight management, fitness intelligence, dan keputusan makan sehari-hari. Dibuat mobile-first dengan Next.js, Gemini + DeepSeek, Upstash Redis, dan Vercel free tier.
 
 Menuju Kurus diposisikan sebagai **personal nutrition decision assistant**: logika lokal menentukan keputusan, sedangkan AI hanya menjelaskan hasil yang sudah dihitung.
 
@@ -11,11 +11,11 @@ Menuju Kurus diposisikan sebagai **personal nutrition decision assistant**: logi
 3. **Weight Intelligence.** Log berat, rata-rata 7/14 hari, weekly rate, grafik, target berat, dan ETA menuju target.
 4. **Health Score & Weekly Budget.** Menggabungkan kalori, protein, tren berat, aktivitas, dan konsistensi.
 5. **Personal Adaptive Coach & Recovery Mode.** Meranking fokus berikutnya dari status hari ini, budget mingguan, tren berat, pola 28 hari, dan konteks lapar/craving/makan di luar—tanpa puasa kompensasi atau olahraga sebagai hukuman.
-6. **Fitness Intelligence.** Goal profile `weight_loss`, `very_lean`, `athletic`, atau `muscle_gain`, disertai VO₂ max, resting heart rate, cardio minutes, strength days, goal score, dan recap Gemini opsional.
+6. **Fitness Intelligence.** Goal profile `weight_loss`, `very_lean`, `athletic`, atau `muscle_gain`, disertai VO₂ max, resting heart rate, cardio minutes, strength days, goal score, dan recap AI opsional.
 7. **Nutrition Intelligence / Satiety Intelligence.** Menjawab “apa keputusan makan terbaik saat ini?” berdasarkan sisa kalori, sisa protein, goal, craving, objective, dan bahan yang tersedia.
 8. **Restaurant Intelligence.** Cari menu Indonesia tanpa foto, lihat asumsi porsi dan ranking kontekstual, lalu simpan sebagai estimasi manual.
 9. **Habit Intelligence.** Pelajari menu berulang dan waktu makan dalam rolling 28 hari, lalu quick add dari rata-rata catatan pengguna sendiri.
-10. **AI recap manual.** Gemini hanya dipanggil saat user menekan tombol recap, agar penggunaan free tier tetap terkontrol.
+10. **AI recap manual.** Gemini (foto makanan) dan DeepSeek (recap teks) hanya dipanggil saat user menekan tombol, agar penggunaan tetap terkontrol.
 11. **Tiga user terpisah.** Satu deployment dapat dipakai hingga tiga orang dengan PIN, settings, Redis keys, dan Health Sync token terpisah.
 
 ## Navigasi
@@ -53,7 +53,7 @@ Tersedia di tab **Makan → Catat**, mode "Butuh rekomendasi", menyediakan:
 - **Fullness Score 1–5** berdasarkan kombinasi volume, protein, serat, dan kepadatan energi.
 - Target meal budget berdasarkan sisa kalori dan protein hari itu.
 - Penjelasan “kenapa ini disarankan?”.
-- Gemini recap opsional dengan tepat tiga saran praktis.
+- Recap AI opsional (DeepSeek) dengan tepat tiga saran praktis.
 
 Fullness Score adalah heuristik produk, bukan pengukuran klinis. Rekomendasi tidak dimaksudkan untuk diagnosis atau terapi medis.
 
@@ -62,7 +62,7 @@ Fullness Score adalah heuristik produk, bukan pengukuran klinis. Rekomendasi tid
 Tersedia di **Makan → Restoran**:
 
 - Pencarian teks untuk menu warteg, rumah makan Padang, ayam, bakso/mi, soto, fast food, dan kafe.
-- Estimasi kalori dan makro dari library lokal, bukan keputusan Gemini.
+- Estimasi kalori dan makro dari library lokal, bukan keputusan AI.
 - Ranking berdasarkan sisa kalori, sisa protein, fullness, goal aktif, kategori, dan kecocokan pencarian.
 - Koreksi porsi `0.5x`, `0.75x`, `1x`, atau `1.25x` sebelum disimpan.
 - Asumsi porsi dan ketidakpastian ditampilkan secara transparan.
@@ -87,19 +87,31 @@ Deterministic TypeScript engines
                               ↓
 Ranked decision + evidence + next action
                               ↓
-Gemini explanation (manual only)
+AI explanation (manual only — Gemini untuk vision, DeepSeek untuk teks)
 ```
 
-Gemini tidak menjadi sumber logika utama. Engine lokal menghitung ranking, score, remaining calories, remaining protein, pola kebiasaan, trade-off, dan safety constraints terlebih dahulu.
+AI (Gemini maupun DeepSeek) tidak menjadi sumber logika utama. Engine lokal menghitung ranking, score, remaining calories, remaining protein, pola kebiasaan, trade-off, dan safety constraints terlebih dahulu.
 
 ## Stack
 
 - Next.js 14 App Router + Tailwind CSS
 - Vercel Hobby/free plan
-- Google Gemini API, default `gemini-2.5-flash`
+- Google Gemini API untuk analisa foto makanan (vision), default `gemini-2.5-flash`
+- DeepSeek API (OpenAI-compatible) untuk AI recap teks-only: weekly summary, fitness recap, satiety recap
 - Upstash Redis REST API
 - HMAC session cookie dengan PIN login
 - Apple Shortcuts sebagai bridge ke Apple Health
+
+## Dua provider AI, dua peran berbeda
+
+Gemini dan DeepSeek **tidak saling menggantikan** — dipakai untuk hal yang berbeda:
+
+- **Gemini**: satu-satunya yang punya model vision, jadi khusus dipakai untuk analisa foto makanan (`lib/gemini.ts`). DeepSeek tidak punya model vision publik sampai saat ini, jadi tidak bisa menggantikan peran ini.
+- **DeepSeek**: dipakai untuk 3 panggilan teks-only yang sebelumnya pakai Gemini juga — weekly summary (`lib/weeklySummaryAi.ts`), fitness recap (`lib/fitnessSummaryAi.ts`), satiety recap (`lib/satietyAi.ts`). Cost per token jauh lebih murah dan cukup untuk tugas ringkasan/rekomendasi seperti ini.
+
+Konsekuensi teknis: DeepSeek tidak punya constraint `responseSchema` seketat Gemini (cuma jaminan "valid JSON", bukan jaminan bentuk field tertentu), jadi `lib/deepseekClient.ts` menambahkan instruksi bentuk JSON eksplisit di system prompt sebagai gantinya.
+
+Semua panggilan AI (baik Gemini maupun DeepSeek) tetap manual — hanya jalan saat tombol "Buat recap"/"Buat ringkasan" ditekan, bukan otomatis saat halaman dibuka.
 
 ## Environment variables
 
@@ -115,8 +127,10 @@ Gemini tidak menjadi sumber logika utama. Engine lokal menghitung ranking, score
 | `USER3_NAME` | nama user ketiga, opsional |
 | `USER3_PASSWORD` | mengaktifkan slot user ketiga, opsional |
 | `USER3_HEALTH_SYNC_TOKEN` | token Apple Shortcuts user ketiga, opsional |
-| `GEMINI_API_KEY` | API key dari Google AI Studio |
+| `GEMINI_API_KEY` | API key dari Google AI Studio — wajib untuk foto makanan |
 | `GEMINI_MODEL` | opsional, default `gemini-2.5-flash` |
+| `DEEPSEEK_API_KEY` | API key dari platform.deepseek.com (prepaid) — untuk 3 recap teks-only; kalau kosong, tombol recap tersebut akan error tapi foto makanan tetap jalan |
+| `DEEPSEEK_MODEL` | opsional, default `deepseek-chat` |
 | `UPSTASH_REDIS_REST_URL` | URL Redis dari Upstash/Vercel |
 | `UPSTASH_REDIS_REST_TOKEN` | token Redis dari Upstash/Vercel |
 
@@ -150,7 +164,7 @@ npm run build
 - Streak menghitung hari pencatatan lengkap berturut-turut sampai kemarin, bukan hari defisit. Rentang feedback 80–100% target merupakan heuristik produk, bukan batas kecukupan medis. Asupan lebih rendah tidak otomatis dinilai lebih baik.
 - Ringkasan AI model lama tidak ditampilkan sebagai ringkasan model baru; data lama tetap tersimpan. Buat ulang ringkasan bila diperlukan.
 
-`npm test` menjalankan regression tests engine, handler API, dan middleware dengan adapter penyimpanan in-memory. Tes tersebut tidak membuktikan koneksi Upstash atau Gemini asli. Validasi integrasi nyata memerlukan konfigurasi layanan tersebut.
+`npm test` menjalankan regression tests engine, handler API, dan middleware dengan adapter penyimpanan in-memory. Tes tersebut tidak membuktikan koneksi Upstash, Gemini, atau DeepSeek asli. Validasi integrasi nyata memerlukan konfigurasi layanan tersebut.
 
 `npm run test:browser` membangun aplikasi dan menguji UI melalui Chromium dengan Redis REST adapter sintetis serta kredensial uji sementara. Chromium harus tersedia di `/usr/bin/chromium`, atau atur `PLAYWRIGHT_EXECUTABLE_PATH`. Tes mencakup layar mobile/desktop, koreksi/hapus, avatar, navigasi, dan error/empty state; screenshot data uji disimpan di `.next/validation/`. Tes tidak memakai atau mengubah database asli.
 
@@ -236,7 +250,7 @@ menerima payload sebagian.
 - Tidak mendorong puasa kompensasi, muntah, atau olahraga sebagai hukuman.
 - Very lean mode tidak mengejar body-fat serendah mungkin.
 - VO₂ max dan body fat dari wearable/smart scale dianggap estimasi perangkat.
-- Gemini dilarang mengarang makanan, aktivitas, diagnosis, usia, jenis kelamin, atau riwayat medis.
+- Gemini dan DeepSeek dilarang mengarang makanan, aktivitas, diagnosis, usia, jenis kelamin, atau riwayat medis.
 - Habit Intelligence tidak menyimpulkan pola terlalu dini dan tidak mengklaim hubungan sebab-akibat.
 - Personal Adaptive Coach tidak otomatis memperketat defisit dan tidak melarang makanan berdasarkan satu hari.
 - Perubahan target penting tetap memerlukan persetujuan user.
@@ -264,4 +278,4 @@ Home memakai kesiapan tren tubuh untuk prioritas coach. Progress → Ringkasan m
 
 ## Pemeriksaan integrasi nyata
 
-Setelah credential lokal tersedia dan aplikasi berjalan, jalankan `node scripts/check-live-integration.cjs`. Helper hanya mengakses aplikasi lokal, memeriksa Redis serta Lua compare-and-set pada key sementara, lalu login dan membaca API untuk setiap pengguna aktif. Data makan, tubuh, dan target pengguna asli tidak diubah. Key sementara dibersihkan setelah tes; hasil cleanup dilaporkan. Jangan jalankan helper bersamaan dengan build. Credential diisi melalui environment settings atau `.env.local` yang diabaikan Git, bukan melalui argumen command atau file tracked. Gemini dan Health Sync belum dicakup oleh helper ini.
+Setelah credential lokal tersedia dan aplikasi berjalan, jalankan `node scripts/check-live-integration.cjs`. Helper hanya mengakses aplikasi lokal, memeriksa Redis serta Lua compare-and-set pada key sementara, lalu login dan membaca API untuk setiap pengguna aktif. Data makan, tubuh, dan target pengguna asli tidak diubah. Key sementara dibersihkan setelah tes; hasil cleanup dilaporkan. Jangan jalankan helper bersamaan dengan build. Credential diisi melalui environment settings atau `.env.local` yang diabaikan Git, bukan melalui argumen command atau file tracked. Gemini, DeepSeek, dan Health Sync belum dicakup oleh helper ini.

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSettings } from "@/lib/day";
 import { getWeightEntries, computeWeightTrend } from "@/lib/weight";
 import { computeFitnessIntelligence } from "@/lib/fitnessIntelligence";
-import { generateFitnessSummary } from "@/lib/geminiFitnessSummary";
+import { generateFitnessSummary } from "@/lib/fitnessSummaryAi";
 import { getUserId } from "@/lib/session";
 
 export const maxDuration = 30;

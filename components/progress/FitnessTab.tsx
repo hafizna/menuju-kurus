@@ -150,7 +150,7 @@ export default function FitnessTab() {
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold">
               <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" />{" "}
-              Recap Gemini
+              Recap AI
             </div>
             <div className="text-xs text-neutral-400">
               Manual saja, agar hemat quota

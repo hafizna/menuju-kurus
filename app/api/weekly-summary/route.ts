@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSettings, getLastNDayLogs } from "@/lib/day";
 import { getWeightEntries, computeWeightTrend } from "@/lib/weight";
 import { computeWeeklyReview } from "@/lib/weeklyReview";
-import { generateWeeklySummary, WeeklySummaryInput } from "@/lib/geminiSummary";
+import { generateWeeklySummary, WeeklySummaryInput } from "@/lib/weeklySummaryAi";
 import { getUserId } from "@/lib/session";
 import { redis, keys } from "@/lib/redis";
 import { WeeklySummary } from "@/lib/types";
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 }
 
 // Only called when the user explicitly taps "Buat Ringkasan AI" — never on
-// page load — so a Gemini call happens once per user action, not per visit.
+// page load — so a DeepSeek call happens once per user action, not per visit.
 export async function POST(req: NextRequest) {
   const userId = getUserId(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

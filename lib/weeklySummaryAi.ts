@@ -1,4 +1,4 @@
-import { generateGeminiJson } from "./geminiClient";
+import { generateDeepseekJson } from "./deepseekClient";
 
 export interface WeeklySummaryInput {
   weightTrend: number | null;
@@ -15,20 +15,6 @@ export interface WeeklySummaryResult {
   recommendations: string[];
 }
 
-const RESPONSE_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    summary: { type: "STRING" },
-    recommendations: {
-      type: "ARRAY",
-      items: { type: "STRING" },
-      minItems: 3,
-      maxItems: 3,
-    },
-  },
-  required: ["summary", "recommendations"],
-};
-
 const SYSTEM_PROMPT = `Kamu adalah asisten ringkasan mingguan untuk aplikasi pelacak kalori & berat badan pribadi.
 
 ATURAN PENTING:
@@ -41,11 +27,14 @@ Tugas:
 1. "summary": ringkasan progres minggu ini dalam Bahasa Indonesia, sekitar 80-100 kata.
 2. "recommendations": tepat 3 rekomendasi singkat dan actionable untuk minggu depan, berdasarkan angka yang diberikan.`;
 
+const JSON_SHAPE_HINT = `{"summary": "string, 80-100 kata", "recommendations": ["string", "string", "string"]}`;
+
 export async function generateWeeklySummary(input: WeeklySummaryInput): Promise<WeeklySummaryResult> {
-  const parsed = await generateGeminiJson<WeeklySummaryResult>({
-    parts: [{ text: `${SYSTEM_PROMPT}\n\nData:\n${JSON.stringify(input, null, 2)}` }],
-    responseSchema: RESPONSE_SCHEMA,
-    emptyResponseMessage: "Gemini returned no summary",
+  const parsed = await generateDeepseekJson<WeeklySummaryResult>({
+    systemPrompt: SYSTEM_PROMPT,
+    userContent: `Data:\n${JSON.stringify(input, null, 2)}`,
+    jsonShapeHint: JSON_SHAPE_HINT,
+    emptyResponseMessage: "DeepSeek returned no summary",
   });
 
   return {

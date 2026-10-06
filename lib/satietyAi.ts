@@ -1,19 +1,12 @@
 import type { SatietyStrategy, SatietyStrategyInput } from "./satiety";
-import { generateGeminiJson } from "./geminiClient";
-
-const RESPONSE_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    summary: { type: "STRING" },
-    suggestions: { type: "ARRAY", items: { type: "STRING" }, minItems: 3, maxItems: 3 },
-  },
-  required: ["summary", "suggestions"],
-};
+import { generateDeepseekJson } from "./deepseekClient";
 
 interface SatietyAiResult {
   summary: string;
   suggestions: string[];
 }
+
+const JSON_SHAPE_HINT = `{"summary": "string", "suggestions": ["string", "string", "string"]}`;
 
 export async function generateSatietySummary(input: SatietyStrategyInput, strategy: SatietyStrategy) {
   const payload = {
@@ -42,10 +35,11 @@ Fullness Score adalah estimasi heuristik, bukan fakta klinis.
 Jangan menyarankan puasa kompensasi, muntah, olahraga sebagai hukuman, atau target ekstrem.
 Tulis satu ringkasan singkat dan tepat 3 saran praktis. Bila pantry kosong, sebut contoh sebagai opsi, bukan bahan yang pasti tersedia.`;
 
-  const parsed = await generateGeminiJson<SatietyAiResult>({
-    parts: [{ text: `${system}\n\nData:\n${JSON.stringify(payload, null, 2)}` }],
-    responseSchema: RESPONSE_SCHEMA,
-    emptyResponseMessage: "Gemini returned no satiety summary",
+  const parsed = await generateDeepseekJson<SatietyAiResult>({
+    systemPrompt: system,
+    userContent: `Data:\n${JSON.stringify(payload, null, 2)}`,
+    jsonShapeHint: JSON_SHAPE_HINT,
+    emptyResponseMessage: "DeepSeek returned no satiety summary",
   });
 
   return {
