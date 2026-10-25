@@ -176,9 +176,9 @@ let child, browser;
       env: {
         ...process.env,
         SESSION_SECRET: randomBytes(32).toString("hex"),
-        USER1_EMAIL: "",
-        USER2_EMAIL: "",
-        USER3_EMAIL: "test-user-3@example.com",
+        USER1_INVITE_CODE: "",
+        USER2_INVITE_CODE: "",
+        USER3_INVITE_CODE: "test-invite-code-3",
         USER3_NAME: "Pengguna uji",
         UPSTASH_REDIS_REST_URL: `http://127.0.0.1:${backendPort}`,
         UPSTASH_REDIS_REST_TOKEN: redisToken,

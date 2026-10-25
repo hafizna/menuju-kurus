@@ -1,9 +1,6 @@
 import { getUsers } from "./users";
 
 export const SESSION_COOKIE = "mk_session";
-// Short-lived cookies used only across the Google OAuth redirect round-trip.
-export const OAUTH_STATE_COOKIE = "mk_oauth_state";
-export const OAUTH_NEXT_COOKIE = "mk_oauth_next";
 
 // Uses Web Crypto (SubtleCrypto) instead of Node's `crypto` module because this
 // also runs inside Next.js Edge middleware, which doesn't support node:crypto.

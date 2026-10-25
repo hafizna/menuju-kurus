@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const project=require('node:path').resolve(__dirname,'..');
 const projectRequire=createRequire(project+'/package.json');
 projectRequire('@next/env').loadEnvConfig(project);
-const required=['SESSION_SECRET','USER1_EMAIL','UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN'];
+const required=['SESSION_SECRET','USER1_INVITE_CODE','UPSTASH_REDIS_REST_URL','UPSTASH_REDIS_REST_TOKEN'];
 const missing=required.filter(name=>!process.env[name]);
 if(missing.length){console.error('Missing runtime requirements: '+missing.join(', '));process.exit(2);}
 const base=process.argv[2]||'http://127.0.0.1:3000';
@@ -34,12 +34,11 @@ let stage='Redis read', temporaryKeyCreated=false;
   stage='Login page';
   assert.equal((await fetch(base+'/login')).status,200);
   assert.equal((await fetch(base+'/api/me')).status,401);
-  // Google Sign-In and PIN entry both end in the same signed session cookie,
+  // Invite-code and PIN login both end in the same signed session cookie,
   // so this mints one directly per slot instead of driving either login UI
-  // (Google OAuth needs a real browser + real Google account; PIN needs one
-  // already registered) — it still exercises real Redis reads per user.
+  // (PIN needs one already registered) — it still exercises real Redis reads per user.
   for(const slot of [1,2,3,4,5]){
-    if(!process.env[`USER${slot}_EMAIL`])continue;
+    if(!process.env[`USER${slot}_INVITE_CODE`])continue;
     stage=`User ${slot} session`;
     const token=await makeSessionToken(`u${slot}`);
     assert.equal(await verifySessionToken(token),`u${slot}`);
@@ -56,7 +55,7 @@ let stage='Redis read', temporaryKeyCreated=false;
     }
     console.log(`User ${slot}: session and five authenticated read routes PASS.`);
   }
-  console.log('Live integration PASS. No meal, body, or actual-user target data was modified. Google Sign-In, PIN login, Gemini, and Health Sync were not exercised.');
+  console.log('Live integration PASS. No meal, body, or actual-user target data was modified. Invite/PIN login, Gemini, and Health Sync were not exercised.');
 })().catch(()=>{console.error(`Live integration FAILED during ${stage}; credential values and response bodies suppressed.`);process.exitCode=1;}).finally(async()=>{
   if(temporaryKeyCreated){try{await redis.del(keys.settings(id));console.log('Temporary integration key removed.');}catch{console.error('Temporary-key cleanup failed; check integration-prefixed settings keys.');process.exitCode=1;}}
 });

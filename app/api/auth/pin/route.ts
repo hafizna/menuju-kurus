@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, makeSessionToken } from "@/lib/auth";
 import { getUsers } from "@/lib/users";
+import { clientIp } from "@/lib/session";
 import { isValidPinFormat, isPinRateLimited, recordPinAttempt, verifyPin } from "@/lib/pin";
-
-function clientIp(req: NextRequest): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
 
 export async function POST(req: NextRequest) {
   const { pin } = await req.json().catch(() => ({ pin: "" }));
