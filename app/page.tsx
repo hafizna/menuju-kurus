@@ -217,7 +217,7 @@ export default function DashboardPage() {
   const hour = new Date().getHours();
   const sky = skyForHour(hour);
   const greeting =
-    hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 19 ? "Selamat sore" : "Selamat malam";
+    hour < 5 ? "Selamat malam" : hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 19 ? "Selamat sore" : "Selamat malam";
   const mood: MascotMood = over
     ? "worried"
     : summary.foodLogStatus === "complete" && onTrack

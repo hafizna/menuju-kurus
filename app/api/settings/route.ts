@@ -34,6 +34,13 @@ function nullableNumber(
   return Math.min(max, Math.max(min, parsed));
 }
 
+// Shown in greetings, so keep it short and free of control characters.
+function cleanName(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const name = value.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 30);
+  return name || null;
+}
+
 export async function GET(req: NextRequest) {
   const userId = getUserId(req);
   if (!userId)
@@ -70,6 +77,8 @@ export async function POST(req: NextRequest) {
 
   const existing = await getSettings(userId);
   let settings = {
+    displayName:
+      body.displayName === undefined ? existing.displayName : cleanName(body.displayName),
     ...(existing.calibrationReview
       ? { calibrationReview: existing.calibrationReview }
       : {}),

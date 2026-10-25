@@ -130,7 +130,7 @@ selalu lewat Gemini, independen dari toggle ini.
 
 Tidak ada registrasi terbuka. Admin (kamu) menentukan siapa yang boleh masuk lewat env var; tiap orang membuat PIN sendiri.
 
-1. Admin mengisi `USERn_INVITE_CODE` (acak dan panjang, mis. `openssl rand -hex 8`) dan `USERn_NAME` di Vercel, lalu redeploy, dan mengirim kodenya ke orangnya.
+1. Admin mengisi `USERn_INVITE_CODE` (acak dan panjang, mis. `openssl rand -hex 8`) di Vercel, lalu redeploy, dan mengirim kodenya ke orangnya. `USERn_NAME` boleh dikosongkan: nama panggilan ditanyakan saat onboarding dan bisa diganti di Profil.
 2. Orang itu buka `/login` → "Punya kode undangan" → memasukkan kode → membuat PIN 6 digit di `/account/set-pin`. PIN disimpan **ter-hash** (scrypt + salt per user) di Redis.
 3. Setelah PIN ada, kode undangan tidak berlaku lagi untuk masuk; login sehari-hari cukup PIN. Percobaan PIN/kode dibatasi per IP (10 kali / 10 menit).
 4. Ganti PIN: Profil → Akun → "Ubah PIN".
@@ -143,7 +143,7 @@ Mencabut akses = kosongkan `USERn_INVITE_CODE` lalu redeploy (sesi lama otomatis
 | Variable | Keterangan |
 |---|---|
 | `SESSION_SECRET` | string acak panjang untuk tanda tangan cookie |
-| `USER1_NAME` | nama user pertama |
+| `USER1_NAME` | opsional; nama cadangan sampai user mengisi nama panggilannya sendiri di onboarding |
 | `USER1_INVITE_CODE` | kode undangan sekali pakai user pertama; mengaktifkan slot |
 | `USER1_HEALTH_SYNC_TOKEN` | token rahasia buatan sendiri untuk Apple Shortcuts |
 | `USER2_NAME` | opsional, kosongkan bila hanya satu user |

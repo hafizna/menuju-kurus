@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Mascot from "@/components/Mascot";
 import { computeProgramRecommendation } from "@/lib/programCalories";
@@ -31,6 +31,7 @@ const STEPS = 4;
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const [name, setName] = useState("");
   const [goal, setGoal] = useState<FitnessGoal>("weight_loss");
   const [sex, setSex] = useState<BiologicalSex | null>(null);
   const [age, setAge] = useState("");
@@ -40,6 +41,16 @@ export default function OnboardingPage() {
   const [activity, setActivity] = useState<ActivityLevel | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        // Slots without USERn_NAME come back as "User 3"; don't pre-fill that.
+        if (d?.name && !/^User \d$/.test(d.name)) setName((current) => current || d.name);
+      })
+      .catch(() => {});
+  }, []);
 
   const ageN = Number(age);
   const heightN = Number(height);
@@ -54,6 +65,7 @@ export default function OnboardingPage() {
 
   const draft: UserSettings = {
     ...DEFAULT_SETTINGS,
+    displayName: name.trim() || null,
     fitnessGoal: goal,
     biologicalSex: sex,
     age: ageN || null,
@@ -121,6 +133,17 @@ export default function OnboardingPage() {
               Cuma empat pertanyaan singkat, lalu aku hitung berapa kalori dan protein yang pas buatmu.
               Angkanya baru titik awal. Setelah beberapa minggu, aku sesuaikan dari catatan nyatamu.
             </p>
+            <label className="block pt-2">
+              <span className="mb-1 block text-sm text-neutral-500">Biar akrab, aku panggil kamu siapa?</span>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={30}
+                autoComplete="given-name"
+                placeholder="nama panggilan"
+                className={inputClass}
+              />
+            </label>
           </div>
         )}
 
@@ -225,7 +248,7 @@ export default function OnboardingPage() {
           <button
             type="button"
             onClick={() => setStep(step + 1)}
-            disabled={(step === 2 && !bodyValid) || (step === 3 && activity === null)}
+            disabled={(step === 0 && !name.trim()) || (step === 2 && !bodyValid) || (step === 3 && activity === null)}
             className="flex-1 rounded-2xl bg-brand-600 py-3.5 font-semibold text-white disabled:opacity-40"
           >
             {step === 0 ? "Mulai" : "Lanjut"}

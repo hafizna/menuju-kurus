@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     settings,
     streak,
     challenge,
-    userName: getUserById(userId)?.name ?? "",
+    userName: settings.displayName || getUserById(userId)?.name || "",
     weeklyBudget,
     weightTrend,
     proteinToday,

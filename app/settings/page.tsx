@@ -56,6 +56,10 @@ export default function SettingsPage() {
       {!settings.programConfigured && <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950/30"><div className="font-semibold">Lengkapi profil program</div><p className="mt-1 text-neutral-600 dark:text-neutral-300">Angka 1.800 kcal dan 120 g protein saat ini masih nilai awal, bukan rekomendasi personal.</p></section>}
 
       <form onSubmit={save} className="space-y-4">
+        <Section title="Nama panggilan" description="Dipakai untuk sapaan di Home.">
+          <input value={settings.displayName ?? ""} maxLength={30} onChange={(e) => setSettings({ ...settings, displayName: e.target.value })} placeholder="nama panggilan" className={inputClass} />
+        </Section>
+
         <Section title="1. Tujuan utama" description="Goal menentukan arah penyesuaian dari kebutuhan maintenance.">
           <div className="grid grid-cols-2 gap-2">{GOALS.map((goal) => <button key={goal.value} type="button" onClick={() => setSettings({ ...settings, fitnessGoal: goal.value })} className={`rounded-xl border p-3 text-left ${settings.fitnessGoal === goal.value ? "border-brand-500 bg-brand-50 dark:bg-brand-950/30" : "border-neutral-200 dark:border-neutral-700"}`}><div className="text-sm font-medium">{goal.label}</div><div className="mt-1 text-xs text-neutral-500">{goal.description}</div></button>)}</div>
         </Section>

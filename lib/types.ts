@@ -40,6 +40,7 @@ export interface DayLog {
 }
 
 export interface UserSettings {
+  displayName: string | null;
   calibrationReview?: CalibrationReview;
   dailyTargetKcal: number;
   weightKg: number;
@@ -67,6 +68,7 @@ export interface StreakState {
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
+  displayName: null,
   dailyTargetKcal: 1800,
   weightKg: 70,
   goalWeightKg: 65,

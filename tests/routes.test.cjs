@@ -38,6 +38,8 @@ const { middleware } = require('../middleware');
 const logRoute = require('../app/api/log/route');
 const pinLoginRoute = require('../app/api/auth/pin/route');
 const accountPinRoute = require('../app/api/account/pin/route');
+const meRoute = require('../app/api/me/route');
+const settingsRouteForName = require('../app/api/settings/route');
 const inviteRoute = require('../app/api/auth/invite/route');
 const healthRoute = require('../app/api/health-sync/route');
 const todayRoute = require('../app/api/today/route');
@@ -118,6 +120,19 @@ test('invite code logs in once, then is dead after a PIN exists; wrong codes are
   }
   const blocked = await inviteRoute.POST(request('/api/auth/invite', 'POST', { code: 'test-invite-2' }, null, { 'x-forwarded-for': '203.0.113.7' }));
   assert.equal(blocked.status, 429);
+});
+
+test('display name from onboarding overrides the env name, is sanitised, and survives later saves', async () => {
+  assert.equal((await (await meRoute.GET(request('/api/me'))).json()).name, 'Test user 3');
+  const save = (body) => settingsRouteForName.POST(request('/api/settings', 'POST', body));
+  assert.equal((await save({ displayName: '  Budi\u0007' + 'x'.repeat(60) })).status, 200);
+  const name = (await (await meRoute.GET(request('/api/me'))).json()).name;
+  assert.ok(name.startsWith('Budix') && name.length === 30 && !name.includes('\u0007'));
+  await save({ weightKg: 70 });
+  assert.equal((await (await meRoute.GET(request('/api/me'))).json()).name, name);
+  assert.equal((await (await todayRoute.GET(request('/api/today'))).json()).userName, name);
+  await save({ displayName: '   ' });
+  assert.equal((await (await meRoute.GET(request('/api/me'))).json()).name, 'Test user 3');
 });
 
 test('ambiguous invite codes or sync tokens fail closed rather than choosing another user', async () => {
