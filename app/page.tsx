@@ -18,10 +18,14 @@ import {
   IconSearch,
   IconScaleWeight,
   IconTarget,
+  IconRuler,
+  IconCalendarCheck,
+  IconChartBar,
 } from "@/components/icons";
 import DailyCoach from "@/components/DailyCoach";
 import Mascot, { type MascotMood } from "@/components/Mascot";
 import CalorieRing from "@/components/CalorieRing";
+import FeatureCard from "@/components/ui/FeatureCard";
 import SkyBackdrop, { skyBackground } from "@/components/SkyBackdrop";
 import { skyForHour } from "@/lib/skyTheme";
 import RecoveryMode from "@/components/RecoveryMode";
@@ -352,48 +356,68 @@ export default function DashboardPage() {
         />
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <Link
-          href="/progress?tab=weight"
-          className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900"
-        >
-          <div className="text-xs text-neutral-500">Tren Berat</div>
-          {weightTrend.today !== null ? (
-            <>
-              <div className="text-lg font-bold">{weightTrend.today} kg</div>
-              <div
-                className={`text-xs ${weightTrend.direction === "down" ? "text-brand-600" : weightTrend.direction === "up" ? "text-red-500" : "text-neutral-400"}`}
-              >
-                {weightTrend.weeklyRate !== null
-                  ? `${weightTrend.weeklyRate > 0 ? "+" : ""}${weightTrend.weeklyRate} kg/mgg`
-                  : "belum ada tren"}
-              </div>
-            </>
-          ) : (
-            <div className="text-sm text-brand-600">+ Timbang sekarang</div>
+      <section>
+        <h2 className="mb-2 px-1 text-sm font-semibold">Fitur kamu</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <FeatureCard
+            href="/progress?tab=body"
+            icon={<IconScaleWeight className="h-5 w-5" />}
+            label="Berat badan"
+            value={weightTrend.today !== null ? `${weightTrend.today} kg` : "Belum ada"}
+            caption={
+              weightTrend.weeklyRate !== null
+                ? `${weightTrend.weeklyRate > 0 ? "+" : ""}${weightTrend.weeklyRate} kg per minggu`
+                : daysSince(data.bodyResponse?.current.weight.last?.date, data.date) === null
+                  ? "Timbang pertamamu"
+                  : "Belum ada tren"
+            }
+            chip={due(daysSince(data.bodyResponse?.current.weight.last?.date, data.date), 3)}
+          />
+          <FeatureCard
+            href="/progress?tab=body"
+            icon={<IconRuler className="h-5 w-5" />}
+            label="Lingkar pinggang"
+            value={
+              data.bodyResponse?.current.waist.last
+                ? `${data.bodyResponse.current.waist.last.value} cm`
+                : "Belum ada"
+            }
+            caption={
+              daysSince(data.bodyResponse?.current.waist.last?.date, data.date) === null
+                ? "Ukur pertama kali"
+                : `${daysSince(data.bodyResponse?.current.waist.last?.date, data.date)} hari lalu`
+            }
+            chip={due(daysSince(data.bodyResponse?.current.waist.last?.date, data.date), 7)}
+          />
+          {!fresh && (
+            <FeatureCard
+              href="/progress"
+              icon={<IconCalendarCheck className="h-5 w-5" />}
+              label="Minggu ini"
+              value={`${Math.max(0, weeklyBudget.remaining).toLocaleString("id-ID")} kcal`}
+              caption={`${weeklyBudget.completedDays}/${weeklyBudget.totalDays} hari lengkap${weeklyBudget.isComplete ? "" : " · sementara"}`}
+            />
           )}
-        </Link>
-
-        {!fresh && (
-        <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
-          <div className="text-xs text-neutral-500">Minggu Ini</div>
-          <div
-            className={`text-lg font-bold ${weeklyBudget.remaining < 0 ? "text-red-500" : ""}`}
-          >
-            {weeklyBudget.remaining >= 0
-              ? weeklyBudget.remaining.toLocaleString("id-ID")
-              : 0}
-          </div>
-          <div className="text-xs text-neutral-400">
-            kcal belum terpakai · 7 hari
-          </div>
-          <p className="mt-1 text-xs text-neutral-500">
-            {weeklyBudget.completedDays}/{weeklyBudget.totalDays} hari lengkap
-            {!weeklyBudget.isComplete && " · sementara, bukan bonus makan"}
-          </p>
+          <FeatureCard
+            href="/makan/restaurant"
+            icon={<IconSearch className="h-5 w-5" />}
+            label="Makan di luar"
+            value="Menu restoran"
+            caption="Pilih yang pas buat sisa kalorimu"
+            wide={fresh}
+          />
+          {!fresh && (
+            <FeatureCard
+              href="/makan/habits"
+              icon={<IconChartBar className="h-5 w-5" />}
+              label="Kebiasaan"
+              value="Menu favorit"
+              caption="Dipelajari dari catatanmu"
+              wide
+            />
+          )}
         </div>
-        )}
-      </div>
+      </section>
 
       {(!fresh || log.meals.length > 0) && (
       <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
@@ -533,4 +557,14 @@ function GettingStarted({ hasMeal, closed }: { hasMeal: boolean; closed: boolean
       </p>
     </section>
   );
+}
+
+// Whole days between a YYYY-MM-DD measurement date and today's date, or null.
+function daysSince(date: string | undefined, today: string): number | null {
+  if (!date) return null;
+  return Math.max(0, Math.round((Date.parse(today) - Date.parse(date)) / 86400000));
+}
+
+function due(days: number | null, everyDays: number): string | undefined {
+  return days === null || days >= everyDays ? "Waktunya" : undefined;
 }

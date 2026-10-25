@@ -150,3 +150,12 @@ export function IconChevronRight({ className }: IconProps) {
     </svg>
   );
 }
+
+export function IconRuler({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <rect x="3" y="8" width="18" height="8" rx="1.5" />
+      <path d="M7 8v3M11 8v4M15 8v3M19 8v2" />
+    </svg>
+  );
+}
