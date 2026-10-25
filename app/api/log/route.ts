@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
   const date: string = typeof body.date === "string" ? body.date : todayKey(settings.timezone);
   const log = await getDayLog(userId, date);
 
+  let savedEntry: MealEntry | BurnEntry | undefined;
+
   if (body.type === "meal") {
     // Optional: when the meal was actually eaten (forgot to log it earlier).
     // Must be a real instant, not in the future, and not older than a day.
@@ -42,6 +44,7 @@ export async function POST(req: NextRequest) {
     };
     log.meals.push(entry);
     log.foodLogComplete = false;
+    savedEntry = entry;
   } else {
     const entry: BurnEntry = {
       id: crypto.randomUUID(),
@@ -51,10 +54,11 @@ export async function POST(req: NextRequest) {
       source: body.source === "shortcuts" ? "shortcuts" : "manual",
     };
     log.burns.push(entry);
+    savedEntry = entry;
   }
 
   await saveDayLog(userId, log);
-  return NextResponse.json({ log });
+  return NextResponse.json({ log, entry: savedEntry });
 }
 
 export async function DELETE(req: NextRequest) {

@@ -167,6 +167,16 @@ test('app icons and manifest are excluded from the login gate, real pages are no
   for (const path of ['/', '/api/today', '/makan', '/settings']) assert.equal(gated.test(path), true, path + ' must stay gated');
 });
 
+test('saving a meal returns its id so it can be undone, and undo removes only that meal', async () => {
+  const date = todayKey(DEFAULT_SETTINGS.timezone);
+  const first = await (await logRoute.POST(request('/api/log', 'POST', { type: 'meal', calories: 110, foodName: 'Teh manis' }))).json();
+  const second = await (await logRoute.POST(request('/api/log', 'POST', { type: 'meal', calories: 130, foodName: 'Gorengan' }))).json();
+  assert.ok(first.entry.id && second.entry.id && first.entry.id !== second.entry.id);
+  assert.equal(store.get(keys.day('u3', date)).meals.length, 2);
+  await logRoute.DELETE(request('/api/log?type=meal&id=' + first.entry.id, 'DELETE'));
+  assert.deepEqual(store.get(keys.day('u3', date)).meals.map((m) => m.foodName), ['Gorengan']);
+});
+
 test('food confirmation validates input, supports past days, and food edits reopen it', async () => {
   const date = todayKey(DEFAULT_SETTINGS.timezone);
   for (const invalid of [null, { foodLogComplete: 'true' }, { foodLogComplete: true, date: '2026-02-30' }, { foodLogComplete: true, date: '9999-01-01' }, { foodLogComplete: true, date: 1 }]) {

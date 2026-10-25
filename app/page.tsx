@@ -441,6 +441,14 @@ export default function DashboardPage() {
           Kalau semua makan dan minum hari ini sudah kamu catat, tutup harinya di sini. Streak
           dihitung dari hari yang catatannya lengkap, bukan dari seberapa sedikit kamu makan.
         </p>
+        {!log.foodLogComplete && log.meals.length > 0 && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-200">
+            <span>Sudah catat minuman, camilan, dan minyak atau saus?</span>
+            <Link href="/makan" className="shrink-0 font-semibold underline underline-offset-2">
+              Catat
+            </Link>
+          </div>
+        )}
         <button
           type="button"
           onClick={toggleFoodLogComplete}

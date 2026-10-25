@@ -8,6 +8,8 @@ import type { DayLog } from "@/lib/types";
 import type { DaySummary } from "@/lib/day";
 import AnalysisSheet, { type SheetPhase } from "@/components/AnalysisSheet";
 import { compressImage, postPhoto, UploadAborted } from "@/lib/clientImage";
+import type { FoodAnalysis } from "@/lib/gemini";
+import { adjustMeal, hasOil, stapleOf, NO_ADJUST, STAPLE_STEP_G, CENTONG_G, type MealAdjust, type OilLevel, type EatenFraction } from "@/lib/mealMath";
 
 interface TodayData {
   log: DayLog;
@@ -83,15 +85,26 @@ function TodayBar({ summary }: { summary: DaySummary | null }) {
 
 // ---------- Catat makanan (foto → estimasi → simpan, atau tulis manual) ----------
 
-interface Analysis {
-  foodName: string;
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  portionNote: string;
-  confidence: "low" | "medium" | "high";
+interface QuickItem {
+  name: string;
+  kcal: number;
+  protein: number;
+  portion: string;
 }
+
+// Typical Indonesian portions. One tap logs it for "now"; Batalkan removes it.
+const QUICK_ITEMS: QuickItem[] = [
+  { name: "Teh manis", kcal: 110, protein: 0, portion: "1 gelas" },
+  { name: "Es teh manis", kcal: 140, protein: 0, portion: "1 gelas besar" },
+  { name: "Kopi susu", kcal: 180, protein: 3, portion: "1 gelas" },
+  { name: "Minuman kemasan", kcal: 170, protein: 0, portion: "1 botol kecil" },
+  { name: "Gorengan", kcal: 130, protein: 2, portion: "1 buah" },
+  { name: "Kerupuk", kcal: 70, protein: 1, portion: "2-3 keping" },
+  { name: "Roti + selai", kcal: 160, protein: 4, portion: "1 lembar" },
+  { name: "Biskuit", kcal: 120, protein: 2, portion: "3-4 keping" },
+  { name: "Tambah nasi", kcal: 130, protein: 3, portion: "1 centong" },
+  { name: "Buah", kcal: 70, protein: 1, portion: "1 porsi" },
+];
 
 const CONFIDENCE_LABEL = { low: "rendah", medium: "sedang", high: "tinggi" } as const;
 
@@ -128,16 +141,15 @@ function MealTimeField({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
-async function postMeal(body: Record<string, unknown>) {
+async function postMeal(body: Record<string, unknown>): Promise<string | null> {
   const res = await fetch("/api/log", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "meal", ...body }),
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Belum tersimpan. Coba lagi ya.");
-  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Belum tersimpan. Coba lagi ya.");
+  return (data.entry?.id as string | undefined) ?? null;
 }
 
 function CatatTab({ onSaved }: { onSaved: () => void }) {
@@ -151,13 +163,14 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
   const lastFile = useRef<File | null>(null);
   const resultRef = useRef<HTMLElement>(null);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<Analysis | null>(null);
+  const [result, setResult] = useState<FoodAnalysis | null>(null);
   const [name, setName] = useState("");
-  const [portion, setPortion] = useState(1);
+  const [adj, setAdj] = useState<MealAdjust>(NO_ADJUST);
   const [kcalEdit, setKcalEdit] = useState<string | null>(null);
   const [mealTime, setMealTime] = useState(nowHHMM);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState("");
+  const [undoId, setUndoId] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
 
   useEffect(() => {
@@ -172,7 +185,8 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
     setPhotoError("");
     setResult(null);
     setSaved("");
-    setPortion(1);
+    setUndoId(null);
+    setAdj(NO_ADJUST);
     setKcalEdit(null);
     setManualOpen(false);
     setSeconds(0);
@@ -192,7 +206,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
       if (status < 200 || status >= 300 || !data?.analysis) {
         throw new Error(data?.error || "Foto belum bisa dibaca. Coba lagi atau isi manual.");
       }
-      const analysis = data.analysis as Analysis;
+      const analysis = data.analysis as FoodAnalysis;
       setResult(analysis);
       setName(analysis.foodName);
       setMealTime(nowHHMM());
@@ -217,14 +231,41 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
   function reset() {
     setResult(null);
     setPreview(null);
-    setPortion(1);
+    setAdj(NO_ADJUST);
     setKcalEdit(null);
     setError("");
   }
 
+  async function quickAdd(item: QuickItem) {
+    setError("");
+    try {
+      const id = await postMeal({
+        foodName: item.name,
+        calories: item.kcal,
+        protein_g: item.protein,
+        portionNote: `${item.portion} (perkiraan umum)`,
+        source: "manual",
+      });
+      setSaved(`${item.name} · ${item.kcal} kcal`);
+      setUndoId(id);
+      onSaved();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Belum tersimpan. Coba lagi ya.");
+    }
+  }
+
+  async function undoLast() {
+    if (!undoId) return;
+    await fetch(`/api/log?type=meal&id=${undoId}`, { method: "DELETE" });
+    setUndoId(null);
+    setSaved("");
+    onSaved();
+  }
+
   async function saveMeal() {
     if (!result) return;
-    const kcal = kcalEdit !== null ? Number(kcalEdit) : Math.round(result.calories * portion);
+    const meal = adjustMeal(result, adj);
+    const kcal = kcalEdit !== null ? Number(kcalEdit) : meal.calories;
     if (!Number.isFinite(kcal) || kcal <= 0) {
       setError("Isi kalorinya dulu, harus lebih dari 0.");
       return;
@@ -241,9 +282,9 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
         time,
         foodName: name.trim() || result.foodName,
         calories: Math.round(kcal),
-        protein_g: Math.round(result.protein_g * portion),
-        carbs_g: Math.round(result.carbs_g * portion),
-        fat_g: Math.round(result.fat_g * portion),
+        protein_g: meal.protein_g,
+        carbs_g: meal.carbs_g,
+        fat_g: meal.fat_g,
         portionNote: result.portionNote,
         source: "photo",
       });
@@ -257,7 +298,14 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
     }
   }
 
-  const kcalShown = result ? (kcalEdit ?? String(Math.round(result.calories * portion))) : "";
+  const meal = result ? adjustMeal(result, adj) : null;
+  const kcalShown = meal ? (kcalEdit ?? String(meal.calories)) : "";
+  const staple = result ? stapleOf(result) : undefined;
+
+  function change(next: Partial<MealAdjust>) {
+    setAdj((current) => ({ ...current, ...next }));
+    setKcalEdit(null);
+  }
 
   return (
     <div className="space-y-4">
@@ -280,6 +328,11 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
       {saved && (
         <p role="status" className="rounded-xl bg-brand-50 px-4 py-2 text-center text-sm text-brand-700 dark:bg-brand-950/30 dark:text-brand-300">
           Tersimpan: {saved} ✓
+          {undoId && (
+            <button type="button" onClick={undoLast} className="ml-2 font-semibold underline underline-offset-2">
+              Batalkan
+            </button>
+          )}
         </p>
       )}
 
@@ -315,6 +368,21 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
             >
               Yang sering →
             </Link>
+          </div>
+          <div>
+            <div className="mb-1.5 text-xs text-neutral-500">Cemilan &amp; minuman, sekali ketuk (perkiraan umum)</div>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_ITEMS.map((item) => (
+                <button
+                  key={item.name}
+                  type="button"
+                  onClick={() => quickAdd(item)}
+                  className="rounded-full border border-neutral-200 px-3 py-1.5 text-sm active:scale-95 dark:border-neutral-700"
+                >
+                  {item.name} <span className="text-xs text-neutral-400">{item.kcal}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -391,34 +459,82 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
               <div className="mt-0.5 text-xs text-neutral-500">kcal</div>
             </div>
             <div>
-              <div className="font-semibold">{Math.round(result.protein_g * portion)}g</div>
+              <div className="font-semibold">{meal?.protein_g ?? 0}g</div>
               <div className="text-xs text-neutral-500">protein</div>
             </div>
             <div>
-              <div className="font-semibold">{Math.round(result.carbs_g * portion)}g</div>
+              <div className="font-semibold">{meal?.carbs_g ?? 0}g</div>
               <div className="text-xs text-neutral-500">karbo</div>
             </div>
             <div>
-              <div className="font-semibold">{Math.round(result.fat_g * portion)}g</div>
+              <div className="font-semibold">{meal?.fat_g ?? 0}g</div>
               <div className="text-xs text-neutral-500">lemak</div>
             </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs text-neutral-500">Porsi sebenarnya: {portion}x</label>
-            <input
-              type="range"
-              min={0.25}
-              max={3}
-              step={0.25}
-              value={portion}
-              onChange={(e) => {
-                setPortion(Number(e.target.value));
-                setKcalEdit(null);
-              }}
-              className="w-full"
+          {meal && (
+            <p className="text-xs text-neutral-500">
+              Perkiraan kasar, bisa sekitar {meal.low}–{meal.high} kcal. Koreksi di bawah kalau porsimu beda.
+            </p>
+          )}
+
+          {result.components.length > 0 && (
+            <ul className="space-y-1 rounded-xl bg-neutral-50 p-3 text-xs dark:bg-neutral-800/60">
+              {result.components.map((c, i) => (
+                <li key={i} className="flex justify-between gap-3">
+                  <span className="min-w-0 truncate text-neutral-600 dark:text-neutral-300">
+                    {c.name}
+                    {c.grams > 0 && <span className="text-neutral-400"> · ±{c.grams} g</span>}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-neutral-500">{c.calories} kcal</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {staple && (
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-neutral-500">
+                {staple.name} ≈ {(Math.max(0, staple.grams + adj.stapleDeltaG) / CENTONG_G).toLocaleString("id-ID", { maximumFractionDigits: 1 })} centong
+              </span>
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  aria-label={`Kurangi ${staple.name}`}
+                  disabled={staple.grams + adj.stapleDeltaG - STAPLE_STEP_G < 0}
+                  onClick={() => change({ stapleDeltaG: adj.stapleDeltaG - STAPLE_STEP_G })}
+                  className="h-9 w-9 rounded-lg border border-neutral-300 text-lg disabled:opacity-30 dark:border-neutral-700"
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Tambah ${staple.name}`}
+                  disabled={staple.grams + adj.stapleDeltaG + STAPLE_STEP_G > 800}
+                  onClick={() => change({ stapleDeltaG: adj.stapleDeltaG + STAPLE_STEP_G })}
+                  className="h-9 w-9 rounded-lg border border-neutral-300 text-lg disabled:opacity-30 dark:border-neutral-700"
+                >
+                  +
+                </button>
+              </span>
+            </div>
+          )}
+
+          {hasOil(result) && (
+            <Segmented<OilLevel>
+              label="Minyak / saus"
+              value={adj.oil}
+              onChange={(oil) => change({ oil })}
+              options={[["less", "Sedikit"], ["normal", "Biasa"], ["more", "Banyak"]]}
             />
-          </div>
+          )}
+
+          <Segmented<`${EatenFraction}`>
+            label="Yang kamu makan"
+            value={`${adj.eaten}`}
+            onChange={(v) => change({ eaten: Number(v) as EatenFraction })}
+            options={[["1", "Habis"], ["0.75", "¾"], ["0.5", "½"], ["0.25", "¼"]]}
+          />
 
           <MealTimeField value={mealTime} onChange={setMealTime} />
 
@@ -440,6 +556,40 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+function Segmented<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: T;
+  onChange: (value: T) => void;
+  options: Array<[T, string]>;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="text-neutral-500">{label}</span>
+      <div className="flex gap-1 rounded-xl bg-neutral-100 p-1 dark:bg-neutral-800" role="radiogroup" aria-label={label}>
+        {options.map(([optionValue, text]) => (
+          <button
+            key={optionValue}
+            type="button"
+            role="radio"
+            aria-checked={value === optionValue}
+            onClick={() => onChange(optionValue)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              value === optionValue ? "bg-white text-brand-700 shadow-xs dark:bg-neutral-700 dark:text-brand-300" : "text-neutral-500"
+            }`}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
