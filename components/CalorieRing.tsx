@@ -42,7 +42,7 @@ export default function CalorieRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <div className="font-display text-4xl font-bold tabular-nums leading-none">
+        <div className="font-display text-4xl font-semibold tabular-nums leading-none tracking-wide">
           {left.toLocaleString("id-ID")}
         </div>
         <div className="mt-1 text-xs text-white/80">{over ? "kcal melebihi target" : "kcal tersisa"}</div>

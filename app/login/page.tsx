@@ -65,9 +65,9 @@ function LoginScreen() {
     <div className="flex min-h-screen flex-col" style={{ background: skyBackground(sky) }}>
       <div className="relative isolate flex flex-1 flex-col items-center justify-end overflow-hidden px-6 pb-10 pt-16 text-white">
         <SkyBackdrop sky={sky} />
-        <Mascot mood="happy" className="mb-3 h-24 w-24" />
-        <h1 className="text-4xl font-semibold">menuju kurus</h1>
-        <p className="font-display mt-1 text-lg font-medium text-white/90">pelan tapi pasti</p>
+        <Mascot mood="happy" className="mb-2 h-32 w-32" />
+        <h1 className="text-5xl font-semibold">Slothly</h1>
+        <p className="font-display mt-1 text-lg font-medium text-white/90">sehat pelan-pelan, tanpa drama</p>
         <p className="mt-1 text-sm text-white/80">Kalori, berat, dan keputusan makan harian</p>
       </div>
 

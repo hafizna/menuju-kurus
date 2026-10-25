@@ -94,3 +94,16 @@ button {
 @layer base {
   h1 { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
+
+/* Sloth poses */
+@keyframes mascot-sway { 0%, 100% { transform: rotate(-3.5deg); } 50% { transform: rotate(3.5deg); } }
+@keyframes mascot-wave { 0%, 55%, 100% { transform: rotate(0); } 65% { transform: rotate(-14deg); } 75% { transform: rotate(8deg); } 85% { transform: rotate(-12deg); } 95% { transform: rotate(0); } }
+@keyframes mascot-twinkle { 0%, 100% { opacity: 0.25; transform: scale(0.7); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes mascot-belly { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+.mascot-sway { transform-box: view-box; transform-origin: 40px 8px; animation: mascot-sway 4.2s ease-in-out infinite; }
+.mascot-wave { transform-box: view-box; transform-origin: 54px 50px; animation: mascot-wave 5s ease-in-out infinite; }
+.mascot-twinkle { transform-box: fill-box; transform-origin: center; animation: mascot-twinkle 1.8s ease-in-out infinite; }
+.mascot-belly { transform-box: view-box; transform-origin: 46px 60px; animation: mascot-belly 3.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mascot-sway, .mascot-wave, .mascot-twinkle, .mascot-belly { animation: none; }
+}

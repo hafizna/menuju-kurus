@@ -1,6 +1,6 @@
-# Menuju Kurus — Product Roadmap
+# Slothly — Product Roadmap
 
-Menuju Kurus diposisikan sebagai **personal nutrition decision assistant**, bukan sekadar aplikasi penghitung kalori.
+Slothly diposisikan sebagai **personal nutrition decision assistant**, bukan sekadar aplikasi penghitung kalori.
 
 Logika utama tetap deterministic dan dapat diuji. AI hanya menjelaskan keputusan yang sudah dihitung oleh engine lokal; AI tidak menentukan target, ranking, atau aturan keselamatan.
 

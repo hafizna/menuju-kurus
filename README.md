@@ -1,8 +1,10 @@
-# menuju kurus
+# Slothly
+
+> Sehat pelan-pelan, tanpa drama. (Nama repo masih `menuju-kurus`.)
 
 Aplikasi personal untuk calorie tracking, weight management, fitness intelligence, dan keputusan makan sehari-hari. Dibuat mobile-first dengan Next.js, Gemini + DeepSeek, Upstash Redis, dan Vercel free tier.
 
-Menuju Kurus diposisikan sebagai **personal nutrition decision assistant**: logika lokal menentukan keputusan, sedangkan AI hanya menjelaskan hasil yang sudah dihitung.
+Slothly diposisikan sebagai **personal nutrition decision assistant**: logika lokal menentukan keputusan, sedangkan AI hanya menjelaskan hasil yang sudah dihitung.
 
 ## Fitur utama
 

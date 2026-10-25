@@ -39,7 +39,7 @@ export default function SetPinPage() {
     <div className="flex min-h-screen flex-col" style={{ background: skyBackground(sky) }}>
       <div className="relative isolate flex flex-1 flex-col items-center justify-end overflow-hidden px-6 pb-10 pt-16 text-white">
         <SkyBackdrop sky={sky} />
-        <Mascot mood="cheer" className="mb-3 h-24 w-24" />
+        <Mascot mood="cheer" className="mb-2 h-32 w-32" />
         <h1 className="text-2xl font-bold">Buat PIN</h1>
         <p className="mt-1 text-sm text-white/80">
           Buat masuk cepat tiap hari, tanpa kode undangan lagi

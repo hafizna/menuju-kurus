@@ -224,7 +224,7 @@ export default function DashboardPage() {
   const greeting =
     hour < 5 ? "Selamat malam" : hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 19 ? "Selamat sore" : "Selamat malam";
   const mood: MascotMood = over
-    ? "worried"
+    ? "full"
     : summary.foodLogStatus === "complete" && onTrack
       ? "cheer"
       : summary.foodLogStatus === "empty"
@@ -256,7 +256,7 @@ export default function DashboardPage() {
               {greeting}
               {data.userName ? `, ${data.userName}` : ""}
             </p>
-            <h1 className="text-xl font-bold">{statusLine}</h1>
+            <h1 className="text-xl font-semibold">{statusLine}</h1>
           </div>
           <div className="shrink-0 rounded-full bg-white/15 px-3 py-1 text-sm font-medium">
             🔥 {streak} hari

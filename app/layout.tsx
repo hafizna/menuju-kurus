@@ -19,7 +19,7 @@ const fredoka = Fredoka({
 });
 
 export const metadata: Metadata = {
-  title: "menuju kurus",
+  title: "Slothly",
   description: "Catat makan, pantau berat, dan tahu sisa kalori hari ini",
   manifest: "/manifest.json",
   icons: {
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "menuju kurus",
+    title: "Slothly",
   },
 };
 

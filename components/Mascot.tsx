@@ -1,97 +1,221 @@
-export type MascotMood = "happy" | "neutral" | "worried" | "cheer";
+export type MascotMood = "happy" | "neutral" | "worried" | "cheer" | "full";
 
-const PATCH = "#6b4630";
-const INK = "#3a2418";
+const FUR = "#a98f6e";
+const FUR_D = "#8c7354";
+const BELLY = "#d6c2a0";
+const FACE = "#f2e8d3";
+const MASK = "#4b392c";
+const INK = "#2b1d14";
+const CLAW = "#f1e9d6";
+const BRANCH = "#7b5b3b";
+const LEAF = "#4ade80";
 
-// Placeholder mascot: a slow loris (kukang) — "pelan tapi pasti". Everything
-// is drawn here, so swapping in final artwork only means replacing this file.
-// neutral = sleepy, the loris' resting face.
-export default function Mascot({
-  mood = "happy",
-  className,
-}: {
-  mood?: MascotMood;
-  className?: string;
-}) {
-  const eye = (cx: number) => {
+// Placeholder mascot: a three-toed sloth, drawn so each state has its own
+// silhouette (sitting, hanging, arms-up, hunched, lying on its back) rather
+// than one pose with a swapped face. Swapping in final artwork only means
+// replacing this file.
+
+function Claws({ x, y, angle }: { x: number; y: number; angle: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${angle})`}>
+      <path d="M-2.2 0 L-3.2 -4 M0 0 L0 -4.6 M2.2 0 L3.2 -4" fill="none" stroke={CLAW} strokeWidth="1.5" strokeLinecap="round" />
+    </g>
+  );
+}
+
+function Arm({ d, width = 6 }: { d: string; width?: number }) {
+  return <path d={d} fill="none" stroke={FUR} strokeWidth={width} strokeLinecap="round" />;
+}
+
+function Branch({ y }: { y: number }) {
+  return (
+    <g>
+      <rect x="4" y={y} width="72" height="6" rx="3" fill={BRANCH} />
+      <ellipse cx="14" cy={y - 1} rx="5" ry="2.4" transform={`rotate(-20 14 ${y - 1})`} fill={LEAF} />
+      <ellipse cx="66" cy={y - 1} rx="5" ry="2.4" transform={`rotate(20 66 ${y - 1})`} fill={LEAF} />
+    </g>
+  );
+}
+
+function Head({ mood, x, y, tilt = 0, scale = 1 }: { mood: MascotMood; x: number; y: number; tilt?: number; scale?: number }) {
+  const closed = mood === "neutral" || mood === "full";
+  const eyes = (side: -1 | 1) => {
+    const cx = 7.5 * side;
     if (mood === "cheer") {
-      return (
-        <path
-          d={`M${cx - 4} 34.5 Q${cx} 29.5 ${cx + 4} 34.5`}
-          fill="none"
-          stroke="#fdf0d8"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-      );
+      return <path key={side} d={`M${cx - 3.6} 1.6 Q${cx} -2.6 ${cx + 3.6} 1.6`} fill="none" stroke={FACE} strokeWidth="2" strokeLinecap="round" />;
     }
-    const hx = cx + (cx < 32 ? 1.8 : -1.2);
+    if (closed) {
+      return <path key={side} d={`M${cx - 3.6} 0.2 Q${cx} 3.4 ${cx + 3.6} 0.2`} fill="none" stroke={FACE} strokeWidth="1.9" strokeLinecap="round" />;
+    }
+    const r = mood === "worried" ? 2.1 : 2.5;
     return (
-      <g>
-        <circle cx={cx} cy="33.5" r="4.8" fill="#1d120c" />
-        <circle cx={hx} cy="31.6" r="1.5" fill="#fff" />
-        <circle cx={cx + (cx < 32 ? -1.2 : 1.2)} cy="35.6" r="0.7" fill="#fff" opacity="0.8" />
-        {mood === "neutral" && (
-          <path d={`M${cx - 5.2} 33.6 A5.2 5.2 0 0 1 ${cx + 5.2} 33.6 Z`} fill={PATCH} />
-        )}
+      <g key={side}>
+        <circle cx={cx} cy="0.6" r="3.3" fill="#fff8e7" />
+        <circle cx={cx} cy="0.9" r={r} fill={INK} />
+        <circle cx={cx + 0.9 * side * -1} cy="-0.1" r="0.8" fill="#fff" />
       </g>
     );
   };
 
   const mouth =
     mood === "cheer" ? (
-      <path d="M27 43 Q32 52 37 43 Z" fill="#7a2e2e" />
+      <path d="M-5.5 7.5 Q0 15 5.5 7.5 Z" fill="#7a2e2e" />
     ) : mood === "worried" ? (
-      <path d="M27.5 46 Q32 42 36.5 46" fill="none" stroke={INK} strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M-4 10.5 Q0 7 4 10.5" fill="none" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
+    ) : mood === "full" ? (
+      <path d="M-6 8 Q0 14 6 8" fill="none" stroke={INK} strokeWidth="1.7" strokeLinecap="round" />
     ) : mood === "neutral" ? (
-      <path d="M29 44 H35" fill="none" stroke={INK} strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M-3.5 9 Q0 11 3.5 9" fill="none" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
     ) : (
-      <path d="M27 43.5 Q32 48 37 43.5" fill="none" stroke={INK} strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M-5 8 Q0 13 5 8" fill="none" stroke={INK} strokeWidth="1.7" strokeLinecap="round" />
     );
 
-  const label = { happy: "senang", neutral: "mengantuk", worried: "khawatir", cheer: "bersorak" }[mood];
-
   return (
-    <svg viewBox="0 0 64 64" className={className} role="img" aria-label={`Maskot kukang ${label}`}>
-      <ellipse cx="32" cy="60" rx="16" ry="2.6" fill="rgba(0,0,0,0.14)" />
-      <g className={mood === "cheer" ? "mascot-bounce" : undefined}>
-      <g className={`mascot-breathe${mood === "neutral" ? " mascot-slow" : ""}`}>
-      <ellipse cx="32" cy="52" rx="17" ry="9.5" fill="#c9a479" />
-      <ellipse cx="19" cy="55" rx="5" ry="3.4" fill="#b88e63" />
-      <ellipse cx="45" cy="55" rx="5" ry="3.4" fill="#b88e63" />
-      <g className="mascot-ear mascot-ear-l">
-        <circle cx="14" cy="21" r="5.2" fill="#c9a479" />
-        <circle cx="14" cy="21" r="2.6" fill="#8a6444" />
-      </g>
-      <g className="mascot-ear mascot-ear-r">
-        <circle cx="50" cy="21" r="5.2" fill="#c9a479" />
-        <circle cx="50" cy="21" r="2.6" fill="#8a6444" />
-      </g>
-      <ellipse cx="32" cy="32" rx="21" ry="19" fill="#dcbb8d" />
-      <rect x="30.2" y="13.5" width="3.6" height="14" rx="1.8" fill="#7a5538" />
-      <ellipse cx="32" cy="42" rx="9.5" ry="6.5" fill="#f3e2c4" />
-      <ellipse cx="22.5" cy="33" rx="7.2" ry="8.6" transform="rotate(-12 22.5 33)" fill={PATCH} />
-      <ellipse cx="41.5" cy="33" rx="7.2" ry="8.6" transform="rotate(12 41.5 33)" fill={PATCH} />
+    <g transform={`translate(${x} ${y}) rotate(${tilt}) scale(${scale})`}>
+      <ellipse rx="19" ry="15.5" fill={FUR} />
+      <ellipse cy="2" rx="15.5" ry="12" fill={FACE} />
+      <ellipse cx="-7.5" cy="0.6" rx="5.6" ry="3.9" transform="rotate(-25 -7.5 0.6)" fill={MASK} />
+      <ellipse cx="7.5" cy="0.6" rx="5.6" ry="3.9" transform="rotate(25 7.5 0.6)" fill={MASK} />
       <g className={mood === "happy" || mood === "worried" ? "mascot-blink" : undefined}>
-        {eye(22.5)}
-        {eye(41.5)}
+        {eyes(-1)}
+        {eyes(1)}
       </g>
       {mood === "worried" && (
         <g fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="round">
-          <path d="M16.5 25.5 L26 22.5" />
-          <path d="M47.5 25.5 L38 22.5" />
+          <path d="M-12 -6.5 L-4.5 -9" />
+          <path d="M12 -6.5 L4.5 -9" />
         </g>
       )}
-      <ellipse cx="32" cy="39.6" rx="2.7" ry="1.9" fill={INK} />
+      <ellipse cy="5.4" rx="2.7" ry="1.9" fill={INK} />
       {mouth}
-      {mood === "worried" && <path className="mascot-drop" d="M53 29 Q56 34 53 37 Q50 34 53 29 Z" fill="#7dd3fc" />}
-      </g>
-      {mood === "neutral" && (
-        <text className="mascot-zzz" x="50" y="12" fontSize="9" fontWeight="700" fill="#ffffff">
-          z
-        </text>
+      {(mood === "happy" || mood === "cheer" || mood === "full") && (
+        <g fill="#f4a9a0" opacity="0.55">
+          <ellipse cx="-11.5" cy="7" rx="2.6" ry="1.7" />
+          <ellipse cx="11.5" cy="7" rx="2.6" ry="1.7" />
+        </g>
       )}
-      </g>
+    </g>
+  );
+}
+
+function Sparkle({ x, y, s = 1, delay = 0 }: { x: number; y: number; s?: number; delay?: number }) {
+  return (
+    <path
+      className="mascot-twinkle"
+      style={{ animationDelay: `${delay}s` }}
+      transform={`translate(${x} ${y}) scale(${s})`}
+      d="M0 -4 L1.2 -1.2 L4 0 L1.2 1.2 L0 4 L-1.2 1.2 L-4 0 L-1.2 -1.2 Z"
+      fill="#fde68a"
+    />
+  );
+}
+
+export default function Mascot({ mood = "happy", className }: { mood?: MascotMood; className?: string }) {
+  const label = { happy: "senang", neutral: "mengantuk", worried: "khawatir", cheer: "bersorak", full: "kenyang" }[mood];
+
+  let pose: React.ReactNode;
+  if (mood === "neutral") {
+    // Hanging from a branch, swaying, asleep.
+    pose = (
+      <>
+        <Branch y={5} />
+        <g className="mascot-sway">
+          <Arm d="M31 41 Q22 24 27 10" />
+          <Arm d="M49 41 Q58 24 53 10" />
+          <Claws x={27} y={9} angle={-8} />
+          <Claws x={53} y={9} angle={8} />
+          <ellipse cx="33" cy="66" rx="4" ry="6.5" fill={FUR_D} />
+          <ellipse cx="47" cy="66" rx="4" ry="6.5" fill={FUR_D} />
+          <Claws x={33} y={71} angle={180} />
+          <Claws x={47} y={71} angle={180} />
+          <g className="mascot-breathe">
+            <ellipse cx="40" cy="53" rx="15" ry="13.5" fill={FUR} />
+            <ellipse cx="40" cy="56" rx="9" ry="8" fill={BELLY} />
+          </g>
+          <Head mood={mood} x={40} y={35} />
+          <text className="mascot-zzz" x="60" y="26" fontSize="9" fontWeight="700" fill="#ffffff">z</text>
+        </g>
+      </>
+    );
+  } else if (mood === "full") {
+    // Lying on its back with a round belly, a leaf on top.
+    pose = (
+      <>
+        <rect x="4" y="68" width="72" height="6" rx="3" fill={BRANCH} />
+        <ellipse cx="44" cy="58" rx="27" ry="12.5" fill={FUR} />
+        <g className="mascot-belly">
+          <ellipse cx="46" cy="52" rx="19" ry="11" fill={BELLY} />
+          <ellipse cx="52" cy="46" rx="6.5" ry="2.8" transform="rotate(-25 52 46)" fill={LEAF} />
+        </g>
+        <Arm d="M27 56 Q33 44 44 46" width={5.5} />
+        <Arm d="M60 57 Q56 46 46 47" width={5.5} />
+        <ellipse cx="68" cy="52" rx="4" ry="8" transform="rotate(-25 68 52)" fill={FUR_D} />
+        <ellipse cx="73" cy="59" rx="3.6" ry="7" transform="rotate(-50 73 59)" fill={FUR_D} />
+        <Head mood={mood} x={17} y={52} tilt={-14} scale={0.88} />
+      </>
+    );
+  } else if (mood === "cheer") {
+    pose = (
+      <>
+        <Branch y={69} />
+        <g className="mascot-bounce">
+          <Arm d="M28 49 Q12 40 14 20" />
+          <Arm d="M52 49 Q68 40 66 20" />
+          <Claws x={14} y={18} angle={-6} />
+          <Claws x={66} y={18} angle={6} />
+          <ellipse cx="40" cy="57" rx="17" ry="14" fill={FUR} />
+          <ellipse cx="40" cy="60" rx="10.5" ry="9" fill={BELLY} />
+          <ellipse cx="30" cy="69" rx="5" ry="3" fill={FUR_D} />
+          <ellipse cx="50" cy="69" rx="5" ry="3" fill={FUR_D} />
+          <Head mood={mood} x={40} y={33} />
+          <Sparkle x={6} y={34} s={1.1} />
+          <Sparkle x={74} y={36} s={0.9} delay={0.4} />
+          <Sparkle x={40} y={7} s={0.8} delay={0.8} />
+        </g>
+      </>
+    );
+  } else if (mood === "worried") {
+    // Hunched, arms wrapped around its belly, head tilted.
+    pose = (
+      <>
+        <Branch y={69} />
+        <g className="mascot-breathe">
+          <ellipse cx="40" cy="58" rx="18" ry="13.5" fill={FUR} />
+          <ellipse cx="40" cy="61" rx="11" ry="8.5" fill={BELLY} />
+          <ellipse cx="30" cy="69" rx="5" ry="3" fill={FUR_D} />
+          <ellipse cx="50" cy="69" rx="5" ry="3" fill={FUR_D} />
+          <Arm d="M25 50 Q34 64 49 58" />
+          <Arm d="M55 50 Q46 64 31 58" />
+          <Head mood={mood} x={40} y={36} tilt={-7} />
+          <path className="mascot-drop" d="M57 25 Q60.5 31 57 34 Q53.5 31 57 25 Z" fill="#7dd3fc" />
+        </g>
+      </>
+    );
+  } else {
+    // Sitting on a branch, waving.
+    pose = (
+      <>
+        <Branch y={69} />
+        <g className="mascot-breathe">
+          <ellipse cx="40" cy="57" rx="17" ry="14" fill={FUR} />
+          <ellipse cx="40" cy="60" rx="10.5" ry="9" fill={BELLY} />
+          <ellipse cx="30" cy="69" rx="5" ry="3" fill={FUR_D} />
+          <ellipse cx="50" cy="69" rx="5" ry="3" fill={FUR_D} />
+          <Arm d="M26 50 Q17 57 21 64" />
+          <Claws x={21} y={64} angle={170} />
+          <Head mood={mood} x={40} y={33} />
+          <g className="mascot-wave">
+            <Arm d="M54 50 Q65 45 63 31" />
+            <Claws x={63} y={30} angle={4} />
+          </g>
+        </g>
+      </>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 80 80" className={className} role="img" aria-label={`Maskot sloth ${label}`}>
+      {pose}
     </svg>
   );
 }
