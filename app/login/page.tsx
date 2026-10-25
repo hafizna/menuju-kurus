@@ -68,7 +68,6 @@ function LoginScreen() {
         <Mascot mood="happy" className="mb-2 h-32 w-32" />
         <h1 className="text-5xl font-semibold">Slothly</h1>
         <p className="font-display mt-1 text-lg font-medium text-white/90">sehat pelan-pelan, tanpa drama</p>
-        <p className="mt-1 text-sm text-white/80">Kalori, berat, dan keputusan makan harian</p>
       </div>
 
       <div className="rounded-t-3xl bg-neutral-50 px-6 pb-10 pt-8 dark:bg-neutral-950">
