@@ -40,8 +40,7 @@ export default function DailyCoach({
         <div className="flex items-start gap-2">
           <IconSparkle className="mt-0.5 h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" />
           <div>
-            <div className="text-sm font-semibold">Personal Adaptive Coach</div>
-            <div className="mt-0.5 text-sm text-neutral-600 dark:text-neutral-300">{coach.headline}</div>
+            <div className="text-sm font-semibold">Saran untukmu</div>
           </div>
         </div>
         <span className="shrink-0 rounded-full bg-white/70 px-2 py-1 text-[10px] font-medium text-neutral-500 dark:bg-neutral-900/60">

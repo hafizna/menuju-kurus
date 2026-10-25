@@ -91,8 +91,31 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
           ))}
         </div>
       </div>
-      <BodyResponsePanel period={days} />
-      <CalibrationPanel />
+      {data.snapshots.length === 0 ? (
+        <>
+          <section className="rounded-2xl border border-neutral-100 bg-white p-4 text-sm text-neutral-600 shadow-xs dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
+            <div className="font-semibold text-neutral-900 dark:text-neutral-100">Mulai dari yang sederhana</div>
+            <p className="mt-1">
+              Catat makan setiap hari dan timbang berat beberapa kali seminggu. Analisis pola dan
+              evaluasi target akan lebih bermakna setelah ada beberapa minggu data.
+            </p>
+          </section>
+          <details className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+            <summary className="cursor-pointer text-sm font-medium text-neutral-500">
+              Analisis lanjutan (belum ada data)
+            </summary>
+            <div className="mt-4 space-y-4">
+              <BodyResponsePanel period={days} />
+              <CalibrationPanel />
+            </div>
+          </details>
+        </>
+      ) : (
+        <>
+          <BodyResponsePanel period={days} />
+          <CalibrationPanel />
+        </>
+      )}
     </div>
   );
 }

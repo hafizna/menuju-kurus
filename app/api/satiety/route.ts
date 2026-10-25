@@ -43,7 +43,12 @@ export async function POST(req: NextRequest) {
     const ai = await generateSatietySummary(input, strategy);
     return NextResponse.json({ input, strategy, ai });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Gagal membuat penjelasan AI";
-    return NextResponse.json({ input, strategy, ai: null, aiError: message });
+    console.error(error);
+    return NextResponse.json({
+      input,
+      strategy,
+      ai: null,
+      aiError: "Penjelasan AI sedang tidak tersedia. Coba lagi nanti.",
+    });
   }
 }

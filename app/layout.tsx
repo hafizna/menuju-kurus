@@ -12,8 +12,12 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: "menuju kurus",
-  description: "Pelacak kalori & rencana harian pribadi",
+  description: "Catat makan, pantau berat, dan tahu sisa kalori hari ini",
   manifest: "/manifest.json",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

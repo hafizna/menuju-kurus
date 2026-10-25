@@ -48,7 +48,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ summary, input });
   } catch (err) {
     console.error(err);
-    const message = err instanceof Error ? err.message : "Gagal membuat ringkasan";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json(
+      { error: "Ringkasan AI sedang tidak tersedia. Coba lagi nanti." },
+      { status: 502 },
+    );
   }
 }

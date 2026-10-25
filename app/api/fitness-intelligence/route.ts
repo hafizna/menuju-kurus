@@ -53,8 +53,10 @@ export async function POST(req: NextRequest) {
     const ai = await generateFitnessSummary(intelligence);
     return NextResponse.json({ ai, intelligence });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Gagal membuat recap";
-    return NextResponse.json({ error: message }, { status: 502 });
+    console.error(error);
+    return NextResponse.json(
+      { error: "Recap AI sedang tidak tersedia. Coba lagi nanti." },
+      { status: 502 },
+    );
   }
 }

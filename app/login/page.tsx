@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { IconBowl } from "@/components/icons";
+import Mascot from "@/components/Mascot";
 
 function LoginScreen() {
   const router = useRouter();
@@ -62,9 +62,7 @@ function LoginScreen() {
   return (
     <div className="flex min-h-screen flex-col bg-linear-to-br from-brand-600 via-brand-700 to-brand-800">
       <div className="flex flex-1 flex-col items-center justify-end px-6 pb-10 pt-16 text-white">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
-          <IconBowl className="h-7 w-7" />
-        </div>
+        <Mascot mood="happy" className="mb-3 h-24 w-24" />
         <h1 className="text-2xl font-bold">menuju kurus</h1>
         <p className="mt-1 text-sm text-brand-100">Kalori, berat, dan keputusan makan harian</p>
       </div>
