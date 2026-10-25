@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import type { AdaptiveCoachResult, CoachMoment } from "@/lib/adaptiveCoach";
 import { IconSparkle } from "@/components/icons";
@@ -27,6 +28,9 @@ export default function DailyCoach({
   moment: CoachMoment;
   onMomentChange: (moment: CoachMoment) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? coach.recommendations : coach.recommendations.slice(0, 1);
+  const hidden = coach.recommendations.length - shown.length;
   const tone =
     coach.status === "recover"
       ? "border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/40"
@@ -50,7 +54,7 @@ export default function DailyCoach({
 
       <div className="mt-3">
         <div className="mb-1.5 text-[11px] font-medium text-neutral-500">Lagi gimana sekarang?</div>
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
           {MOMENTS.map((item) => (
             <button
               key={item.value}
@@ -69,7 +73,7 @@ export default function DailyCoach({
       </div>
 
       <ul className="mt-4 space-y-3">
-        {coach.recommendations.map((item) => (
+        {shown.map((item) => (
           <li key={item.id} className="border-l-2 border-neutral-300 pl-3 dark:border-neutral-700">
             <div className="text-sm font-medium">{item.title}</div>
             <div className="mt-0.5 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">{item.detail}</div>
@@ -82,6 +86,16 @@ export default function DailyCoach({
           </li>
         ))}
       </ul>
+
+      {(hidden > 0 || expanded) && coach.recommendations.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-3 text-xs font-medium text-neutral-500 underline-offset-2 hover:underline"
+        >
+          {expanded ? "Sembunyikan saran lain" : `Lihat ${hidden} saran lain`}
+        </button>
+      )}
 
       <p className="mt-3 border-t border-black/5 pt-2 text-[10px] text-neutral-500 dark:border-white/10">
         Disusun dari {coach.basis.join(", ")}, bukan oleh AI.

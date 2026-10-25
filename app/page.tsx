@@ -195,6 +195,7 @@ export default function DashboardPage() {
     settings,
     habits,
   } = data;
+  const fresh = (data.bodyResponse?.current.food.observedDays ?? 0) === 0 && streak === 0;
   const over = summary.caloriesIn > summary.target;
   const surplus = Math.max(0, summary.caloriesIn - summary.target);
   const onTrack = summary.onTrack && healthScore.total >= 60;
@@ -263,7 +264,7 @@ export default function DashboardPage() {
           <div className="flex min-w-0 flex-1 flex-col items-center">
             <Mascot mood={mood} className="h-20 w-20" />
             <p className="mt-1 line-clamp-3 rounded-2xl bg-white/15 px-3 py-2 text-center text-xs leading-snug">
-              {coach.headline}
+              {fresh && log.meals.length === 0 ? "Yuk, mulai dari makan pertamamu." : coach.headline}
             </p>
           </div>
         </div>
@@ -291,7 +292,7 @@ export default function DashboardPage() {
       </section>
 
       <div className="space-y-4 p-4">
-      {!log.plan && (
+      {!fresh && !log.plan && (
         <Link
           href="/plan"
           className="block rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-center text-sm font-medium text-brand-700 dark:border-brand-900 dark:bg-brand-900/20 dark:text-brand-300"
@@ -341,11 +342,15 @@ export default function DashboardPage() {
         </form>
       )}
 
-      <DailyCoach
-        coach={coach}
-        moment={coachMoment}
-        onMomentChange={setCoachMoment}
-      />
+      {fresh ? (
+        <GettingStarted hasMeal={log.meals.length > 0} closed={Boolean(log.foodLogComplete)} />
+      ) : (
+        <DailyCoach
+          coach={coach}
+          moment={coachMoment}
+          onMomentChange={setCoachMoment}
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Link
@@ -369,6 +374,7 @@ export default function DashboardPage() {
           )}
         </Link>
 
+        {!fresh && (
         <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
           <div className="text-xs text-neutral-500">Minggu Ini</div>
           <div
@@ -386,8 +392,10 @@ export default function DashboardPage() {
             {!weeklyBudget.isComplete && " · sementara, bukan bonus makan"}
           </p>
         </div>
+        )}
       </div>
 
+      {(!fresh || log.meals.length > 0) && (
       <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="text-sm font-semibold">Tutup hari</div>
         <div className="mt-0.5 text-sm text-neutral-600 dark:text-neutral-300">
@@ -436,6 +444,7 @@ export default function DashboardPage() {
             : ""}
         </p>
       </section>
+      )}
 
       <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-center justify-between gap-3">
@@ -493,5 +502,35 @@ export default function DashboardPage() {
       </section>
       </div>
     </div>
+  );
+}
+
+function GettingStarted({ hasMeal, closed }: { hasMeal: boolean; closed: boolean }) {
+  const steps = [
+    { label: "Target kalori sudah diatur", done: true },
+    { label: "Catat makan pertamamu", done: hasMeal },
+    { label: "Tutup hari setelah semua makan tercatat", done: closed },
+  ];
+  return (
+    <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="text-sm font-semibold">Mulai dari sini</div>
+      <ul className="mt-3 space-y-2.5">
+        {steps.map((step) => (
+          <li key={step.label} className="flex items-center gap-3 text-sm">
+            <span
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
+                step.done ? "bg-brand-600 text-white" : "border border-neutral-300 text-transparent dark:border-neutral-700"
+              }`}
+            >
+              ✓
+            </span>
+            <span className={step.done ? "text-neutral-400 line-through" : "font-medium"}>{step.label}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-neutral-500">
+        Saran harian baru muncul setelah beberapa hari catatan. Sementara itu, cukup catat makan dan tutup hari.
+      </p>
+    </section>
   );
 }
