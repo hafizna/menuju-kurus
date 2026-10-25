@@ -4,6 +4,7 @@ import type { BodyResponseReport } from "@/lib/bodyResponse";
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { DayLog, UserSettings } from "@/lib/types";
 import type { Challenge } from "@/lib/challenges";
 import { TARGET_FEEDBACK_MIN_RATIO } from "@/lib/energy";
@@ -19,6 +20,8 @@ import {
   IconTarget,
 } from "@/components/icons";
 import DailyCoach from "@/components/DailyCoach";
+import Mascot, { type MascotMood } from "@/components/Mascot";
+import CalorieRing from "@/components/CalorieRing";
 import RecoveryMode from "@/components/RecoveryMode";
 
 interface TodayResponse {
@@ -38,6 +41,7 @@ interface TodayResponse {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [burnLabel, setBurnLabel] = useState("");
   const [burnKcal, setBurnKcal] = useState("");
@@ -72,6 +76,11 @@ export default function DashboardPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const needsOnboarding = data !== null && !data.settings.programConfigured;
+  useEffect(() => {
+    if (needsOnboarding) router.replace("/onboarding");
+  }, [needsOnboarding, router]);
 
   async function toggleFoodLogComplete() {
     if (!data) return;
@@ -154,7 +163,7 @@ export default function DashboardPage() {
     }
   }
 
-  if (!data)
+  if (!data || needsOnboarding)
     return loadError ? (
       <div className="space-y-3 p-4">
         <p role="alert" className="text-sm text-red-500">
@@ -184,14 +193,9 @@ export default function DashboardPage() {
     settings,
     habits,
   } = data;
-  const pct = Math.min(
-    100,
-    Math.max(0, (summary.caloriesIn / summary.target) * 100),
-  );
   const over = summary.caloriesIn > summary.target;
   const surplus = Math.max(0, summary.caloriesIn - summary.target);
   const onTrack = summary.onTrack && healthScore.total >= 60;
-  const proteinRemaining = Math.max(0, settings.proteinTargetG - proteinToday);
   const proteinPct = Math.min(
     100,
     Math.round((proteinToday / settings.proteinTargetG) * 100),
@@ -208,94 +212,99 @@ export default function DashboardPage() {
     moment: coachMoment,
   });
 
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 19 ? "Selamat sore" : "Selamat malam";
+  const mood: MascotMood = over
+    ? "worried"
+    : summary.foodLogStatus === "complete" && onTrack
+      ? "cheer"
+      : summary.foodLogStatus === "empty"
+        ? "neutral"
+        : "happy";
+  const statusLine =
+    summary.foodLogStatus !== "complete"
+      ? "Hari ini masih berjalan"
+      : onTrack
+        ? "Hari ini on track"
+        : "Perlu dicek lagi";
+
   return (
-    <div className="space-y-4 p-4">
+    <div className="pb-4">
       {loadError && (
-        <p role="alert" className="text-sm text-red-500">
+        <p role="alert" className="p-4 text-sm text-red-500">
           {loadError}
         </p>
       )}
-      <header className="flex items-center justify-between pt-2">
-        <div>
-          <h1 className="text-xl font-bold text-brand-700 dark:text-brand-400">
-            menuju kurus
-          </h1>
-          {data.userName && (
-            <p className="text-xs text-neutral-400">Halo, {data.userName}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-700 dark:bg-orange-950 dark:text-orange-300">
-          🔥 {streak} hari catatan lengkap
-        </div>
-      </header>
+      <section className="rounded-b-[2rem] bg-linear-to-b from-brand-600 via-brand-700 to-brand-800 px-4 pb-6 pt-6 text-white shadow-xs">
+        <header className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm text-brand-100">
+              {greeting}
+              {data.userName ? `, ${data.userName}` : ""}
+            </p>
+            <h1 className="text-xl font-bold">{statusLine}</h1>
+          </div>
+          <div className="shrink-0 rounded-full bg-white/15 px-3 py-1 text-sm font-medium">
+            🔥 {streak} hari
+          </div>
+        </header>
 
+        <div className="mt-5 flex items-center gap-3">
+          <CalorieRing eaten={summary.caloriesIn} target={summary.target} className="h-40 w-40 shrink-0" />
+          <div className="flex min-w-0 flex-1 flex-col items-center">
+            <Mascot mood={mood} className="h-20 w-20" />
+            <p className="mt-1 line-clamp-3 rounded-2xl bg-white/15 px-3 py-2 text-center text-xs leading-snug">
+              {coach.headline}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between text-sm text-brand-100">
+          <span>
+            {summary.caloriesIn} / {summary.target} kcal
+          </span>
+          <span>
+            Protein {proteinToday} / {settings.proteinTargetG} g
+          </span>
+        </div>
+        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+          <div className="h-full rounded-full bg-white" style={{ width: `${proteinPct}%` }} />
+        </div>
+
+        <Link
+          href="/makan"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 font-semibold text-brand-700 shadow-xs"
+        >
+          <IconCamera className="h-5 w-5" />
+          Catat makan
+        </Link>
+      </section>
+
+      <div className="space-y-4 p-4">
       {!log.plan && (
         <Link
           href="/plan"
-          className="block rounded-xl bg-brand-600 px-4 py-3 text-center font-medium text-white"
+          className="block rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-center text-sm font-medium text-brand-700 dark:border-brand-900 dark:bg-brand-900/20 dark:text-brand-300"
         >
           Baru bangun? Pilih rencana hari ini →
         </Link>
       )}
 
-      <section className="rounded-2xl bg-linear-to-br from-brand-600 to-brand-700 p-4 text-white shadow-xs">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-brand-100">Status Hari Ini</div>
-            <div className="text-lg font-bold">
-              {summary.foodLogStatus !== "complete"
-                ? "Catatan masih berlangsung"
-                : onTrack
-                  ? "🟢 Dalam rentang target"
-                  : "Tinjau catatan & kebutuhan"}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold tabular-nums">
-              {healthScore.total}
-            </div>
-            <div className="text-xs text-brand-100">
-              Health Score /100 · heuristik
-            </div>
-          </div>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-3 border-t border-white/20 pt-3">
-          <div>
-            <div className="text-lg font-semibold tabular-nums">
-              {Math.max(0, summary.remaining)} kcal
-            </div>
-            <div className="text-xs text-brand-100">Sisa kalori</div>
-          </div>
-          <div>
-            <div className="text-lg font-semibold tabular-nums">
-              {proteinRemaining} g
-            </div>
-            <div className="text-xs text-brand-100">Sisa protein</div>
-          </div>
-        </div>
-      </section>
-
-      <div className="grid grid-cols-3 gap-2">
-        <Link
-          href="/makan"
-          className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center shadow-xs dark:bg-neutral-900"
-        >
-          <IconCamera className="h-5 w-5 text-brand-600" />
-          <span className="text-xs font-medium">Catat Makan</span>
-        </Link>
+      <div className="grid grid-cols-2 gap-2">
         <Link
           href="/makan?mode=cari"
-          className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center shadow-xs dark:bg-neutral-900"
+          className="flex items-center justify-center gap-2 rounded-2xl bg-white p-3 text-sm font-medium shadow-xs dark:bg-neutral-900"
         >
           <IconSearch className="h-5 w-5 text-brand-600" />
-          <span className="text-xs font-medium">Aku Lapar</span>
+          Aku lapar
         </Link>
         <button
           onClick={() => setShowWeightForm((v) => !v)}
-          className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-3 text-center shadow-xs dark:bg-neutral-900"
+          className="flex items-center justify-center gap-2 rounded-2xl bg-white p-3 text-sm font-medium shadow-xs dark:bg-neutral-900"
         >
           <IconScaleWeight className="h-5 w-5 text-brand-600" />
-          <span className="text-xs font-medium">Catat Berat</span>
+          Catat berat
         </button>
       </div>
 
@@ -371,91 +380,52 @@ export default function DashboardPage() {
       </div>
 
       <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mb-2 flex items-baseline justify-between">
-          <span className="text-sm text-neutral-500">Asupan hari ini</span>
-          <span
-            className={`text-sm font-medium ${over ? "text-red-500" : "text-brand-600"}`}
-          >
-            {summary.caloriesIn} / {summary.target} kcal
-          </span>
+        <div className="text-sm font-semibold">Tutup hari</div>
+        <div className="mt-0.5 text-sm text-neutral-600 dark:text-neutral-300">
+          {summary.foodLogStatus === "complete"
+            ? "Catatan makan lengkap"
+            : summary.foodLogStatus === "partial"
+              ? "Catatan makan baru sebagian"
+              : "Belum ada catatan makan"}
         </div>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
-          <div
-            className={`h-full rounded-full ${over ? "bg-red-500" : "bg-brand-500"}`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <p className="mt-3 text-xs text-neutral-500">
-          Target makan sudah memperhitungkan aktivitas rutin. Aktivitas tercatat{" "}
-          {summary.caloriesOut} kcal ditampilkan terpisah dan tidak menambah
-          budget makan.
+        <p className="mt-1 text-xs text-neutral-500">
+          Tekan setelah semua makanan dan minuman hari ini tercatat. Streak menghitung hari
+          pencatatan lengkap, bukan defisit.
         </p>
-        <div className="mt-3 border-t border-neutral-100 pt-3 dark:border-neutral-800">
-          <div className="text-sm font-medium">
-            {summary.foodLogStatus === "complete"
-              ? "Catatan makan lengkap"
-              : summary.foodLogStatus === "partial"
-                ? "Catatan makan parsial"
-                : "Belum ada catatan makan"}
-          </div>
-          <p className="mt-1 text-xs text-neutral-500">
-            Konfirmasi setelah semua makanan dan minuman hari ini tercatat.
-            Mengubah makanan akan membuka kembali status. Streak menghitung hari
-            pencatatan lengkap, bukan defisit.
+        <button
+          type="button"
+          onClick={toggleFoodLogComplete}
+          disabled={savingCompletion}
+          className={`mt-3 w-full rounded-xl py-2.5 text-sm font-medium disabled:opacity-50 ${
+            log.foodLogComplete
+              ? "border border-neutral-300 dark:border-neutral-700"
+              : "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+          }`}
+        >
+          {savingCompletion
+            ? "Menyimpan..."
+            : log.foodLogComplete
+              ? "Buka kembali catatan"
+              : "Semua asupan hari ini sudah dicatat"}
+        </button>
+        {completionError && (
+          <p role="alert" className="mt-2 text-sm text-red-500">
+            {completionError}
           </p>
-          <button
-            type="button"
-            onClick={toggleFoodLogComplete}
-            disabled={savingCompletion}
-            className="mt-2 rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-neutral-700"
-          >
-            {savingCompletion
-              ? "Menyimpan..."
-              : log.foodLogComplete
-                ? "Buka kembali catatan"
-                : "Semua asupan hari ini sudah dicatat"}
-          </button>
-          {completionError && (
-            <p role="alert" className="mt-2 text-sm text-red-500">
-              {completionError}
+        )}
+        {summary.foodLogStatus === "complete" &&
+          summary.caloriesIn < summary.target * TARGET_FEEDBACK_MIN_RATIO && (
+            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+              Asupan tercatat jauh di bawah target. Periksa kelengkapan catatan;
+              angka lebih rendah tidak otomatis lebih baik.
             </p>
           )}
-          {summary.foodLogStatus === "complete" &&
-            summary.caloriesIn < summary.target * TARGET_FEEDBACK_MIN_RATIO && (
-              <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-                Asupan tercatat jauh di bawah target. Periksa kelengkapan
-                catatan dan kebutuhan makan; angka lebih rendah tidak otomatis
-                lebih baik.
-              </p>
-            )}
-          <p className="mt-2 text-xs text-neutral-400">
-            Rentang feedback 80–100% target adalah heuristik aplikasi, bukan
-            batas kecukupan medis atau instruksi untuk berhenti makan.
-          </p>
-        </div>
-        {log.plan === "if" &&
-          log.eatingWindowStart &&
-          log.eatingWindowHours && (
-            <p className="mt-3 text-center text-xs text-neutral-500">
-              Mode Intermittent Fasting · window makan {log.eatingWindowHours}{" "}
-              jam sejak bangun
-            </p>
-          )}
-      </section>
-
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mb-2 flex items-baseline justify-between">
-          <span className="text-sm text-neutral-500">Protein hari ini</span>
-          <span className="text-sm font-medium">
-            {proteinToday} / {settings.proteinTargetG} g
-          </span>
-        </div>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
-          <div
-            className="h-full rounded-full bg-blue-500"
-            style={{ width: `${proteinPct}%` }}
-          />
-        </div>
+        <p className="mt-3 text-xs text-neutral-400">
+          Skor kebiasaan hari ini {healthScore.total}/100 (heuristik aplikasi, bukan penilaian medis).
+          {log.plan === "if" && log.eatingWindowStart && log.eatingWindowHours
+            ? ` Mode Intermittent Fasting · window makan ${log.eatingWindowHours} jam sejak bangun.`
+            : ""}
+        </p>
       </section>
 
       <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
@@ -512,6 +482,7 @@ export default function DashboardPage() {
           </form>
         )}
       </section>
+      </div>
     </div>
   );
 }

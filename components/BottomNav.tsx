@@ -11,9 +11,11 @@ const ITEMS = [
   { href: "/settings", label: "Profil", icon: IconUser },
 ];
 
+const HIDDEN = ["/login", "/onboarding", "/account/set-pin"];
+
 export default function BottomNav() {
   const pathname = usePathname();
-  if (pathname === "/login") return null;
+  if (HIDDEN.some((p) => pathname.startsWith(p))) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-neutral-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/95">
