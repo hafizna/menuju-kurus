@@ -3,74 +3,58 @@
 import { useEffect, useState } from "react";
 import { skyForHour, SKY_GRADIENT, type SkyId } from "@/lib/skyTheme";
 
-// For server-rendered pages: starts on "siang" so hydration matches, then
-// switches to the real time of day right after mount.
+export type SkyVariant = "sky" | "canopy";
+
 export function useSkyAfterMount(): SkyId {
   const [sky, setSky] = useState<SkyId>("siang");
-  useEffect(() => setSky(skyForHour(new Date().getHours())), []);
+  useEffect(() => {
+    const update = () => setSky(skyForHour(new Date().getHours()));
+    update();
+    // A long-open daily journal follows the light without a reload.
+    const id = setInterval(update, 60_000);
+    return () => clearInterval(id);
+  }, []);
   return sky;
 }
 
-export function skyBackground(sky: SkyId): string {
-  return SKY_GRADIENT[sky];
+/** The original one-argument API keeps light text readable on login/PIN pages.
+ * The canopy variant is a quieter cream surface with --slothly-ink text. */
+export function skyBackground(sky: SkyId, variant: SkyVariant = "sky"): string {
+  return variant === "canopy" ? `var(--canopy-${sky})` : SKY_GRADIENT[sky];
 }
 
-function Cloud({ x, y, scale, opacity, drift }: { x: number; y: number; scale: number; opacity: number; drift: string }) {
+function Leaf({ x, y, rotate, scale = 1 }: { x: number; y: number; rotate: number; scale?: number }) {
   return (
-    <g transform={`translate(${x} ${y}) scale(${scale})`} opacity={opacity}>
-      <g className={`sky-drift ${drift}`}>
-        <ellipse cx="0" cy="0" rx="26" ry="9" fill="#fff" />
-        <ellipse cx="-14" cy="-6" rx="13" ry="9" fill="#fff" />
-        <ellipse cx="9" cy="-9" rx="15" ry="11" fill="#fff" />
-      </g>
+    <g transform={`translate(${x} ${y}) rotate(${rotate}) scale(${scale})`}>
+      <path d="M0 0C-18-8-34-4-40 8C-23 19-6 13 0 0Z" fill="currentColor" />
+      <path d="M-34 8Q-17 7-3 1" fill="none" stroke="var(--canopy-vein)" strokeWidth="1.4" opacity=".5" />
     </g>
   );
 }
 
-const STARS: Array<[number, number, number]> = [
-  [40, 40, 1.4], [90, 90, 1], [150, 30, 1.2], [210, 70, 1], [260, 24, 1.3],
-  [300, 120, 1], [60, 140, 1.1], [180, 130, 0.9], [350, 30, 1], [120, 60, 0.9],
-];
-
-// Decorative only: sun/moon, clouds or stars, and soft hills. Sits behind
-// content (parent must be `relative isolate overflow-hidden`).
-export default function SkyBackdrop({ sky }: { sky: SkyId }) {
+/** Original botanical scene: a branch, rounded leaves and time-of-day light.
+ * It is intentionally decorative, so nutrition and the action stay in front. */
+export default function SkyBackdrop({ sky, variant = "sky", className = "" }: { sky: SkyId; variant?: SkyVariant; className?: string }) {
   const night = sky === "malam";
+  const canopy = variant === "canopy";
   return (
-    <svg
-      className="pointer-events-none absolute inset-0 -z-10 h-full w-full"
-      viewBox="0 0 400 300"
-      preserveAspectRatio="xMaxYMin slice"
-      aria-hidden="true"
-    >
-      {night ? (
-        <>
-          {STARS.map(([x, y, r], i) => (
-            <circle key={i} cx={x} cy={y} r={r} fill="#fff" opacity="0.8" />
-          ))}
-          <circle cx="332" cy="62" r="19" fill="#fef9c3" />
-          <circle cx="341" cy="56" r="17" fill="#241f5c" />
-        </>
-      ) : (
-        <>
-          {sky === "sore" ? (
-            <>
-              <circle cx="336" cy="74" r="56" fill="#fdba74" opacity="0.2" />
-              <circle cx="336" cy="74" r="30" fill="#fdba74" opacity="0.95" />
-            </>
-          ) : (
-            <>
-              <circle cx="334" cy="62" r="50" fill="#fde68a" opacity="0.2" />
-              <circle cx="334" cy="62" r={sky === "pagi" ? 26 : 22} fill="#fde68a" opacity="0.95" />
-            </>
-          )}
-          <Cloud x={70} y={60} scale={1.1} opacity={0.2} drift="sky-drift-a" />
-          <Cloud x={230} y={105} scale={0.8} opacity={0.16} drift="sky-drift-b" />
-          <Cloud x={340} y={150} scale={0.9} opacity={0.14} drift="sky-drift-a" />
-        </>
-      )}
-      <path d="M0 300 L0 252 Q70 214 150 246 T300 238 T400 222 L400 300 Z" fill="rgba(0,0,0,0.14)" />
-      <path d="M0 300 L0 274 Q100 246 190 270 T400 258 L400 300 Z" fill="rgba(0,0,0,0.12)" />
+    <svg className={`slothly-backdrop ${canopy ? "slothly-backdrop--canopy" : "slothly-backdrop--sky"} ${className}`} viewBox="0 0 800 360" preserveAspectRatio="xMaxYMin slice" aria-hidden="true" focusable="false">
+      <g opacity={canopy ? .48 : .24}>
+        <circle cx="708" cy="80" r="67" fill="var(--canopy-glow)" opacity=".22" />
+        {night ? <><circle cx="711" cy="75" r="26" fill="var(--canopy-light)" /><circle cx="723" cy="65" r="24" fill={canopy ? "var(--canopy-moon-cutout)" : "#272352"} /></> : <circle cx="711" cy="75" r={sky === "sore" ? 29 : 24} fill="var(--canopy-light)" />}
+        {night && <g fill="var(--canopy-light)"><circle cx="580" cy="52" r="2" /><circle cx="640" cy="109" r="1.7" /><circle cx="762" cy="133" r="2" /><circle cx="514" cy="94" r="1.5" /></g>}
+      </g>
+      <g className="canopy-leaves" color="var(--canopy-leaf)" opacity={canopy ? .62 : .28}>
+        <path d="M503-13C602 21 704 37 814 12" fill="none" stroke="var(--canopy-branch)" strokeWidth="6" strokeLinecap="round" />
+        <Leaf x={574} y={8} rotate={-27} scale={1.1} /><Leaf x={621} y={18} rotate={-76} scale={1.2} />
+        <Leaf x={672} y={27} rotate={-28} scale={1.1} /><Leaf x={728} y={25} rotate={-91} scale={1.25} />
+        <Leaf x={784} y={17} rotate={-22} scale={1.1} /><Leaf x={517} y={-4} rotate={-88} scale={.8} />
+      </g>
+      <g opacity={canopy ? .11 : .12} fill="var(--canopy-leaf)">
+        <path d="M0 360V322Q130 282 258 324T515 311T800 316V360Z" />
+        <path d="M0 360V343Q205 313 352 342T800 333V360Z" />
+      </g>
+      {!canopy && <g fill="var(--canopy-light)" opacity=".08"><path d="M31 91C16 90 11 76 21 68C22 52 48 49 55 65C74 59 86 75 77 87Z" /><path d="M293 137C273 137 270 123 280 115C284 100 303 99 312 112C332 106 342 123 332 134Z" /></g>}
     </svg>
   );
 }

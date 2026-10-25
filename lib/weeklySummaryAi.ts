@@ -1,4 +1,5 @@
 import { generateDeepseekJson } from "./deepseekClient";
+import type { FitnessGoal } from "./types";
 
 export interface WeeklySummaryInput {
   weightTrend: number | null;
@@ -8,6 +9,14 @@ export interface WeeklySummaryInput {
   successRate: number | null;
   completedFoodDays: number;
   totalDays: number;
+  belowRangeDays: number;
+  withinRangeDays: number;
+  aboveRangeDays: number;
+  incompleteDays: number;
+  fitnessGoal: FitnessGoal;
+  proteinTargetG: number;
+  periodStart: string | null;
+  periodEnd: string | null;
 }
 
 export interface WeeklySummaryResult {
@@ -22,6 +31,8 @@ ATURAN PENTING:
 - Kamu HANYA boleh menggunakan angka-angka pada data JSON di bawah. JANGAN mengarang aktivitas, jenis makanan, tanggal, atau detail apa pun yang tidak ada di data.
 - Jika sebuah nilai null, jangan berasumsi atau berpura-pura ada datanya — cukup lewati atau sebut sebagai "belum ada data".
 - weeklyCalories adalah rata-rata asupan dari hari dengan catatan lengkap, bukan kalori bersih atau total mingguan. Hari yang belum lengkap tidak dianggap asupan nol. Sebutkan cakupan completedFoodDays/totalDays. Aktivitas tidak menambah budget makan dan tidak perlu ditebus.
+- belowRangeDays, withinRangeDays, aboveRangeDays adalah jumlah hari lengkap dengan asupan di bawah 80%, 80–100%, atau di atas target. incompleteDays tidak boleh dinilai. successRate rendah tidak berarti kebanyakan hari kelebihan makan; jelaskan penyebab dari jumlah hari aktual. Rentang ini heuristik aplikasi, bukan batas kecukupan medis.
+- Sesuaikan interpretasi arah berat dengan fitnessGoal. Kenaikan berat bukan otomatis masalah pada muscle_gain. Gunakan proteinTargetG, jangan buat target protein sendiri. Jangan mengklaim persentase di bawah 50% sebagai mayoritas.
 - Nada: suportif tapi jujur. Kalau datanya kurang baik, katakan apa adanya, jangan hanya memuji.
 
 Tugas:
@@ -34,7 +45,7 @@ const JSON_SHAPE_HINT = `{"summary": "string, 80-100 kata", "recommendations": [
 // configured — same input/output shape as the AI path, just template
 // sentences instead of a model call. Lets the feature work for free (no AI
 // spend at all) until/unless DeepSeek is turned on later.
-function templateWeeklySummary(input: WeeklySummaryInput): WeeklySummaryResult {
+export function templateWeeklySummary(input: WeeklySummaryInput): WeeklySummaryResult {
   const sentences: string[] = [];
   const coverage = input.totalDays > 0 ? `${input.completedFoodDays}/${input.totalDays} hari` : null;
 
@@ -53,16 +64,10 @@ function templateWeeklySummary(input: WeeklySummaryInput): WeeklySummaryResult {
     if (input.protein !== null) {
       sentences.push(`Protein rata-rata ${Math.round(input.protein)} g per hari.`);
     }
-    if (input.successRate !== null) {
-      if (input.successRate >= 70) {
-        sentences.push(`Success rate ${input.successRate}% — cukup konsisten di jalur target.`);
-      } else if (input.successRate >= 40) {
-        sentences.push(`Success rate ${input.successRate}% — separuh lebih hari di jalur target, masih ada ruang perbaikan.`);
-      } else {
-        sentences.push(`Success rate ${input.successRate}% — sebagian besar hari di atas target.`);
-      }
-    }
+    sentences.push(`${input.belowRangeDays} hari di bawah rentang feedback, ${input.withinRangeDays} hari di dalam rentang, dan ${input.aboveRangeDays} hari di atas target.`);
+    if (input.successRate !== null) sentences.push(`${input.successRate}% hari lengkap berada dalam rentang feedback 80–100% target; ini heuristik aplikasi.`);
   }
+  if (input.incompleteDays > 0) sentences.push(`${input.incompleteDays} hari belum lengkap dan belum dinilai.`);
 
   if (input.weightTrend !== null) {
     if (input.weightTrend < -0.1) {
@@ -84,16 +89,19 @@ function templateWeeklySummary(input: WeeklySummaryInput): WeeklySummaryResult {
   if (input.totalDays > 0 && input.completedFoodDays < input.totalDays * 0.5) {
     recs.push({ text: "Catat makan lebih konsisten, minimal di hari-hari biasa, biar polanya kebaca.", priority: 100 });
   }
-  if (input.weightTrend !== null && input.weightTrend > 0.3) {
+  if (input.belowRangeDays > 0) {
+    recs.push({ text: "Tinjau hari dengan asupan di bawah rentang: cek catatan yang terlewat dan kecukupan makan; jangan memperbesar defisit.", priority: 98 });
+  }
+  if (input.weightTrend !== null && input.weightTrend > 0.3 && input.fitnessGoal !== "muscle_gain") {
     recs.push({ text: "Tren berat naik cukup cepat minggu ini — evaluasi total asupan mingguan.", priority: 95 });
   }
   if (input.weightTrend !== null && input.weightTrend < -1.2) {
     recs.push({ text: "Penurunan berat sudah cukup cepat — jangan tambah defisit dulu.", priority: 95 });
   }
-  if (input.protein !== null && input.protein < 80) {
+  if (input.protein !== null && input.protein < input.proteinTargetG) {
     recs.push({ text: "Tambahkan sumber protein di tiap meal biar lebih kenyang dan sesuai target.", priority: 90 });
   }
-  if (input.successRate !== null && input.successRate < 50) {
+  if (input.aboveRangeDays > input.completedFoodDays / 2) {
     recs.push({ text: "Perhatikan porsi di hari-hari yang kalorinya sering lebih dari target.", priority: 85 });
   }
   if (input.weightTrend === null) {
@@ -106,7 +114,7 @@ function templateWeeklySummary(input: WeeklySummaryInput): WeeklySummaryResult {
   // the conditional checks above fire (i.e. the week genuinely looks fine).
   recs.push({ text: "Pertahankan pola makan dan logging yang sudah berjalan.", priority: 10 });
   recs.push({ text: "Review lagi minggu depan untuk lihat progres lanjutan.", priority: 5 });
-  recs.push({ text: "Konsistensi minggu ini sudah bagus — jaga ritme yang sama minggu depan.", priority: 1 });
+  recs.push({ text: "Pilih satu kebiasaan sederhana yang ingin kamu lanjutkan minggu depan.", priority: 1 });
 
   const recommendations = recs
     .sort((a, b) => b.priority - a.priority)
@@ -128,11 +136,15 @@ export async function generateWeeklySummary(input: WeeklySummaryInput): Promise<
     emptyResponseMessage: "DeepSeek returned no summary",
   });
 
+  if (typeof parsed.summary !== "string" || !parsed.summary.trim() ||
+    !Array.isArray(parsed.recommendations) || parsed.recommendations.length !== 3 ||
+    parsed.recommendations.some((item) => typeof item !== "string" || !item.trim())) {
+    throw new Error("Provider returned an incomplete weekly summary");
+  }
+
   return {
-    summary: String(parsed.summary ?? ""),
-    recommendations: Array.isArray(parsed.recommendations)
-      ? parsed.recommendations.slice(0, 3).map((item: unknown) => String(item))
-      : [],
+    summary: parsed.summary.trim(),
+    recommendations: parsed.recommendations.map((item) => item.trim()),
     source: "ai",
   };
 }

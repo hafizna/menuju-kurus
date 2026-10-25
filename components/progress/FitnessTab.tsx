@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { FitnessIntelligence } from "@/lib/fitnessIntelligence";
 import { IconSparkle } from "@/components/icons";
@@ -18,12 +18,16 @@ export default function FitnessTab() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetch("/api/fitness-intelligence")
-      .then((r) => r.json())
-      .then((d) => setData(d.intelligence))
-      .finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    setLoading(true); setError("");
+    try {
+      const res = await fetch("/api/fitness-intelligence");
+      if (!res.ok) throw new Error("Data fitness belum dapat dimuat.");
+      const result = await res.json(); setData(result.intelligence);
+    } catch (e) { setError(e instanceof Error ? e.message : "Data fitness belum dapat dimuat."); }
+    finally { setLoading(false); }
   }, []);
+  useEffect(() => { void load(); }, [load]);
 
   async function generateAi() {
     setGenerating(true);
@@ -41,11 +45,14 @@ export default function FitnessTab() {
     }
   }
 
+  if (!data && error) return <div className="space-y-3"><p role="alert" className="text-sm text-red-500">{error}</p><button type="button" onClick={() => void load()} className="rounded-lg border px-3 py-2 text-sm">Coba lagi</button></div>;
   if (loading || !data)
     return <div className="p-6 text-center text-neutral-400">Memuat...</div>;
 
   const statusText =
-    data.scoreLabel === "on-track"
+    data.scoreLabel === "baseline"
+      ? "Membangun baseline"
+      : data.scoreLabel === "on-track"
       ? "On track"
       : data.scoreLabel === "building"
         ? "Sedang dibangun"
@@ -63,10 +70,9 @@ export default function FitnessTab() {
       <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-end justify-between">
           <div>
-            <div className="text-sm text-neutral-500">{data.label} Score</div>
-            <div className="text-4xl font-bold">
-              {data.score}
-              <span className="text-base text-neutral-400">/100</span>
+            <div className="text-sm text-neutral-500">{data.score === null ? "Kenali titik awalmu" : `${data.label} Score`}</div>
+            <div className={data.score === null ? "mt-1 text-xl font-bold" : "text-4xl font-bold"}>
+              {data.score === null ? "Belum cukup data" : <>{data.score}<span className="text-base text-neutral-400">/100</span></>}
             </div>
           </div>
           <div className="text-right">
@@ -74,13 +80,17 @@ export default function FitnessTab() {
               {statusText}
             </div>
             <div className="text-xs text-neutral-400">
-              Confidence: {data.dataConfidence}
+              Cakupan data: {data.dataConfidence === "high" ? "lebih lengkap" : data.dataConfidence === "medium" ? "sebagian tersedia" : "terbatas"}
             </div>
           </div>
         </div>
         <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
           {data.recap}
         </p>
+        {!data.baselineReady && <div className="mt-3 space-y-2">
+          <ul className="space-y-1 text-sm text-neutral-500">{data.baselineReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+          <Link href={data.goal === "athletic" ? "/settings" : "/progress?tab=body"} className="inline-block rounded-lg bg-brand-600 px-3 py-2 text-sm text-white">{data.goal === "athletic" ? "Lengkapi profil fitness" : "Catat ukuran tubuh"}</Link>
+        </div>}
       </section>
 
       <section className="grid grid-cols-2 gap-3">
@@ -153,9 +163,7 @@ export default function FitnessTab() {
               <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" />{" "}
               {ai?.source === "template" ? "Recap Otomatis" : "Recap AI"}
             </div>
-            <div className="text-xs text-neutral-400">
-              Manual saja, agar hemat quota
-            </div>
+            <div className="text-xs text-neutral-400">Rangkuman dari catatan yang tersedia</div>
           </div>
           <button
             onClick={generateAi}
@@ -168,7 +176,7 @@ export default function FitnessTab() {
         {error && <p className="text-sm text-red-500">{error}</p>}
         {ai?.source === "template" && (
           <p className="text-xs text-neutral-400">
-            Dibuat dari data langsung tanpa AI (DeepSeek belum diaktifkan) — tetap gratis.
+            Rangkuman otomatis berdasarkan catatanmu.
           </p>
         )}
         {ai && (

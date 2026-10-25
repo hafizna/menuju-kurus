@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { IconHome, IconBowl, IconChartBar, IconUser } from "@/components/icons";
+import Mascot from "@/components/Mascot";
 
 const ITEMS = [
-  { href: "/", label: "Home", icon: IconHome },
+  { href: "/", label: "Hari ini", icon: IconHome },
   { href: "/makan", label: "Makan", icon: IconBowl },
-  { href: "/progress", label: "Progress", icon: IconChartBar },
+  { href: "/progress", label: "Perjalanan", icon: IconChartBar },
   { href: "/settings", label: "Profil", icon: IconUser },
 ];
 
@@ -18,19 +19,23 @@ export default function BottomNav() {
   if (HIDDEN.some((p) => pathname.startsWith(p))) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-neutral-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/95">
-      <div className="mx-auto flex max-w-md justify-between px-2">
+    <nav className="slothly-nav" aria-label="Navigasi utama">
+      <Link href="/" className="slothly-nav-brand" aria-label="Slothly, hari ini">
+        <Mascot className="h-20 w-20 -ml-2" decorative />
+        <strong>Slothly</strong>
+        <span>Pelan-pelan, tetap jalan.</span>
+      </Link>
+      <div className="slothly-nav-items">
         {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
-              className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-xs ${
-                active ? "text-brand-600 dark:text-brand-400" : "text-neutral-400"
-              }`}
+              className="slothly-nav-link"
+              aria-current={active ? "page" : undefined}
             >
-              <Icon className={`h-5 w-5 ${active ? "" : "opacity-80"}`} />
+              <span className="slothly-nav-icon"><Icon className="h-5 w-5" /></span>
               {label}
             </Link>
           );

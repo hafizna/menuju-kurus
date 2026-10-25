@@ -1,32 +1,20 @@
 "use client";
 
-import type { BodyResponseReport } from "@/lib/bodyResponse";
-
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { DayLog, UserSettings } from "@/lib/types";
 import type { Challenge } from "@/lib/challenges";
-import { TARGET_FEEDBACK_MIN_RATIO } from "@/lib/energy";
 import type { DaySummary, WeeklyBudget } from "@/lib/day";
 import type { WeightTrend } from "@/lib/weight";
-import type { HealthScore } from "@/lib/healthScore";
+import type { BodyResponseReport } from "@/lib/bodyResponse";
 import type { HabitStrategy } from "@/lib/habits";
 import { buildAdaptiveCoach, type CoachMoment } from "@/lib/adaptiveCoach";
-import {
-  IconCamera,
-  IconSearch,
-  IconScaleWeight,
-  IconTarget,
-  IconRuler,
-  IconCalendarCheck,
-  IconChartBar,
-} from "@/components/icons";
+import { IconCamera, IconSearch, IconScaleWeight, IconTarget, IconBowl } from "@/components/icons";
 import DailyCoach from "@/components/DailyCoach";
-import Mascot, { type MascotMood } from "@/components/Mascot";
-import CalorieRing from "@/components/CalorieRing";
-import FeatureCard from "@/components/ui/FeatureCard";
+import Mascot from "@/components/Mascot";
 import SkyBackdrop, { skyBackground } from "@/components/SkyBackdrop";
+import WeeklyFocusCard from "@/components/WeeklyFocusCard";
 import { skyForHour } from "@/lib/skyTheme";
 import RecoveryMode from "@/components/RecoveryMode";
 
@@ -42,504 +30,233 @@ interface TodayResponse {
   bodyResponse?: BodyResponseReport;
   weightTrend: WeightTrend;
   proteinToday: number;
-  healthScore: HealthScore;
   habits: HabitStrategy;
+}
+
+async function checkSaved(response: Response, fallback: string) {
+  if (response.ok) return;
+  const body = await response.json().catch(() => null);
+  throw new Error(body?.error || fallback);
+}
+
+function zonedHour(date: Date, timezone: string): number {
+  try { return Number(new Intl.DateTimeFormat("en-GB", { timeZone: timezone, hour: "2-digit", hourCycle: "h23" }).format(date)); }
+  catch { return Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jakarta", hour: "2-digit", hourCycle: "h23" }).format(date)); }
+}
+
+function mealTime(value: string, timezone: string): string {
+  if (/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return value.replace(":", ".");
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "Jam belum tercatat";
+  try { return new Intl.DateTimeFormat("id-ID", { timeZone: timezone, hour: "2-digit", minute: "2-digit" }).format(date); }
+  catch { return new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit" }).format(date); }
 }
 
 export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<TodayResponse | null>(null);
+  const [now, setNow] = useState(() => new Date());
   const [burnLabel, setBurnLabel] = useState("");
   const [burnKcal, setBurnKcal] = useState("");
   const [savingBurn, setSavingBurn] = useState(false);
+  const [burnError, setBurnError] = useState("");
   const [showBurnForm, setShowBurnForm] = useState(false);
   const [showWeightForm, setShowWeightForm] = useState(false);
   const [weightInput, setWeightInput] = useState("");
   const [savingWeight, setSavingWeight] = useState(false);
+  const [weightError, setWeightError] = useState("");
   const [loadError, setLoadError] = useState("");
   const [savingCompletion, setSavingCompletion] = useState(false);
   const [completionError, setCompletionError] = useState("");
+  const [savingChallenge, setSavingChallenge] = useState(false);
+  const [challengeError, setChallengeError] = useState("");
+  const [notice, setNotice] = useState("");
   const [coachMoment, setCoachMoment] = useState<CoachMoment>("neutral");
 
   const load = useCallback(async () => {
     setLoadError("");
     try {
       const res = await fetch("/api/today");
-      if (!res.ok)
-        throw new Error(
-          "Data hari ini belum bisa dimuat. Cek koneksimu lalu coba lagi.",
-        );
+      if (!res.ok) throw new Error("Data hari ini belum bisa dimuat. Cek koneksimu lalu coba lagi.");
       setData(await res.json());
       return true;
     } catch (error) {
-      setLoadError(
-        error instanceof Error ? error.message : "Gagal memuat data hari ini.",
-      );
+      setLoadError(error instanceof Error ? error.message : "Gagal memuat data hari ini.");
       return false;
     }
   }, []);
 
+  useEffect(() => { void load(); }, [load]);
   useEffect(() => {
-    load();
-  }, [load]);
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const needsOnboarding = data !== null && !data.settings.programConfigured;
-  useEffect(() => {
-    if (needsOnboarding) router.replace("/onboarding");
-  }, [needsOnboarding, router]);
+  useEffect(() => { if (needsOnboarding) router.replace("/onboarding"); }, [needsOnboarding, router]);
 
   async function toggleFoodLogComplete() {
-    if (!data) return;
-    setSavingCompletion(true);
-    setCompletionError("");
+    if (!data || savingCompletion) return;
+    setSavingCompletion(true); setCompletionError("");
     try {
       const response = await fetch("/api/log", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ foodLogComplete: !data.log.foodLogComplete }),
       });
-      if (!response.ok)
-        throw new Error("Belum tersimpan. Coba lagi ya.");
-      if (!(await load()))
-        throw new Error(
-          "Tersimpan, tapi tampilannya belum diperbarui. Tarik ulang halamannya.",
-        );
-    } catch (error) {
-      setCompletionError(
-        error instanceof Error ? error.message : "Belum bisa menyimpan.",
-      );
-    } finally {
-      setSavingCompletion(false);
-    }
+      await checkSaved(response, "Belum tersimpan. Coba lagi ya.");
+      if (!(await load())) throw new Error("Tersimpan, tapi ringkasan belum diperbarui. Tekan Coba lagi di atas.");
+    } catch (error) { setCompletionError(error instanceof Error ? error.message : "Belum bisa menyimpan."); }
+    finally { setSavingCompletion(false); }
   }
 
   async function toggleChallenge() {
-    if (!data) return;
+    if (!data || savingChallenge) return;
     const done = !data.log.challengeDone;
-    setData({ ...data, log: { ...data.log, challengeDone: done } });
-    await fetch("/api/challenge", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ done }),
-    });
-    load();
+    setSavingChallenge(true); setChallengeError("");
+    try {
+      const response = await fetch("/api/challenge", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ done }),
+      });
+      await checkSaved(response, "Misi belum tersimpan. Coba lagi.");
+      setData(current => current ? { ...current, log: { ...current.log, challengeDone: done } } : current);
+      await load();
+    } catch (error) { setChallengeError(error instanceof Error ? error.message : "Misi belum tersimpan."); }
+    finally { setSavingChallenge(false); }
   }
 
-  async function addBurn(e: React.FormEvent) {
-    e.preventDefault();
+  async function addBurn(event: FormEvent) {
+    event.preventDefault();
     const calories = Number(burnKcal);
-    if (!calories || calories <= 0) return;
-    setSavingBurn(true);
+    if (!Number.isFinite(calories) || calories <= 0) { setBurnError("Isi estimasi aktivitas lebih dari 0 kcal."); return; }
+    setSavingBurn(true); setBurnError(""); setNotice("");
     try {
-      await fetch("/api/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "burn",
-          calories,
-          label: burnLabel || "Aktivitas",
-          source: "manual",
-        }),
+      const response = await fetch("/api/log", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "burn", calories, label: burnLabel.trim() || "Aktivitas", source: "manual" }),
       });
-      setBurnLabel("");
-      setBurnKcal("");
-      setShowBurnForm(false);
+      await checkSaved(response, "Aktivitas belum tersimpan. Isianmu tetap di sini.");
+      setBurnLabel(""); setBurnKcal(""); setShowBurnForm(false); setNotice("Aktivitas tersimpan.");
       await load();
-    } finally {
-      setSavingBurn(false);
-    }
+    } catch (error) { setBurnError(error instanceof Error ? error.message : "Aktivitas belum tersimpan. Coba lagi."); }
+    finally { setSavingBurn(false); }
   }
 
-  async function saveWeight(e: React.FormEvent) {
-    e.preventDefault();
-    const weightKg = Number(weightInput);
-    if (!weightKg || weightKg <= 0) return;
-    setSavingWeight(true);
+  async function saveWeight(event: FormEvent) {
+    event.preventDefault();
+    const weightKg = Number(weightInput.replace(",", "."));
+    if (!Number.isFinite(weightKg) || weightKg <= 0) { setWeightError("Isi berat badan dalam kg terlebih dahulu."); return; }
+    setSavingWeight(true); setWeightError(""); setNotice("");
     try {
-      await fetch("/api/weight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weightKg }),
+      const response = await fetch("/api/weight", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ weightKg }),
       });
-      setWeightInput("");
-      setShowWeightForm(false);
+      await checkSaved(response, "Berat badan belum tersimpan. Isianmu tetap di sini.");
+      setWeightInput(""); setShowWeightForm(false); setNotice("Berat badan tersimpan.");
       await load();
-    } finally {
-      setSavingWeight(false);
-    }
+    } catch (error) { setWeightError(error instanceof Error ? error.message : "Berat badan belum tersimpan. Coba lagi."); }
+    finally { setSavingWeight(false); }
   }
 
-  if (!data || needsOnboarding)
-    return loadError ? (
-      <div className="space-y-3 p-4">
-        <p role="alert" className="text-sm text-red-500">
-          {loadError}
-        </p>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-        >
-          Coba lagi
-        </button>
-      </div>
-    ) : (
-      <div className="p-6 text-center text-neutral-400">Memuat...</div>
-    );
-
-  const {
-    summary,
-    log,
-    streak,
-    challenge,
-    weeklyBudget,
-    weightTrend,
-    proteinToday,
-    healthScore,
-    settings,
-    habits,
-  } = data;
-  const fresh = (data.bodyResponse?.current.food.observedDays ?? 0) === 0 && streak === 0;
-  const over = summary.caloriesIn > summary.target;
-  const surplus = Math.max(0, summary.caloriesIn - summary.target);
-  const onTrack = summary.onTrack && healthScore.total >= 60;
-  const proteinPct = Math.min(
-    100,
-    Math.round((proteinToday / settings.proteinTargetG) * 100),
+  if (!data || needsOnboarding) return (
+    <div className="space-y-3 p-6">
+      {loadError ? <><p role="alert" className="text-sm text-red-600 dark:text-red-300">{loadError}</p><button type="button" onClick={() => void load()} className="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm dark:border-neutral-700">Coba lagi</button></> : <p role="status" className="text-center text-neutral-500">Memuat harimu...</p>}
+    </div>
   );
-  const coach = buildAdaptiveCoach({
-    bodyResponse: data.bodyResponse,
-    log,
-    summary,
-    weeklyBudget,
-    weightTrend,
-    proteinToday,
-    settings,
-    habits,
-    moment: coachMoment,
-  });
 
-  const hour = new Date().getHours();
+  const { summary, log, streak, challenge, weeklyBudget, weightTrend, proteinToday, settings, habits } = data;
+  const fresh = (data.bodyResponse?.current.food.observedDays ?? 0) === 0 && streak === 0;
+  const complete = summary.foodLogStatus === "complete";
+  const hour = zonedHour(now, settings.timezone);
+  const evening = hour >= 18 || hour < 4;
   const sky = skyForHour(hour);
-  const greeting =
-    hour < 5 ? "Selamat malam" : hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 19 ? "Selamat sore" : "Selamat malam";
-  const mood: MascotMood = over
-    ? "full"
-    : summary.foodLogStatus === "complete" && onTrack
-      ? "cheer"
-      : summary.foodLogStatus === "empty"
-        ? "neutral"
-        : "happy";
-  const statusLine =
-    summary.foodLogStatus !== "complete"
-      ? "Hari ini masih jalan"
-      : onTrack
-        ? "Hari ini on track"
-        : "Yuk cek lagi sebentar";
+  const greeting = hour < 4 ? "Selamat malam" : hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 18 ? "Selamat sore" : "Selamat malam";
+  const coach = buildAdaptiveCoach({ bodyResponse: data.bodyResponse, log, summary, weeklyBudget, weightTrend, proteinToday, settings, habits, moment: coachMoment });
+  const caloriesLabel = `${summary.caloriesIn} / ${summary.target} kcal`;
+  const proteinLabel = `${proteinToday} / ${settings.proteinTargetG} g`;
+  const intakePct = summary.target > 0 ? Math.min(100, Math.max(0, summary.caloriesIn / summary.target * 100)) : 0;
+  const proteinPct = settings.proteinTargetG > 0 ? Math.min(100, Math.max(0, proteinToday / settings.proteinTargetG * 100)) : 0;
+  const recent = [...log.meals].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 3);
+  const card = "rounded-2xl border border-neutral-200/70 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900";
+
+  const closeDay = (!fresh || log.meals.length > 0) && (
+    <section className={`${card} ${evening && !complete ? "border-brand-200 dark:border-brand-800" : ""}`} aria-labelledby="close-day-title">
+      <div className="flex items-start justify-between gap-3">
+        <div><h2 id="close-day-title" className="font-semibold">Tutup hari</h2><p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">{complete ? "Catatan hari ini sudah lengkap." : summary.foodLogStatus === "partial" ? "Sudah semua makan dan minum hari ini tercatat?" : "Belum ada makanan yang tercatat hari ini."}</p></div>
+        {complete && <span className="rounded-full bg-brand-100 px-2.5 py-1 text-xs text-brand-800 dark:bg-brand-900 dark:text-brand-200">Lengkap</span>}
+      </div>
+      {!log.foodLogComplete && log.meals.length > 0 && <p className="mt-2 text-xs leading-relaxed text-neutral-500">Cek juga minuman, camilan, serta minyak atau saus. <Link href="/makan" className="font-semibold text-brand-700 underline underline-offset-2 dark:text-brand-300">Ada yang belum dicatat?</Link></p>}
+      <button type="button" onClick={toggleFoodLogComplete} disabled={savingCompletion} className={`mt-3 w-full rounded-xl px-3 py-3 text-sm font-semibold disabled:opacity-50 ${log.foodLogComplete ? "border border-neutral-300 dark:border-neutral-700" : "bg-brand-600 text-white"}`}>{savingCompletion ? "Menyimpan..." : log.foodLogComplete ? "Buka lagi catatannya" : "Sudah semua, tutup hari"}</button>
+      {completionError && <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-300">{completionError}</p>}
+      <p className="mt-2 text-xs leading-relaxed text-neutral-500">Streak merayakan catatan yang lengkap. Kamu bisa membuka catatannya lagi kapan saja.</p>
+    </section>
+  );
 
   return (
-    <div className="pb-4">
-      {loadError && (
-        <p role="alert" className="p-4 text-sm text-red-500">
-          {loadError}
-        </p>
-      )}
-      <section
-        className="relative isolate overflow-hidden rounded-b-[2rem] px-4 pb-6 pt-6 text-white shadow-xs"
-        style={{ background: skyBackground(sky) }}
-      >
-        <SkyBackdrop sky={sky} />
-        <div className="relative z-10">
-        <header className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm text-white/80">
-              {greeting}
-              {data.userName ? `, ${data.userName}` : ""}
-            </p>
-            <h1 className="text-xl font-semibold">{statusLine}</h1>
+    <div className="slothly-home space-y-5 p-4 sm:space-y-6 sm:p-0">
+      {loadError && <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30"><p role="alert" className="flex-1 text-sm text-amber-900 dark:text-amber-200">{loadError}</p><button type="button" onClick={() => void load()} className="rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold dark:border-amber-800">Coba lagi</button></div>}
+      <section className="slothly-canopy relative isolate overflow-hidden rounded-3xl px-5 py-4 sm:px-7 sm:py-5" style={{ background: skyBackground(sky, "canopy") }} aria-label="Sapaan harian">
+        <SkyBackdrop sky={sky} variant="canopy" />
+        <div className="grid grid-cols-[minmax(0,1fr)_112px] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_160px]">
+          <div className="min-w-0 py-2">
+            <p className="break-words text-sm text-neutral-600 dark:text-neutral-300">{greeting}{data.userName ? `, ${data.userName}` : ""}.</p>
+            <h1 className="mt-1 text-xl font-medium leading-tight sm:text-3xl">{complete ? "Catatanmu sudah lengkap." : fresh && !log.meals.length ? "Mulai dari satu catatan." : "Hari ini masih jalan."}</h1>
+            <p className="mt-2 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">{complete ? "Terima kasih sudah meluangkan waktu untuk dirimu." : "Nggak perlu sempurna. Catat yang kamu ingat, pelan-pelan."}</p>
+            {streak > 0 && <p className="mt-2 text-xs font-semibold text-brand-700 dark:text-brand-300">{streak} hari tercatat lengkap</p>}
           </div>
-          <div className="shrink-0 rounded-full bg-white/15 px-3 py-1 text-sm font-medium">
-            🔥 {streak} hari
-          </div>
-        </header>
-
-        <div className="mt-5 flex items-center gap-3">
-          <CalorieRing eaten={summary.caloriesIn} target={summary.target} className="h-40 w-40 shrink-0" />
-          <div className="flex min-w-0 flex-1 flex-col items-center">
-            <Mascot mood={mood} className="h-20 w-20" />
-            <p className="mt-1 line-clamp-3 rounded-2xl bg-white/15 px-3 py-2 text-center text-xs leading-snug">
-              {fresh && log.meals.length === 0 ? "Yuk, mulai dari makan pertamamu." : coach.headline}
-            </p>
-          </div>
+          <Mascot mood={complete ? "cheer" : "happy"} className="h-[130px] w-[130px] max-w-none justify-self-end sm:h-40 sm:w-40" />
         </div>
-
-        <div className="mt-4 flex items-center justify-between text-sm text-white/80">
-          <span>
-            {summary.caloriesIn} / {summary.target} kcal
-          </span>
-          <span>
-            Protein {proteinToday} / {settings.proteinTargetG} g
-          </span>
-        </div>
-        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
-          <div className="h-full rounded-full bg-white" style={{ width: `${proteinPct}%` }} />
-        </div>
-
-        <Link
-          href="/makan"
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 font-semibold text-brand-700 shadow-xs"
-        >
-          <IconCamera className="h-5 w-5" />
-          Catat makan
-        </Link>
+        <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          <Link href="/makan" className="flex items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-brand-700"><IconCamera className="h-5 w-5" />Catat makan</Link>
+          <Link href="/makan?mode=cari" className="flex items-center justify-center gap-2 rounded-2xl border border-neutral-300/70 px-4 py-3 text-sm font-semibold dark:border-neutral-600"><IconSearch className="h-4 w-4" />Butuh ide makan?</Link>
         </div>
       </section>
 
-      <div className="space-y-4 p-4">
-      {!fresh && !log.plan && (
-        <Link
-          href="/plan"
-          className="block rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-center text-sm font-medium text-brand-700 dark:border-brand-900 dark:bg-brand-900/20 dark:text-brand-300"
-        >
-          Baru bangun? Pilih rencana hari ini →
-        </Link>
-      )}
-
-      <div className="grid grid-cols-2 gap-2">
-        <Link
-          href="/makan?mode=cari"
-          className="flex items-center justify-center gap-2 rounded-2xl bg-white p-3 text-sm font-medium shadow-xs dark:bg-neutral-900"
-        >
-          <IconSearch className="h-5 w-5 text-orange-500" />
-          Aku lapar
-        </Link>
-        <button
-          onClick={() => setShowWeightForm((v) => !v)}
-          className="flex items-center justify-center gap-2 rounded-2xl bg-white p-3 text-sm font-medium shadow-xs dark:bg-neutral-900"
-        >
-          <IconScaleWeight className="h-5 w-5 text-sky-500" />
-          Catat berat
-        </button>
-      </div>
-
-      {showWeightForm && (
-        <form
-          onSubmit={saveWeight}
-          className="flex items-center gap-2 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900"
-        >
-          <input
-            autoFocus
-            value={weightInput}
-            onChange={(e) => setWeightInput(e.target.value)}
-            inputMode="decimal"
-            placeholder="78.4"
-            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-center text-lg dark:border-neutral-700 dark:bg-neutral-800"
-          />
-          <span className="text-neutral-500">kg</span>
-          <button
-            type="submit"
-            disabled={savingWeight || !weightInput}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {savingWeight ? "..." : "Simpan"}
-          </button>
-        </form>
-      )}
-
-      {fresh ? (
-        <GettingStarted hasMeal={log.meals.length > 0} closed={Boolean(log.foodLogComplete)} />
-      ) : (
-        <DailyCoach
-          coach={coach}
-          moment={coachMoment}
-          onMomentChange={setCoachMoment}
-        />
-      )}
-
-      <section>
-        <h2 className="mb-2 px-1 text-sm font-semibold">Fitur kamu</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <FeatureCard
-            href="/progress?tab=body"
-            icon={<IconScaleWeight className="h-5 w-5" />}
-            label="Berat badan"
-            value={weightTrend.today !== null ? `${weightTrend.today} kg` : "Belum ada"}
-            caption={
-              weightTrend.weeklyRate !== null
-                ? `${weightTrend.weeklyRate > 0 ? "+" : ""}${weightTrend.weeklyRate} kg per minggu`
-                : daysSince(data.bodyResponse?.current.weight.last?.date, data.date) === null
-                  ? "Timbang pertamamu"
-                  : "Belum ada tren"
-            }
-            chip={due(daysSince(data.bodyResponse?.current.weight.last?.date, data.date), 3)}
-          />
-          <FeatureCard
-            href="/progress?tab=body"
-            icon={<IconRuler className="h-5 w-5" />}
-            tone="violet"
-            label="Lingkar pinggang"
-            value={
-              data.bodyResponse?.current.waist.last
-                ? `${data.bodyResponse.current.waist.last.value} cm`
-                : "Belum ada"
-            }
-            caption={
-              daysSince(data.bodyResponse?.current.waist.last?.date, data.date) === null
-                ? "Ukur pertama kali"
-                : `${
-                    settings.heightCm && data.bodyResponse?.current.waist.last
-                      ? `Rasio ${(data.bodyResponse.current.waist.last.value / settings.heightCm).toFixed(2).replace(".", ",")} (patokan < 0,5) · `
-                      : ""
-                  }${daysSince(data.bodyResponse?.current.waist.last?.date, data.date)} hari lalu`
-            }
-            chip={due(daysSince(data.bodyResponse?.current.waist.last?.date, data.date), 7)}
-          />
-          {!fresh && (
-            <FeatureCard
-              href="/progress"
-              icon={<IconCalendarCheck className="h-5 w-5" />}
-              tone="amber"
-              label="Minggu ini"
-              value={`${Math.max(0, weeklyBudget.remaining).toLocaleString("id-ID")} kcal`}
-              caption={`${weeklyBudget.completedDays}/${weeklyBudget.totalDays} hari lengkap${weeklyBudget.isComplete ? "" : " · sementara"}`}
-            />
-          )}
-          <FeatureCard
-            href="/makan/restaurant"
-            icon={<IconSearch className="h-5 w-5" />}
-            tone="orange"
-            label="Makan di luar"
-            value="Menu restoran"
-            caption="Pilih yang pas buat sisa kalorimu"
-            wide={fresh}
-          />
-          {!fresh && (
-            <FeatureCard
-              href="/makan/habits"
-              icon={<IconChartBar className="h-5 w-5" />}
-              tone="sky"
-              label="Kebiasaan"
-              value="Menu favorit"
-              caption="Dipelajari dari catatanmu"
-              wide
-            />
-          )}
-        </div>
-      </section>
-
-      {(!fresh || log.meals.length > 0) && (
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="text-sm font-semibold">Tutup hari</div>
-        <div className="mt-0.5 text-sm text-neutral-600 dark:text-neutral-300">
-          {summary.foodLogStatus === "complete"
-            ? "Catatan hari ini sudah lengkap"
-            : summary.foodLogStatus === "partial"
-              ? "Baru sebagian yang tercatat"
-              : "Belum ada yang dicatat"}
-        </div>
-        <p className="mt-1 text-xs text-neutral-500">
-          Kalau semua makan dan minum hari ini sudah kamu catat, tutup harinya di sini. Streak
-          dihitung dari hari yang catatannya lengkap, bukan dari seberapa sedikit kamu makan.
-        </p>
-        {!log.foodLogComplete && log.meals.length > 0 && (
-          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-200">
-            <span>Sudah catat minuman, camilan, dan minyak atau saus?</span>
-            <Link href="/makan" className="shrink-0 font-semibold underline underline-offset-2">
-              Catat
-            </Link>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={toggleFoodLogComplete}
-          disabled={savingCompletion}
-          className={`mt-3 w-full rounded-xl py-2.5 text-sm font-medium disabled:opacity-50 ${
-            log.foodLogComplete
-              ? "border border-neutral-300 dark:border-neutral-700"
-              : "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-          }`}
-        >
-          {savingCompletion
-            ? "Menyimpan..."
-            : log.foodLogComplete
-              ? "Buka lagi catatannya"
-              : "Sudah semua, tutup hari"}
-        </button>
-        {completionError && (
-          <p role="alert" className="mt-2 text-sm text-red-500">
-            {completionError}
-          </p>
-        )}
-        {summary.foodLogStatus === "complete" &&
-          summary.caloriesIn < summary.target * TARGET_FEEDBACK_MIN_RATIO && (
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-              Yang tercatat jauh di bawah target. Pastikan nggak ada yang kelewat;
-              makan lebih sedikit belum tentu lebih baik.
-            </p>
-          )}
-        <p className="mt-3 text-xs text-neutral-400">
-          Skor kebiasaan hari ini: {healthScore.total}/100. Ini perkiraan dari app, bukan penilaian medis.
-          {log.plan === "if" && log.eatingWindowStart && log.eatingWindowHours
-            ? ` Mode puasa intermiten: jendela makan ${log.eatingWindowHours} jam sejak bangun.`
-            : ""}
-        </p>
-      </section>
-      )}
-
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <IconTarget className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" />
-            <div>
-              <div className="text-sm font-semibold">Misi Hari Ini</div>
-              <div className="text-sm text-neutral-500">{challenge.label}</div>
+      {notice && <p role="status" className="text-sm text-brand-700 dark:text-brand-300">{notice}</p>}
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(260px,1fr)] lg:gap-6">
+        <div className="min-w-0 space-y-5">
+          <section className={card} aria-labelledby="intake-title">
+            <div className="flex items-baseline justify-between gap-2"><h2 id="intake-title" className="text-sm font-semibold">Yang tercatat hari ini</h2><span className="text-xs text-neutral-500">{log.meals.length} catatan</span></div>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div><p className="text-xs text-neutral-500">Asupan</p><p className="mt-1 font-semibold tabular-nums">{caloriesLabel}</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800" role="progressbar" aria-label="Asupan yang tercatat" aria-valuemin={0} aria-valuemax={Math.max(1, summary.target)} aria-valuenow={Math.min(Math.max(0, summary.caloriesIn), Math.max(1, summary.target))} aria-valuetext={caloriesLabel}><div className="h-full rounded-full bg-brand-500" style={{ width: `${intakePct}%` }} /></div></div>
+              <div><p className="text-xs text-neutral-500">Protein</p><p className="mt-1 font-semibold tabular-nums">{proteinLabel}</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800" role="progressbar" aria-label="Protein yang tercatat" aria-valuemin={0} aria-valuemax={Math.max(1, settings.proteinTargetG)} aria-valuenow={Math.min(Math.max(0, proteinToday), Math.max(1, settings.proteinTargetG))} aria-valuetext={proteinLabel}><div className="h-full rounded-full bg-brand-400" style={{ width: `${proteinPct}%` }} /></div></div>
             </div>
-          </div>
-          <button
-            onClick={toggleChallenge}
-            aria-label="Tandai misi selesai"
-            className={`h-8 w-8 shrink-0 rounded-full border-2 text-lg ${log.challengeDone ? "border-brand-500 bg-brand-500 text-white" : "border-neutral-300 text-transparent dark:border-neutral-700"}`}
-          >
-            ✓
-          </button>
+            <p className="mt-3 text-xs text-neutral-500">Angka perkiraan dari catatanmu; kelengkapan catatan membantu melihat polanya.</p>
+          </section>
+
+          {evening && closeDay}
+
+          <section aria-labelledby="recent-meals-title">
+            <div className="mb-3 flex items-center justify-between gap-2"><h2 id="recent-meals-title" className="font-semibold">Catatan terbaru</h2><Link href="/makan#riwayat" className="text-xs font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300">Lihat semua →</Link></div>
+            {recent.length ? <div className="divide-y divide-neutral-200/70 rounded-2xl bg-white px-4 dark:divide-neutral-800 dark:bg-neutral-900">{recent.map(entry => <Link key={entry.id} href="/makan#riwayat" className="flex min-w-0 items-center gap-3 py-3.5"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"><IconBowl className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold">{entry.foodName}</p><p className="mt-0.5 text-xs text-neutral-500">{mealTime(entry.time, settings.timezone)}{entry.portionNote ? ` · ${entry.portionNote}` : ""}</p></div><span className="shrink-0 text-xs tabular-nums text-neutral-600 dark:text-neutral-300">{entry.calories} kcal</span></Link>)}</div> : <div className="rounded-2xl border border-dashed border-neutral-300 p-4 dark:border-neutral-700"><p className="text-sm text-neutral-500">Belum ada catatan hari ini. Makanan pertamamu bisa mulai dari foto atau tulisan.</p><Link href="/makan" className="mt-2 inline-flex text-sm font-semibold text-brand-700 dark:text-brand-300">Catat makan pertama →</Link></div>}
+          </section>
+          {fresh ? <GettingStarted hasMeal={log.meals.length > 0} closed={Boolean(log.foodLogComplete)} /> : <div className="home-coach"><DailyCoach coach={coach} moment={coachMoment} onMomentChange={setCoachMoment} /></div>}
+          {!evening && closeDay}
         </div>
-      </section>
 
-      {over && <RecoveryMode surplusKcal={surplus} />}
+        <aside className="min-w-0 space-y-5" aria-label="Fokus dan perjalanan">
+          <WeeklyFocusCard />
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
-        <button
-          onClick={() => setShowBurnForm((v) => !v)}
-          className="flex w-full items-center justify-between text-sm font-medium text-neutral-500"
-        >
-          Catat aktivitas manual
-          <span className="text-neutral-400">{showBurnForm ? "−" : "+"}</span>
-        </button>
-        {showBurnForm && (
-          <form onSubmit={addBurn} className="mt-3 flex gap-2">
-            <input
-              value={burnLabel}
-              onChange={(e) => setBurnLabel(e.target.value)}
-              placeholder="Aktivitas (opsional)"
-              className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
-            />
-            <input
-              value={burnKcal}
-              onChange={(e) => setBurnKcal(e.target.value)}
-              placeholder="kcal"
-              inputMode="numeric"
-              className="w-20 rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
-            />
-            <button
-              type="submit"
-              disabled={savingBurn}
-              className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              +
-            </button>
-          </form>
-        )}
-      </section>
+          <details className={card}>
+            <summary className="cursor-pointer font-semibold">Tubuh &amp; perjalanan</summary>
+            <div className="mt-4 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs text-neutral-500">Berat terakhir</p><p className="mt-1 font-display text-xl">{weightTrend.today !== null ? `${weightTrend.today} kg` : "Belum dicatat"}</p></div><button type="button" onClick={() => setShowWeightForm(value => !value)} aria-expanded={showWeightForm} aria-controls="quick-weight-form" className="flex items-center gap-1.5 rounded-xl border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700"><IconScaleWeight className="h-4 w-4" />Catat berat</button></div>
+              {showWeightForm && <form id="quick-weight-form" onSubmit={saveWeight} className="space-y-2"><label className="block text-xs text-neutral-500" htmlFor="quick-weight">Berat badan (kg)</label><div className="flex gap-2"><input id="quick-weight" autoFocus value={weightInput} onChange={event => setWeightInput(event.target.value)} inputMode="decimal" placeholder="78,4" className="min-w-0 flex-1 rounded-xl border border-neutral-300 bg-transparent px-3 py-2 dark:border-neutral-700" /><button type="submit" disabled={savingWeight || !weightInput} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingWeight ? "Menyimpan..." : "Simpan"}</button></div>{weightError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{weightError}</p>}</form>}
+              <div className="flex items-center justify-between gap-2 text-sm"><span className="text-neutral-500">Lingkar pinggang terakhir</span><span>{data.bodyResponse?.current.waist.last ? `${data.bodyResponse.current.waist.last.value} cm` : "Belum dicatat"}</span></div>
+              <Link href="/progress?tab=body" className="inline-flex text-sm font-semibold text-brand-700 dark:text-brand-300">Lihat perjalanan tubuh →</Link>
+            </div>
+          </details>
+
+          <details className={card}>
+            <summary className="cursor-pointer font-semibold">Pelengkap hari ini</summary>
+            <div className="mt-4 space-y-5">
+              <div><div className="flex items-start justify-between gap-3"><div className="flex items-start gap-2"><IconTarget className="mt-0.5 h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" /><div><h3 className="text-sm font-semibold">Misi hari ini</h3><p className="mt-1 text-sm text-neutral-500">{challenge.label}</p></div></div><button type="button" role="checkbox" aria-checked={Boolean(log.challengeDone)} aria-label={log.challengeDone ? "Batalkan misi selesai" : "Tandai misi selesai"} onClick={toggleChallenge} disabled={savingChallenge} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-lg disabled:opacity-50 ${log.challengeDone ? "border-brand-600 bg-brand-600 text-white" : "border-neutral-300 text-transparent dark:border-neutral-700"}`}>✓</button></div>{challengeError && <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-300">{challengeError}</p>}</div>
+              <div className="grid gap-3 border-t border-neutral-200 pt-4 text-sm dark:border-neutral-800"><Link href="/plan" className="font-semibold text-brand-700 dark:text-brand-300">{log.plan ? "Lihat rencana harian" : "Atur rencana harian"} →</Link><Link href="/makan/habits">Makanan yang sering dicatat →</Link><Link href="/makan/restaurant">Ide saat makan di luar →</Link></div>
+              {log.plan === "if" && log.eatingWindowHours && <p className="text-xs text-neutral-500">Rencana saat ini: jendela makan {log.eatingWindowHours} jam sejak bangun.</p>}
+              <div className="border-t border-neutral-200 pt-4 dark:border-neutral-800"><button type="button" onClick={() => setShowBurnForm(value => !value)} aria-expanded={showBurnForm} aria-controls="manual-activity-form" className="flex w-full items-center justify-between gap-2 py-1 text-left text-sm font-semibold">Catat aktivitas manual<span aria-hidden="true">{showBurnForm ? "−" : "+"}</span></button>{showBurnForm && <form id="manual-activity-form" onSubmit={addBurn} className="mt-3 space-y-2"><label className="block text-xs text-neutral-500" htmlFor="activity-name">Aktivitas (opsional)</label><input id="activity-name" value={burnLabel} onChange={event => setBurnLabel(event.target.value)} placeholder="Mis. jalan sore" className="w-full rounded-xl border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700" /><label className="block text-xs text-neutral-500" htmlFor="activity-kcal">Estimasi aktivitas (kcal)</label><div className="flex gap-2"><input id="activity-kcal" value={burnKcal} onChange={event => setBurnKcal(event.target.value)} inputMode="numeric" placeholder="kcal" className="min-w-0 flex-1 rounded-xl border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700" /><button type="submit" disabled={savingBurn} className="rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingBurn ? "Menyimpan..." : "Simpan"}</button></div>{burnError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{burnError}</p>}</form>}</div>
+              {summary.caloriesIn > summary.target && <details><summary className="cursor-pointer text-sm text-neutral-500">Setelah makan lebih banyak dari rencana</summary><div className="mt-3"><RecoveryMode surplusKcal={Math.max(0, summary.caloriesIn - summary.target)} /></div></details>}
+            </div>
+          </details>
+        </aside>
       </div>
     </div>
   );
@@ -547,40 +264,9 @@ export default function DashboardPage() {
 
 function GettingStarted({ hasMeal, closed }: { hasMeal: boolean; closed: boolean }) {
   const steps = [
-    { label: "Target kalori sudah diatur", done: true },
+    { label: "Target awal sudah diatur", done: true },
     { label: "Catat makan pertamamu", done: hasMeal },
     { label: "Tutup hari setelah semua makan tercatat", done: closed },
   ];
-  return (
-    <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="text-sm font-semibold">Mulai dari sini</div>
-      <ul className="mt-3 space-y-2.5">
-        {steps.map((step) => (
-          <li key={step.label} className="flex items-center gap-3 text-sm">
-            <span
-              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
-                step.done ? "bg-brand-600 text-white" : "border border-neutral-300 text-transparent dark:border-neutral-700"
-              }`}
-            >
-              ✓
-            </span>
-            <span className={step.done ? "text-neutral-400 line-through" : "font-medium"}>{step.label}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-3 text-xs text-neutral-500">
-        Saran harian baru muncul setelah beberapa hari catatan. Sementara itu, cukup catat makan dan tutup hari.
-      </p>
-    </section>
-  );
-}
-
-// Whole days between a YYYY-MM-DD measurement date and today's date, or null.
-function daysSince(date: string | undefined, today: string): number | null {
-  if (!date) return null;
-  return Math.max(0, Math.round((Date.parse(today) - Date.parse(date)) / 86400000));
-}
-
-function due(days: number | null, everyDays: number): string | undefined {
-  return days === null || days >= everyDays ? "Waktunya" : undefined;
+  return <section className="rounded-2xl border border-neutral-200/70 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900" aria-labelledby="getting-started-title"><h2 id="getting-started-title" className="font-semibold">Mulai dari sini</h2><ul className="mt-3 space-y-3">{steps.map(step => <li key={step.label} className="flex items-center gap-3 text-sm"><span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${step.done ? "bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-200" : "border border-neutral-300 dark:border-neutral-700"}`} aria-hidden="true">{step.done ? "✓" : ""}</span><span>{step.label}<span className="sr-only">{step.done ? ", selesai" : ", belum selesai"}</span></span></li>)}</ul><p className="mt-3 text-xs leading-relaxed text-neutral-500">Saranmu berkembang dari catatan yang terkumpul. Untuk sekarang, satu catatan sudah jadi awal.</p></section>;
 }

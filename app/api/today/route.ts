@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
   const habits = buildHabitStrategy(last28Logs, settings);
 
   return NextResponse.json({
+    userId,
     date,
     log,
     summary,
