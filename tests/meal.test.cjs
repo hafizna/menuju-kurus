@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 require('./register.cjs');
-const { normalizeFoodAnalysis } = require('../lib/gemini');
+const { normalizeFoodAnalysis, buildFoodPrompt, LOCAL_PORTION_REFERENCE } = require('../lib/gemini');
 const { adjustMeal, NO_ADJUST, stapleOf } = require('../lib/mealMath');
 
 const raw = {
@@ -55,4 +55,12 @@ test('concrete corrections change only what they refer to', () => {
   const half = adjustMeal(a, { ...NO_ADJUST, eaten: 0.5 });
   assert.equal(half.calories, Math.round(a.calories / 2));
   assert.equal(half.low, Math.round(a.kcalLow / 2));
+});
+
+test('the photo prompt carries the local portion references and the output contract', () => {
+  const prompt = buildFoodPrompt();
+  assert.ok(prompt.includes(LOCAL_PORTION_REFERENCE));
+  for (const needle of ['nasi putih 1 centong', 'terong balado', 'oil_sauce', 'kcalLow', 'ONE staple']) {
+    assert.ok(prompt.includes(needle), needle + ' missing from prompt');
+  }
 });

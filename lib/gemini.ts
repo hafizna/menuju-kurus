@@ -53,13 +53,31 @@ const RESPONSE_SCHEMA = {
   required: ["foodName", "portionNote", "confidence", "kcalLow", "kcalHigh", "components"],
 };
 
-const PROMPT = `You are a nutrition estimation assistant for Indonesian users. Look at the photo of
+// Anchors so estimates stay consistent from photo to photo instead of being
+// guessed from scratch. Typical warung/home portions of cooked food, in kcal;
+// approximate on purpose. Scale up or down for the portion actually shown.
+export const LOCAL_PORTION_REFERENCE = `- nasi putih 1 centong (about 100 g): 130
+- telur dadar warteg 1 butir (oily): 160-200; telur ceplok/mata sapi: 110-130
+- terong balado 1 portion: 130-180; sambal balado/terasi 1 tbsp: 30-40
+- tempe goreng 2 pieces: 150; tahu goreng 2 pieces: 120
+- ayam goreng paha with skin: 250-300; ayam goreng dada: 200-250
+- ikan goreng medium: 180-250; ikan teri/ikan kecil goreng 1 portion: 100-150
+- sayur bening/sop 1 small bowl: 40-70; tumis kangkung/sayur tumis 1 portion: 70-100
+- gorengan (bakwan, tahu isi, pisang goreng) 1 piece: 120-150
+- lauk berkuah santan (gulai, opor, rendang) 1 portion: 250-350
+- teh manis 1 glass: 110; kopi susu 1 glass: 180`;
+
+export function buildFoodPrompt(): string {
+  return `You are a nutrition estimation assistant for Indonesian users. Look at the photo of
 food/drink and estimate its nutrition for the portion shown.
 
 Estimate realistically, the way an Indonesian warung/restaurant or home cook actually prepares food.
 Do NOT give a minimum or best-case number: include cooking oil absorbed by fried food, coconut milk
-(santan), sambal and sauces, sugar in drinks, and typical warung rice portions (1 centong of cooked
-rice is about 100 g, about 130 kcal; warung plates often hold 1.5-2 centong).
+(santan), sambal and sauces, sugar in drinks, and typical warung rice portions (warung plates often
+hold 1.5-2 centong of rice).
+
+Reference values for typical portions (kcal, approximate; scale to the portion in the photo):
+${LOCAL_PORTION_REFERENCE}
 
 Break the meal into components (max 8). For each give name (Indonesian), role, grams (edible weight,
 best guess), calories and macros:
@@ -71,6 +89,7 @@ Also give foodName (short dish name), portionNote (one short phrase), confidence
 ("low" | "medium" | "high" by how clearly you could identify the food), and kcalLow / kcalHigh: the
 realistic range of total kcal for this portion (the true value should usually fall inside).
 Respond only with the requested JSON fields.`;
+}
 
 interface RawComponent {
   name?: unknown;
@@ -153,7 +172,7 @@ export function normalizeFoodAnalysis(parsed: RawAnalysis): FoodAnalysis {
 export async function analyzeFoodPhoto(imageBase64: string, mimeType: string): Promise<FoodAnalysis> {
   const parsed = await generateGeminiJson<RawAnalysis>({
     parts: [
-      { text: PROMPT },
+      { text: buildFoodPrompt() },
       { inline_data: { mime_type: mimeType, data: imageBase64 } },
     ],
     responseSchema: RESPONSE_SCHEMA,
