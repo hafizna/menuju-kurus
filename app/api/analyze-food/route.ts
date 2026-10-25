@@ -24,7 +24,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ analysis });
   } catch (err) {
     console.error(err);
-    const message = err instanceof Error ? err.message : "Gagal menganalisa foto";
-    return NextResponse.json({ error: message }, { status: 502 });
+    // Upstream/config details stay in the server log; users get a plain message.
+    return NextResponse.json(
+      { error: "Analisis foto sedang tidak tersedia. Kamu tetap bisa mengisi manual." },
+      { status: 502 },
+    );
   }
 }

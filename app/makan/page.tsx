@@ -1,43 +1,45 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { IconCamera, IconSearch, IconSparkle, IconBowl, IconBolt } from "@/components/icons";
+import { IconCamera, IconSparkle, IconBowl, IconBolt } from "@/components/icons";
 import type { DayLog } from "@/lib/types";
+import type { DaySummary } from "@/lib/day";
 
-type Tab = "catat" | "cari";
-
-function segClass(active: boolean) {
-  return `flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-medium transition-colors ${
-    active ? "bg-white text-brand-700 shadow-xs dark:bg-neutral-800 dark:text-brand-400" : "text-neutral-500"
-  }`;
+interface TodayData {
+  log: DayLog;
+  summary: DaySummary;
 }
 
 function MakanContent() {
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<Tab>(searchParams.get("mode") === "cari" ? "cari" : "catat");
-  const [historyKey, setHistoryKey] = useState(0);
-  const refreshHistory = useCallback(() => setHistoryKey((k) => k + 1), []);
+  const tab = searchParams.get("mode") === "cari" ? "cari" : "catat";
+  const [today, setToday] = useState<TodayData | null>(null);
+
+  const reload = useCallback(async () => {
+    try {
+      const res = await fetch("/api/today");
+      if (res.ok) {
+        const d = await res.json();
+        setToday({ log: d.log, summary: d.summary });
+      }
+    } catch {
+      // The panel simply stays hidden if today's data can't be loaded.
+    }
+  }, []);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   return (
     <div className="space-y-4 p-4">
-      <header className="pt-2">
-        <h1 className="text-xl font-bold">Makan</h1>
-        <p className="text-sm text-neutral-500">Catat apa yang kamu makan, atau cari opsi yang paling pas sekarang.</p>
-      </header>
+      <TodayBar summary={today?.summary ?? null} />
 
-      <div className="grid grid-cols-2 gap-1 rounded-2xl bg-neutral-100 p-1 dark:bg-neutral-900">
-        <button onClick={() => setTab("catat")} className={segClass(tab === "catat")}>
-          <IconCamera className="h-4 w-4" /> Catat makanan
-        </button>
-        <button onClick={() => setTab("cari")} className={segClass(tab === "cari")}>
-          <IconSearch className="h-4 w-4" /> Butuh rekomendasi
-        </button>
-      </div>
+      {tab === "catat" ? <CatatTab onSaved={reload} /> : <CariTab />}
 
-      {tab === "catat" ? <CatatTab onSaved={refreshHistory} /> : <CariTab />}
-
-      <MealHistory refreshKey={historyKey} />
+      <MealHistory log={today?.log ?? null} onChanged={reload} />
     </div>
   );
 }
@@ -50,7 +52,34 @@ export default function MakanPage() {
   );
 }
 
-// ---------- Catat makanan (photo → Gemini estimate → save) ----------
+function TodayBar({ summary }: { summary: DaySummary | null }) {
+  if (!summary) return <div className="h-[72px] rounded-2xl bg-neutral-100 dark:bg-neutral-900" />;
+  const over = summary.caloriesIn > summary.target;
+  const pct = Math.min(100, Math.max(0, (summary.caloriesIn / summary.target) * 100));
+  return (
+    <section className="rounded-2xl bg-linear-to-br from-brand-600 to-brand-800 p-4 text-white">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm text-brand-100">Hari ini</span>
+        <span className="text-sm font-semibold tabular-nums">
+          {over
+            ? `${(summary.caloriesIn - summary.target).toLocaleString("id-ID")} kcal melebihi target`
+            : `sisa ${(summary.target - summary.caloriesIn).toLocaleString("id-ID")} kcal`}
+        </span>
+      </div>
+      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/20">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${over ? "bg-amber-300" : "bg-white"}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="mt-1.5 text-xs text-brand-100 tabular-nums">
+        {summary.caloriesIn} / {summary.target} kcal
+      </div>
+    </section>
+  );
+}
+
+// ---------- Catat makanan (foto → estimasi → simpan, atau tulis manual) ----------
 
 interface Analysis {
   foodName: string;
@@ -62,21 +91,38 @@ interface Analysis {
   confidence: "low" | "medium" | "high";
 }
 
+const CONFIDENCE_LABEL = { low: "rendah", medium: "sedang", high: "tinggi" } as const;
+
+async function postMeal(body: Record<string, unknown>) {
+  const res = await fetch("/api/log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "meal", ...body }),
+  });
+  if (!res.ok) throw new Error("Gagal menyimpan. Coba lagi.");
+}
+
 function CatatTab({ onSaved }: { onSaved: () => void }) {
-  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Analysis | null>(null);
+  const [name, setName] = useState("");
   const [portion, setPortion] = useState(1);
+  const [kcalEdit, setKcalEdit] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
 
   async function handleFile(file: File) {
     setError("");
     setResult(null);
-    setSaved(false);
+    setSaved("");
     setPortion(1);
+    setKcalEdit(null);
+    setManualOpen(false);
     setPreview(URL.createObjectURL(file));
     setAnalyzing(true);
     try {
@@ -86,6 +132,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal menganalisa foto");
       setResult(data.analysis);
+      setName(data.analysis.foodName);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menganalisa foto");
     } finally {
@@ -93,94 +140,166 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
     }
   }
 
+  function reset() {
+    setResult(null);
+    setPreview(null);
+    setPortion(1);
+    setKcalEdit(null);
+    setError("");
+  }
+
   async function saveMeal() {
     if (!result) return;
+    const kcal = kcalEdit !== null ? Number(kcalEdit) : Math.round(result.calories * portion);
+    if (!Number.isFinite(kcal) || kcal <= 0) {
+      setError("Isi kalori dengan angka lebih dari 0.");
+      return;
+    }
     setSaving(true);
     try {
-      await fetch("/api/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "meal",
-          foodName: result.foodName,
-          calories: Math.round(result.calories * portion),
-          protein_g: Math.round(result.protein_g * portion),
-          carbs_g: Math.round(result.carbs_g * portion),
-          fat_g: Math.round(result.fat_g * portion),
-          portionNote: result.portionNote,
-          source: "photo",
-        }),
+      await postMeal({
+        foodName: name.trim() || result.foodName,
+        calories: Math.round(kcal),
+        protein_g: Math.round(result.protein_g * portion),
+        carbs_g: Math.round(result.carbs_g * portion),
+        fat_g: Math.round(result.fat_g * portion),
+        portionNote: result.portionNote,
+        source: "photo",
       });
-      setResult(null);
-      setPreview(null);
-      setPortion(1);
-      setSaved(true);
+      setSaved(`${name.trim() || result.foodName} · ${Math.round(kcal)} kcal`);
+      reset();
       onSaved();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal menyimpan.");
     } finally {
       setSaving(false);
     }
   }
 
+  const kcalShown = result ? (kcalEdit ?? String(Math.round(result.calories * portion))) : "";
+
   return (
     <div className="space-y-4">
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) handleFile(f);
-        }}
-      />
+      {(["environment", undefined] as const).map((capture) => (
+        <input
+          key={capture ?? "gallery"}
+          ref={capture ? cameraRef : galleryRef}
+          type="file"
+          accept="image/*"
+          capture={capture}
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (f) handleFile(f);
+          }}
+        />
+      ))}
 
       {saved && (
-        <p className="rounded-xl bg-brand-50 px-4 py-2 text-center text-sm text-brand-700 dark:bg-brand-950/30 dark:text-brand-300">
-          Tersimpan ke catatan hari ini ✓
+        <p role="status" className="rounded-xl bg-brand-50 px-4 py-2 text-center text-sm text-brand-700 dark:bg-brand-950/30 dark:text-brand-300">
+          Tersimpan: {saved} ✓
         </p>
       )}
 
       {!preview && (
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-brand-300 px-4 py-10 text-brand-600 dark:border-brand-800 dark:text-brand-400"
-        >
-          <IconCamera className="h-7 w-7" />
-          <span className="font-medium">Ambil / pilih foto makanan</span>
-        </button>
+        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="text-sm font-medium">Apa yang kamu makan?</div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => cameraRef.current?.click()}
+              className="flex flex-col items-center gap-1.5 rounded-2xl bg-brand-600 px-3 py-5 text-white"
+            >
+              <IconCamera className="h-6 w-6" />
+              <span className="text-sm font-semibold">Foto sekarang</span>
+            </button>
+            <button
+              onClick={() => galleryRef.current?.click()}
+              className="flex flex-col items-center gap-1.5 rounded-2xl border border-brand-300 px-3 py-5 text-brand-700 dark:border-brand-800 dark:text-brand-300"
+            >
+              <IconBowl className="h-6 w-6" />
+              <span className="text-sm font-semibold">Dari galeri</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setManualOpen((v) => !v)}
+              className="rounded-xl border border-neutral-200 py-2.5 text-sm font-medium dark:border-neutral-700"
+            >
+              {manualOpen ? "Tutup form" : "Tulis manual"}
+            </button>
+            <Link
+              href="/makan/habits"
+              className="rounded-xl border border-neutral-200 py-2.5 text-center text-sm font-medium dark:border-neutral-700"
+            >
+              Yang sering →
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {manualOpen && !preview && (
+        <ManualForm
+          onSaved={(label) => {
+            setSaved(label);
+            setManualOpen(false);
+            onSaved();
+          }}
+        />
       )}
 
       {preview && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={preview} alt="preview" className="w-full rounded-2xl object-cover" />
-      )}
-
-      {preview && (
-        <button
-          onClick={() => fileRef.current?.click()}
-          className="w-full rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium dark:border-neutral-700"
-        >
-          Ganti foto
-        </button>
+        <img src={preview} alt="Foto makanan" className="max-h-72 w-full rounded-2xl object-cover" />
       )}
 
       {analyzing && <p className="text-center text-sm text-neutral-500">Menganalisa foto...</p>}
-      {error && <p className="text-center text-sm text-red-500">{error}</p>}
+      {error && (
+        <div className="space-y-2 text-center">
+          <p role="alert" className="text-sm text-red-500">{error}</p>
+          {preview && !result && (
+            <button
+              onClick={() => {
+                reset();
+                setManualOpen(true);
+              }}
+              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700"
+            >
+              Isi manual saja
+            </button>
+          )}
+        </div>
+      )}
 
       {result && (
         <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
           <div>
-            <div className="text-lg font-semibold">{result.foodName}</div>
-            <div className="text-xs text-neutral-500">
-              {result.portionNote} · keyakinan: {result.confidence}
+            <label className="mb-1 block text-xs text-neutral-500">Nama makanan</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 font-semibold dark:border-neutral-700 dark:bg-neutral-800"
+            />
+            <div className="mt-1 text-xs text-neutral-500">
+              {result.portionNote} · keyakinan {CONFIDENCE_LABEL[result.confidence]}
             </div>
+            {result.confidence === "low" && (
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                Ini perkiraan kasar. Cek nama dan kalorinya sebelum disimpan.
+              </p>
+            )}
           </div>
 
-          <div className="grid grid-cols-4 gap-2 text-center text-sm">
+          <div className="grid grid-cols-4 items-end gap-2 text-center text-sm">
             <div>
-              <div className="font-semibold">{Math.round(result.calories * portion)}</div>
-              <div className="text-xs text-neutral-500">kcal</div>
+              <input
+                inputMode="numeric"
+                value={kcalShown}
+                onChange={(e) => setKcalEdit(e.target.value.replace(/\D/g, ""))}
+                aria-label="Kalori"
+                className="w-full rounded-lg border border-neutral-300 px-1 py-1.5 text-center font-semibold dark:border-neutral-700 dark:bg-neutral-800"
+              />
+              <div className="mt-0.5 text-xs text-neutral-500">kcal</div>
             </div>
             <div>
               <div className="font-semibold">{Math.round(result.protein_g * portion)}g</div>
@@ -204,21 +323,80 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
               max={3}
               step={0.25}
               value={portion}
-              onChange={(e) => setPortion(Number(e.target.value))}
+              onChange={(e) => {
+                setPortion(Number(e.target.value));
+                setKcalEdit(null);
+              }}
               className="w-full"
             />
           </div>
 
-          <button
-            onClick={saveMeal}
-            disabled={saving}
-            className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50"
-          >
-            {saving ? "Menyimpan..." : "Simpan ke catatan hari ini"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={reset}
+              disabled={saving}
+              className="rounded-xl border border-neutral-300 px-4 py-3 text-sm font-medium dark:border-neutral-700"
+            >
+              Ulangi
+            </button>
+            <button
+              onClick={saveMeal}
+              disabled={saving}
+              className="flex-1 rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50"
+            >
+              {saving ? "Menyimpan..." : "Simpan ke catatan hari ini"}
+            </button>
+          </div>
         </section>
       )}
     </div>
+  );
+}
+
+function ManualForm({ onSaved }: { onSaved: (label: string) => void }) {
+  const [name, setName] = useState("");
+  const [kcal, setKcal] = useState("");
+  const [protein, setProtein] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const calories = Number(kcal);
+    if (!name.trim() || !Number.isFinite(calories) || calories <= 0) {
+      setError("Isi nama makanan dan kalori (lebih dari 0).");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await postMeal({
+        foodName: name.trim(),
+        calories,
+        protein_g: Number(protein) || 0,
+        source: "manual",
+      });
+      onSaved(`${name.trim()} · ${Math.round(calories)} kcal`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menyimpan.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const input = "w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800";
+  return (
+    <form onSubmit={submit} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama makanan, mis. nasi goreng" className={input} />
+      <div className="grid grid-cols-2 gap-2">
+        <input value={kcal} onChange={(e) => setKcal(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="kalori (kcal)" className={input} />
+        <input value={protein} onChange={(e) => setProtein(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="protein g (opsional)" className={input} />
+      </div>
+      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+      <button type="submit" disabled={saving} className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">
+        {saving ? "Menyimpan..." : "Simpan"}
+      </button>
+    </form>
   );
 }
 
@@ -373,19 +551,10 @@ function CariTab() {
 
 // ---------- Today's meal/burn history ----------
 
-function MealHistory({ refreshKey }: { refreshKey: number }) {
-  const [log, setLog] = useState<DayLog | null>(null);
-
-  useEffect(() => {
-    fetch("/api/today")
-      .then((r) => r.json())
-      .then((d) => setLog(d.log));
-  }, [refreshKey]);
-
+function MealHistory({ log, onChanged }: { log: DayLog | null; onChanged: () => void }) {
   async function removeEntry(type: "meal" | "burn", id: string) {
     await fetch(`/api/log?type=${type}&id=${id}`, { method: "DELETE" });
-    const res = await fetch("/api/today");
-    setLog((await res.json()).log);
+    onChanged();
   }
 
   if (!log || (log.meals.length === 0 && log.burns.length === 0)) return null;
