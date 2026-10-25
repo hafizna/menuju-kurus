@@ -94,7 +94,7 @@ export default function AnalysisSheet({
               <Mascot mood={mood} className="h-16 w-16 shrink-0" />
               <ol className="flex-1 space-y-3" aria-live="polite">
                 <Step state={uploadState} label="Mengirim foto" />
-                <Step state={readState} label="Membaca makanannya" extra={phase === "read" ? `${seconds}d` : undefined} />
+                <Step state={readState} label="Membaca makanannya" extra={phase === "read" ? `${seconds} dtk` : undefined} />
                 <Step state={phase === "done" ? "done" : "pending"} label="Siap kamu cek" />
               </ol>
             </div>

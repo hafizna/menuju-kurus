@@ -59,7 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="min-h-screen bg-neutral-50 font-sans text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100">
-        <main className="mx-auto max-w-md pb-24">{children}</main>
+        <main className="mx-auto max-w-md pb-32">{children}</main>
         <BottomNav />
       </body>
     </html>

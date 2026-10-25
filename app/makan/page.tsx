@@ -149,6 +149,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
   const [photoError, setPhotoError] = useState("");
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   const lastFile = useRef<File | null>(null);
+  const resultRef = useRef<HTMLElement>(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Analysis | null>(null);
   const [name, setName] = useState("");
@@ -198,6 +199,8 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
       setSheet("done");
       await new Promise((resolve) => setTimeout(resolve, 450));
       setSheet(null);
+      // Bring the result card (with its Save button) into view.
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
     } catch (e) {
       if (e instanceof UploadAborted) return;
       setPhotoError(e instanceof Error ? e.message : "Foto belum bisa dibaca.");
@@ -326,11 +329,6 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
         />
       )}
 
-      {preview && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={preview} alt="Foto makanan" className="max-h-72 w-full rounded-2xl object-cover" />
-      )}
-
       {sheet && (
         <AnalysisSheet
           phase={sheet}
@@ -353,15 +351,25 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
       )}
 
       {result && (
-        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+        <section ref={resultRef} className="scroll-mt-4 space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="flex gap-3">
+            {preview && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview} alt="Foto makanan" className="h-20 w-20 shrink-0 rounded-xl object-cover" />
+            )}
+            <div className="min-w-0 flex-1">
+              <label className="mb-1 block text-xs text-neutral-500" htmlFor="meal-name">Nama makanan</label>
+              <textarea
+                id="meal-name"
+                rows={name.length > 40 ? 3 : 2}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-[15px] font-semibold leading-snug dark:border-neutral-700 dark:bg-neutral-800"
+              />
+            </div>
+          </div>
           <div>
-            <label className="mb-1 block text-xs text-neutral-500">Nama makanan</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 font-semibold dark:border-neutral-700 dark:bg-neutral-800"
-            />
-            <div className="mt-1 text-xs text-neutral-500">
+            <div className="text-xs text-neutral-500">
               {result.portionNote} · keyakinan {CONFIDENCE_LABEL[result.confidence]}
             </div>
             {result.confidence === "low" && (
