@@ -70,25 +70,34 @@
 }
 
 .dark {
-  --color-neutral-400: #bcaf9d;
-  --color-neutral-500: #ac9d8a;
-  --slothly-paper: #1c1915;
-  --slothly-card: #2b251f;
-  --slothly-ink: #f3eadd;
-  --slothly-muted: #c0b19e;
-  --slothly-line: #493d30;
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f4f4f5;
+  --color-neutral-200: #e4e4e7;
+  --color-neutral-300: #d4d4d8;
+  --color-neutral-400: #b3b3bc;
+  --color-neutral-500: #9a9aa4;
+  --color-neutral-600: #6c6c76;
+  --color-neutral-700: #3a3a42;
+  --color-neutral-800: #27272d;
+  --color-neutral-900: #18181c;
+  --color-neutral-950: #0c0c0f;
+  --slothly-paper: #0c0c0f;
+  --slothly-card: #18181c;
+  --slothly-ink: #f4f4f5;
+  --slothly-muted: #b3b3bc;
+  --slothly-line: #2b2b32;
   --slothly-leaf: #a6c694;
   --slothly-coffee: #d3af87;
-  --canopy-pagi: linear-gradient(135deg, #343128, #2c3629);
-  --canopy-siang: linear-gradient(135deg, #30342a, #29382d);
-  --canopy-sore: linear-gradient(135deg, #3b2e26, #382d32);
-  --canopy-malam: linear-gradient(135deg, #2d2b2f, #292c35);
-  --canopy-leaf: #92a280;
-  --canopy-vein: #d4d9c8;
-  --canopy-branch: #a58c70;
-  --canopy-light: #dac791;
-  --canopy-glow: #dac791;
-  --canopy-moon-cutout: #292c34;
+  --canopy-pagi: linear-gradient(135deg, #1b2320, #151a18);
+  --canopy-siang: linear-gradient(135deg, #1a2321, #141a18);
+  --canopy-sore: linear-gradient(135deg, #202025, #18181d);
+  --canopy-malam: linear-gradient(135deg, #1b1d25, #14151b);
+  --canopy-leaf: #829680;
+  --canopy-vein: #c8d1c6;
+  --canopy-branch: #6d7466;
+  --canopy-light: #c7d3bd;
+  --canopy-glow: #a6b8a3;
+  --canopy-moon-cutout: #171a20;
   --kukang-fur: #bf9c76;
   --kukang-fur-shadow: #a17c58;
   --kukang-fur-light: #d9bb93;
@@ -97,7 +106,7 @@
 }
 
 @layer base {
-  *, ::after, ::before, ::backdrop, ::file-selector-button { border-color: var(--color-neutral-200); }
+  *, ::after, ::before, ::backdrop, ::file-selector-button { border-color: var(--slothly-line); }
   h1 { font-family: var(--font-display); letter-spacing: -0.01em; }
   button, input, textarea, select { font: inherit; }
   input, button, a { -webkit-tap-highlight-color: transparent; }
