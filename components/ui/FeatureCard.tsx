@@ -40,13 +40,13 @@ export default function FeatureCard({
           {icon}
         </span>
         {chip && (
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
             {chip}
           </span>
         )}
       </div>
       <div className="mt-2.5 text-xs text-neutral-500">{label}</div>
-      <div className="mt-0.5 text-lg font-bold leading-tight tabular-nums">{value}</div>
+      <div className="font-display mt-0.5 text-lg font-semibold leading-tight tabular-nums">{value}</div>
       {caption && <div className="mt-0.5 text-xs leading-snug text-neutral-400">{caption}</div>}
     </Link>
   );

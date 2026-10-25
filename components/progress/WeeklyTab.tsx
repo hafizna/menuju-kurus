@@ -261,7 +261,7 @@ export default function WeeklyTab() {
           })}
         </div>
         <p className="mt-2 text-xs text-neutral-500">Abu-abu: parsial atau belum dicatat. Hijau: catatan lengkap, bukan penilaian keberhasilan diet. Aktivitas tidak dikurangkan dari asupan.</p>
-        <div className="mt-1 flex justify-between text-[10px] text-neutral-400">
+        <div className="mt-1 flex justify-between text-xs text-neutral-400">
           <span>{data.days[0]?.date.slice(5)}</span>
           <span>{data.days[data.days.length - 1]?.date.slice(5)}</span>
         </div>

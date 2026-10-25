@@ -47,13 +47,13 @@ export default function DailyCoach({
             <div className="text-sm font-semibold">Saran untukmu</div>
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-white/70 px-2 py-1 text-[10px] font-medium text-neutral-500 dark:bg-neutral-900/60">
+        <span className="shrink-0 rounded-full bg-white/70 px-2 py-1 text-xs font-medium text-neutral-500 dark:bg-neutral-900/60">
           {confidenceLabel(coach.confidence)}
         </span>
       </div>
 
       <div className="mt-3">
-        <div className="mb-1.5 text-[11px] font-medium text-neutral-500">Lagi gimana sekarang?</div>
+        <div className="mb-1.5 text-xs font-medium text-neutral-500">Lagi gimana sekarang?</div>
         <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
           {MOMENTS.map((item) => (
             <button
@@ -77,7 +77,7 @@ export default function DailyCoach({
           <li key={item.id} className="border-l-2 border-neutral-300 pl-3 dark:border-neutral-700">
             <div className="text-sm font-medium">{item.title}</div>
             <div className="mt-0.5 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">{item.detail}</div>
-            <div className="mt-1 text-[11px] text-neutral-500">Dari data: {item.evidence}</div>
+            <div className="mt-1 text-xs text-neutral-500">Dari data: {item.evidence}</div>
             {item.href && item.actionLabel && (
               <Link href={item.href} className="mt-2 inline-flex rounded-lg bg-white px-2.5 py-1.5 text-xs font-medium text-brand-700 shadow-xs dark:bg-neutral-900 dark:text-brand-300">
                 {item.actionLabel} →
@@ -97,7 +97,7 @@ export default function DailyCoach({
         </button>
       )}
 
-      <p className="mt-3 border-t border-black/5 pt-2 text-[10px] text-neutral-500 dark:border-white/10">
+      <p className="mt-3 border-t border-black/5 pt-2 text-xs text-neutral-500 dark:border-white/10">
         Disusun dari {coach.basis.join(", ")}, bukan oleh AI.
       </p>
     </section>

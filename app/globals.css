@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Dark mode is driven by a .dark class on <html> (see the inline script in
+   app/layout.tsx), so users can pick Terang / Gelap / Otomatis. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-brand-50: #eefdf3;
   --color-brand-100: #d6fae1;
@@ -13,10 +17,17 @@
   --color-brand-900: #064e3b;
   --color-brand-950: #022c22;
 
-  /* --font-manrope is set by next/font on <html> (see app/layout.tsx) — must
-     be a distinct name from --font-sans, or this would be a circular
-     reference to itself and silently resolve to invalid/unset. */
-  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  /* --font-nunito / --font-fredoka are set by next/font on <html> (app/layout.tsx);
+     they must stay distinct from these names or the variable would reference itself. */
+  --font-sans: var(--font-nunito), system-ui, sans-serif;
+  --font-display: var(--font-fredoka), var(--font-nunito), system-ui, sans-serif;
+
+  /* One notch larger than Tailwind's defaults (12/14px): most of the app's
+     text is xs/sm, which read small next to comparable apps on a phone. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.2rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.4rem;
 }
 
 /*
@@ -77,4 +88,9 @@ button {
 .mascot-drop { animation: mascot-drop 2.2s ease-in infinite; }
 @media (prefers-reduced-motion: reduce) {
   .mascot-breathe, .mascot-blink, .mascot-ear, .mascot-zzz, .mascot-bounce, .mascot-drop { animation: none; }
+}
+
+
+@layer base {
+  h1 { font-family: var(--font-display); letter-spacing: -0.01em; }
 }

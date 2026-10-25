@@ -103,7 +103,7 @@ export default function ResponseChart({
           ),
         )}
       </svg>
-      <div className="flex justify-between text-[10px] text-neutral-500">
+      <div className="flex justify-between text-xs text-neutral-500">
         <span>{days[0].date}</span>
         <span>{days.at(-1)!.date}</span>
       </div>

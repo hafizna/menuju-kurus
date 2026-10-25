@@ -205,7 +205,7 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
                         <div className="font-semibold">{meal.name}</div>
                         <div className="mt-0.5 text-xs text-neutral-500">{meal.restaurantLabel} · {meal.serving}</div>
                       </div>
-                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${fitClass(adjustedFit)}`}>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${fitClass(adjustedFit)}`}>
                         {fitLabel(adjustedFit)}
                       </span>
                     </div>
@@ -213,19 +213,19 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
                     <div className="grid grid-cols-4 gap-2 text-center text-sm">
                       <div>
                         <div className="font-semibold tabular-nums">{calories}</div>
-                        <div className="text-[11px] text-neutral-500">kcal</div>
+                        <div className="text-xs text-neutral-500">kcal</div>
                       </div>
                       <div>
                         <div className="font-semibold tabular-nums">{protein}g</div>
-                        <div className="text-[11px] text-neutral-500">protein</div>
+                        <div className="text-xs text-neutral-500">protein</div>
                       </div>
                       <div>
                         <div className="font-semibold tabular-nums">{carbs}g</div>
-                        <div className="text-[11px] text-neutral-500">karbo</div>
+                        <div className="text-xs text-neutral-500">karbo</div>
                       </div>
                       <div>
                         <div className="font-semibold tabular-nums">{fat}g</div>
-                        <div className="text-[11px] text-neutral-500">lemak</div>
+                        <div className="text-xs text-neutral-500">lemak</div>
                       </div>
                     </div>
 

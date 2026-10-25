@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ActivityLevel, BiologicalSex, FitnessGoal, UserSettings } from "@/lib/types";
 import type { ProgramRecommendation } from "@/lib/programCalories";
+import DisplaySettings from "@/components/DisplaySettings";
 
 const GOALS: { value: FitnessGoal; label: string; description: string }[] = [
   { value: "weight_loss", label: "Weight loss", description: "Turun berat dengan defisit moderat." },
@@ -114,6 +115,7 @@ export default function SettingsPage() {
           Setiap sync menimpa nilai sebelumnya (bukan menumpuk), dan field yang tidak dikirim Shortcuts tidak akan menghapus nilai yang sudah ada.
         </p>
       </Section>
+      <Section title="Tampilan" description="Otomatis mengikuti pengaturan HP-mu."><DisplaySettings /></Section>
       <Section title="Akun">
         <div className="space-y-2">
           <button onClick={() => router.push("/account/set-pin")} className="w-full rounded-xl border border-neutral-300 py-3 font-medium text-neutral-700 dark:border-neutral-700 dark:text-neutral-200">Ubah PIN</button>
