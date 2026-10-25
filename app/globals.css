@@ -43,3 +43,13 @@ input,
 button {
   -webkit-tap-highlight-color: transparent;
 }
+
+@keyframes sky-drift {
+  from { transform: translateX(-14px); }
+  to { transform: translateX(14px); }
+}
+.sky-drift { animation: sky-drift 14s ease-in-out infinite alternate; }
+.sky-drift-b { animation-duration: 19s; animation-direction: alternate-reverse; }
+@media (prefers-reduced-motion: reduce) {
+  .sky-drift { animation: none; }
+}

@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Mascot from "@/components/Mascot";
+import SkyBackdrop, { skyBackground, useSkyAfterMount } from "@/components/SkyBackdrop";
 
 export default function SetPinPage() {
+  const sky = useSkyAfterMount();
   const router = useRouter();
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -23,7 +25,7 @@ export default function SetPinPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Gagal menyimpan PIN");
+        setError(data.error ?? "PIN belum tersimpan. Coba lagi ya.");
         return;
       }
       router.replace("/");
@@ -34,12 +36,13 @@ export default function SetPinPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-linear-to-br from-brand-600 via-brand-700 to-brand-800">
-      <div className="flex flex-1 flex-col items-center justify-end px-6 pb-10 pt-16 text-white">
+    <div className="flex min-h-screen flex-col" style={{ background: skyBackground(sky) }}>
+      <div className="relative isolate flex flex-1 flex-col items-center justify-end overflow-hidden px-6 pb-10 pt-16 text-white">
+        <SkyBackdrop sky={sky} />
         <Mascot mood="cheer" className="mb-3 h-24 w-24" />
         <h1 className="text-2xl font-bold">Buat PIN</h1>
-        <p className="mt-1 text-sm text-brand-100">
-          Dipakai untuk masuk cepat sehari-hari, tanpa Google tiap kali
+        <p className="mt-1 text-sm text-white/80">
+          Buat masuk cepat tiap hari, tanpa kode undangan lagi
         </p>
       </div>
 

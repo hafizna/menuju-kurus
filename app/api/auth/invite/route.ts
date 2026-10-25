@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   if (await isPinRateLimited(ip)) {
     return NextResponse.json(
-      { error: "Terlalu banyak percobaan. Coba lagi dalam beberapa menit." },
+      { error: "Terlalu banyak percobaan. Tunggu beberapa menit ya." },
       { status: 429 },
     );
   }
@@ -26,11 +26,11 @@ export async function POST(req: NextRequest) {
 
   if (!user) {
     await recordPinAttempt(ip);
-    return NextResponse.json({ error: "Kode undangan salah" }, { status: 401 });
+    return NextResponse.json({ error: "Kode undangannya belum pas, cek lagi ya" }, { status: 401 });
   }
   if (await hasPin(user.id)) {
     return NextResponse.json(
-      { error: "Kode ini sudah dipakai. Masuk dengan PIN kamu." },
+      { error: "Kode ini sudah dipakai. Masuk pakai PIN-mu ya." },
       { status: 409 },
     );
   }

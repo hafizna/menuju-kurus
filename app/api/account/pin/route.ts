@@ -10,10 +10,10 @@ export async function POST(req: NextRequest) {
 
   const { pin, confirmPin } = await req.json().catch(() => ({ pin: "", confirmPin: "" }));
   if (!isValidPinFormat(pin)) {
-    return NextResponse.json({ error: "PIN harus 6 digit angka" }, { status: 400 });
+    return NextResponse.json({ error: "PIN-nya harus 6 digit angka" }, { status: 400 });
   }
   if (pin !== confirmPin) {
-    return NextResponse.json({ error: "Konfirmasi PIN tidak cocok" }, { status: 400 });
+    return NextResponse.json({ error: "Dua PIN-nya belum sama" }, { status: 400 });
   }
 
   await setPin(userId, pin);

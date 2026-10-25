@@ -39,7 +39,7 @@ export function computeProgramRecommendation(settings: UserSettings): ProgramRec
       complete: false, bmi: null, bmiLabel: "Profil belum lengkap", bmr: null,
       maintenanceCalories: null, recommendedCalories: null, recommendedProteinG: null,
       adjustmentPercent: 0, confidence: "low",
-      notes: ["Lengkapi usia, jenis kelamin biologis, tinggi badan, dan level aktivitas untuk mendapatkan rekomendasi."],
+      notes: ["Isi usia, jenis kelamin, tinggi badan, dan level aktivitas dulu ya, biar rekomendasinya bisa dihitung."],
     };
   }
 
@@ -54,18 +54,17 @@ export function computeProgramRecommendation(settings: UserSettings): ProgramRec
 
   if (bmi < 18.5 && adjustment < 0) {
     adjustment = 0;
-    notes.push("Target adalah asupan makan; aktivitas rutin sudah tercakup dan Active Energy tidak otomatis menambah budget.");
-  notes.push("BMI berada di bawah 18,5, sehingga engine tidak menyarankan defisit kalori.");
+    notes.push("BMI kamu di bawah 18,5, jadi app tidak menyarankan defisit kalori.");
   }
   if (bmi < 20 && fitnessGoal === "very_lean") {
     adjustment = 0;
-    notes.push("Very lean mode tidak menambah defisit ketika BMI sudah rendah.");
+    notes.push("Mode very lean tidak menambah defisit kalau BMI-mu sudah rendah.");
   }
   if (bmi >= 30 && adjustment < -0.2) adjustment = -0.2;
-  if (fitnessGoal === "athletic") notes.push("Target athletic dimulai dari maintenance; evaluasi berdasarkan performa dan tren berat.");
-  if (fitnessGoal === "muscle_gain") notes.push("Surplus dibuat konservatif untuk membatasi kenaikan lemak yang tidak perlu.");
-  notes.push("Target adalah asupan makan; aktivitas rutin sudah tercakup dan Active Energy tidak otomatis menambah budget.");
-  notes.push("BMI adalah alat skrining dan dapat kurang tepat pada orang dengan massa otot tinggi.");
+  if (fitnessGoal === "athletic") notes.push("Target athletic mulai dari kalori maintenance, lalu dievaluasi dari performa dan tren beratmu.");
+  if (fitnessGoal === "muscle_gain") notes.push("Surplusnya dibuat kecil supaya kenaikan lemak tetap terkendali.");
+  notes.push("Ini target untuk makan. Olahraga rutinmu sudah dihitung di level aktivitas, jadi Active Energy tidak otomatis menambah jatah makan.");
+  notes.push("BMI hanya alat skrining kasar dan bisa kurang pas untuk orang dengan massa otot tinggi.");
 
   const minimum = biologicalSex === "male" ? 1500 : 1200;
   const recommendedCalories = Math.max(minimum, roundTo50(maintenanceCalories * (1 + adjustment)));

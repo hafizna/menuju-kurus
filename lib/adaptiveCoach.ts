@@ -134,18 +134,18 @@ function headlineFor(
   personalMeal?: HabitMeal,
 ): string {
   if (status === "recover")
-    return "Tenangkan hari ini, lalu kembali ke pola normal";
+    return "Santai dulu hari ini, besok balik ke ritme biasa";
   if (moment === "eating_out")
-    return "Pilih menu luar rumah dengan trade-off yang jelas";
+    return "Makan di luar? Pilih menu yang paling pas buat sisa budgetmu";
   if (moment === "very_hungry")
-    return "Utamakan makanan lengkap, bukan sekadar menahan lapar";
+    return "Sangat lapar? Makan yang lengkap, jangan ditahan-tahan";
   if (moment === "craving")
-    return "Beri ruang untuk craving dengan porsi yang disengaja";
+    return "Lagi pengen sesuatu? Boleh, atur porsinya dulu";
   if (personalMeal)
-    return `Pola ${personalMeal.name} bisa mempermudah keputusan berikutnya`;
+    return `${personalMeal.name} bisa jadi pilihan gampang buat makan berikutnya`;
   if (status === "watch")
-    return "Ada satu-dua keputusan kecil yang paling berdampak";
-  return "Kamu berada di jalur yang baik hari ini";
+    return "Ada satu-dua hal kecil yang paling berpengaruh hari ini";
+  return "Hari ini kamu on track, lanjut begini aja";
 }
 
 export function buildAdaptiveCoach(
@@ -181,26 +181,26 @@ export function buildAdaptiveCoach(
   ) {
     recommendations.push({
       id: "check-intake",
-      title: "Tinjau kecukupan makan dan catatan",
+      title: "Cek lagi catatan makanmu",
       detail:
-        "Asupan tercatat jauh di bawah target. Periksa apakah ada makanan atau minuman terlewat; jangan sengaja memperbesar defisit demi angka yang lebih rendah.",
-      evidence: `${summary.caloriesIn} kcal tercatat dari target ${summary.target} kcal · catatan dikonfirmasi lengkap`,
+        "Yang tercatat jauh di bawah target. Coba cek, mungkin ada makanan atau minuman yang kelewat. Jangan sengaja makan lebih sedikit demi angka yang lebih kecil.",
+      evidence: `${summary.caloriesIn} kcal tercatat dari target ${summary.target} kcal · catatan sudah ditutup lengkap`,
       priority: 125,
       href: "/makan",
-      actionLabel: "Tinjau catatan",
+      actionLabel: "Cek catatan",
     });
   }
 
   if (moment === "eating_out") {
     recommendations.push({
       id: "restaurant",
-      title: "Bandingkan menu sebelum memesan",
+      title: "Bandingkan menu dulu sebelum pesan",
       detail:
-        "Restaurant Intelligence akan meranking menu Indonesia memakai sisa kalori, protein, goal, dan asumsi porsi yang transparan.",
-      evidence: `${Math.max(0, summary.remaining)} kcal dan ${proteinRemaining} g protein tersisa hari ini`,
+        "Aku urutkan menu restoran Indonesia berdasarkan sisa kalori, protein, dan tujuanmu, lengkap dengan perkiraan porsinya.",
+      evidence: `sisa ${Math.max(0, summary.remaining)} kcal dan ${proteinRemaining} g protein hari ini`,
       priority: 130,
       href: "/makan/restaurant",
-      actionLabel: "Buka menu restoran",
+      actionLabel: "Lihat menu restoran",
     });
   }
 
@@ -208,60 +208,60 @@ export function buildAdaptiveCoach(
     recommendations.push({
       id: "very-hungry",
       title: personalMeal
-        ? `Pilih pola makan lengkap seperti ${personalMeal.name}`
-        : "Pilih makanan lengkap yang benar-benar mengenyangkan",
+        ? `Makan lengkap seperti biasa: ${personalMeal.name}`
+        : "Pilih makanan lengkap yang bikin kenyang",
       detail: personalMeal
-        ? `Catatanmu menunjukkan menu ini biasa muncul pada ${personalMeal.usualWindow.toLowerCase()} dengan rata-rata ${personalMeal.averageProteinG} g protein.`
-        : "Gabungkan protein, sayur atau buah, dan karbohidrat yang cukup. Menahan lapar terlalu lama dapat membuat keputusan berikutnya lebih reaktif.",
+        ? `Dari catatanmu, menu ini biasanya kamu makan saat ${personalMeal.usualWindow.toLowerCase()}, rata-rata ${personalMeal.averageProteinG} g protein.`
+        : "Gabungkan protein, sayur atau buah, dan karbo secukupnya. Menahan lapar terlalu lama biasanya bikin makan berikutnya malah kalap.",
       evidence: personalMeal
         ? `${personalMeal.count} catatan · rata-rata ${personalMeal.averageCalories} kcal`
-        : `Kondisi dipilih: sangat lapar · ${Math.max(0, summary.remaining)} kcal tersisa`,
+        : `kamu pilih: sangat lapar · sisa ${Math.max(0, summary.remaining)} kcal`,
       priority: 125,
       href: personalMeal ? "/makan/habits" : "/makan?mode=cari",
       actionLabel: personalMeal
-        ? "Lihat quick add"
-        : "Cari makanan mengenyangkan",
+        ? "Lihat makanan favoritmu"
+        : "Cari yang bikin kenyang",
     });
   } else if (moment === "hungry") {
     recommendations.push({
       id: "hungry",
       title: personalMeal
-        ? `${personalMeal.name} cocok dengan pola waktumu`
-        : "Gunakan sisa budget untuk makan normal",
+        ? `${personalMeal.name} pas dengan kebiasaan jam makanmu`
+        : "Pakai sisa budget buat makan seperti biasa",
       detail: personalMeal
-        ? "Pilihan ini berasal dari kebiasaanmu sendiri dan masih mendekati budget makan berikutnya. Koreksi porsi bila kondisi hari ini berbeda."
-        : "Tidak perlu sengaja menahan lapar. Prioritaskan protein dan volume agar rasa kenyang lebih bertahan.",
+        ? "Ini dari kebiasaanmu sendiri dan masih muat di budget makan berikutnya. Sesuaikan porsinya kalau hari ini beda."
+        : "Nggak perlu menahan lapar. Pilih yang berprotein dan porsinya besar supaya kenyangnya awet.",
       evidence: personalMeal
         ? `${personalMeal.averageCalories} kcal · ${personalMeal.averageProteinG} g protein · ${personalMeal.usualWindow}`
-        : `${Math.max(0, summary.remaining)} kcal dan ${proteinRemaining} g protein tersisa`,
+        : `sisa ${Math.max(0, summary.remaining)} kcal dan ${proteinRemaining} g protein`,
       priority: 118,
       href: personalMeal ? "/makan/habits" : "/makan?mode=cari",
-      actionLabel: personalMeal ? "Gunakan pola ini" : "Cari rekomendasi",
+      actionLabel: personalMeal ? "Pakai yang ini" : "Cari ide makan",
     });
   } else if (moment === "craving") {
     recommendations.push({
       id: "craving",
-      title: "Rencanakan porsinya, jangan jadikan craving sebagai kegagalan",
+      title: "Craving itu wajar, tinggal atur porsinya",
       detail:
-        "Pilih rasa yang kamu cari, tentukan porsi sebelum mulai, lalu kembali ke pola normal pada makan berikutnya.",
-      evidence: `${Math.max(0, summary.remaining)} kcal tersisa · budget mingguan ${weeklyBudget.remaining < 0 ? "sedang terlampaui" : weeklyBudget.isComplete ? "masih tersedia" : "masih sementara"}`,
+        "Pilih rasa yang kamu pengen, tentukan porsinya sebelum mulai makan, lalu balik ke pola biasa di makan berikutnya.",
+      evidence: `sisa ${Math.max(0, summary.remaining)} kcal · budget mingguan ${weeklyBudget.remaining < 0 ? "sudah lewat" : weeklyBudget.isComplete ? "masih ada" : "masih sementara"}`,
       priority: 120,
       href: "/makan?mode=cari",
-      actionLabel: "Cari opsi sesuai craving",
+      actionLabel: "Cari yang sesuai craving",
     });
   }
 
   if (surplus > 0 || weeklyOver) {
     recommendations.push({
       id: "recovery",
-      title: "Tidak perlu menghukum diri",
+      title: "Nggak usah menghukum diri",
       detail: weeklyOver
-        ? "Jangan menekan kalori lebih rendah untuk membayar minggu ini. Jalankan target normal pada makan berikutnya dan beberapa hari ke depan tanpa puasa kompensasi."
-        : "Lanjutkan secara normal dan berhenti saat cukup kenyang. Budget mingguan masih sementara bila ada catatan yang belum lengkap.",
+        ? "Jangan makan lebih sedikit buat 'membayar' minggu ini. Cukup balik ke target normal di makan berikutnya dan beberapa hari ke depan, tanpa puasa."
+        : "Lanjut seperti biasa dan berhenti saat sudah cukup kenyang. Budget mingguan masih bisa berubah kalau ada catatan yang belum lengkap.",
       evidence:
         surplus > 0
-          ? `${surplus} kcal di atas target hari ini${weeklyOver ? " · budget mingguan terlampaui" : ""}`
-          : `Budget mingguan terlampaui ${Math.abs(weeklyBudget.remaining)} kcal`,
+          ? `${surplus} kcal di atas target hari ini${weeklyOver ? " · budget mingguan sudah lewat" : ""}`
+          : `Budget mingguan lewat ${Math.abs(weeklyBudget.remaining)} kcal`,
       priority: 140,
     });
   }
@@ -270,17 +270,17 @@ export function buildAdaptiveCoach(
     recommendations.push({
       id: "protein",
       title: proteinAnchor
-        ? `Gunakan ${proteinAnchor.name} sebagai jangkar protein`
-        : `Cari sekitar ${Math.min(40, proteinRemaining)} g protein lagi`,
+        ? `Andalkan ${proteinAnchor.name} untuk protein`
+        : `Tambah sekitar ${Math.min(40, proteinRemaining)} g protein lagi`,
       detail: proteinAnchor
-        ? "Ini adalah menu berulangmu yang relatif tinggi protein. Gunakan porsinya sebagai referensi, bukan kewajiban."
-        : "Pilih sumber protein yang mengenyangkan sebelum menambah camilan atau porsi karbohidrat.",
+        ? "Ini menu langgananmu yang proteinnya lumayan tinggi. Jadikan porsinya patokan, bukan keharusan."
+        : "Pilih sumber protein yang bikin kenyang dulu, baru camilan atau tambahan karbo.",
       evidence: proteinAnchor
         ? `${proteinAnchor.count} catatan · rata-rata ${proteinAnchor.averageProteinG} g protein dan ${proteinAnchor.averageCalories} kcal`
-        : `${proteinRemaining} g protein tersisa`,
+        : `sisa ${proteinRemaining} g protein`,
       priority: 105,
       href: proteinAnchor ? "/makan/habits" : "/makan?mode=cari",
-      actionLabel: proteinAnchor ? "Lihat kebiasaan" : "Cari opsi protein",
+      actionLabel: proteinAnchor ? "Lihat kebiasaanmu" : "Cari sumber protein",
     });
   }
 
@@ -292,10 +292,10 @@ export function buildAdaptiveCoach(
   ) {
     recommendations.push({
       id: "fast-loss",
-      title: "Tren turun cukup cepat—jangan tambah defisit dulu",
+      title: "Beratmu turun cukup cepat, jangan tambah defisit dulu",
       detail:
-        "Pertahankan target saat ini dan perhatikan energi, rasa lapar, serta kualitas latihan sebelum membuat target lebih agresif.",
-      evidence: `${weightTrend.weeklyRate} kg/minggu · batas kehati-hatian sekitar -${fastestReasonableLoss.toFixed(1)} kg/minggu`,
+        "Tahan di target sekarang dan perhatikan energi, rasa lapar, dan performa latihanmu sebelum bikin target lebih ketat.",
+      evidence: `${weightTrend.weeklyRate} kg/minggu · batas aman sekitar -${fastestReasonableLoss.toFixed(1)} kg/minggu`,
       priority: 112,
       href: "/progress?tab=weight",
       actionLabel: "Lihat tren berat",
@@ -307,9 +307,9 @@ export function buildAdaptiveCoach(
   ) {
     recommendations.push({
       id: "trend-up",
-      title: "Tinjau konsistensi sebelum mengubah target",
+      title: "Cek konsistensi dulu sebelum ubah target",
       detail:
-        "Periksa porsi menu berulang, kelengkapan logging, dan budget mingguan. Satu minggu belum cukup untuk menyimpulkan kebutuhan kalori baru.",
+        "Lihat lagi porsi menu langgananmu, kelengkapan catatan, dan budget mingguan. Satu minggu belum cukup untuk menyimpulkan kebutuhan kalorimu berubah.",
       evidence: `${weightTrend.weeklyRate > 0 ? "+" : ""}${weightTrend.weeklyRate} kg/minggu`,
       priority: 88,
       href: "/progress?tab=weight",
@@ -345,13 +345,13 @@ export function buildAdaptiveCoach(
     ) {
       recommendations.push({
         id: "body-fast-loss",
-        title: "Berat turun cepat; tinjau kecukupan makan",
+        title: "Berat turun cepat, cek asupanmu",
         detail:
-          "Jangan tambah defisit. Tinjau kelengkapan asupan, energi, rasa lapar, dan kondisi pengukuran; bila perubahan tidak disengaja atau disertai keluhan, pertimbangkan bantuan tenaga kesehatan.",
+          "Jangan tambah defisit. Cek apakah catatan makanmu lengkap, dan perhatikan energi serta rasa laparmu. Kalau turunnya tidak disengaja atau ada keluhan, sebaiknya konsultasi ke tenaga kesehatan.",
         evidence: `${rate.toFixed(2)} kg/minggu dari rata-rata jendela awal/akhir · ${weight.observedDays} ukuran · ${current.start} — ${current.end}`,
         priority: 155,
         href: "/progress",
-        actionLabel: "Tinjau pola tubuh",
+        actionLabel: "Lihat pola tubuhmu",
       });
     } else if (
       weight.ready &&
@@ -361,13 +361,13 @@ export function buildAdaptiveCoach(
     ) {
       recommendations.push({
         id: "body-stable-waist",
-        title: "Berat relatif stabil, pinggang berubah",
+        title: "Berat stabil, tapi pinggang berubah",
         detail:
-          "Pertahankan pola dahulu dan ukur pada kondisi yang konsisten. Perubahan ini tidak membuktikan kehilangan lemak atau penambahan otot; jangan memperketat target hanya karena timbangan stabil.",
+          "Pertahankan pola sekarang dan ukur dengan kondisi yang sama tiap kali. Ini belum tentu berarti lemak turun atau otot naik, jadi jangan memperketat target hanya karena timbangan stabil.",
         evidence: `Selisih rata-rata berat ${weight.change} kg · pinggang ${current.waist.change} cm (${current.waist.first!.date} — ${current.waist.last!.date})`,
         priority: 98,
         href: "/progress",
-        actionLabel: "Lihat ukuran dan periode",
+        actionLabel: "Lihat ukuran tubuhmu",
       });
     } else if (
       rate !== null &&
@@ -376,25 +376,25 @@ export function buildAdaptiveCoach(
     ) {
       recommendations.push({
         id: "body-trend-up",
-        title: "Tinjau pola sebelum mengubah target",
+        title: "Cek pola dulu sebelum ubah target",
         detail:
-          "Periksa porsi, kelengkapan catatan, dan kondisi pengukuran. Kalibrasi hanya menawarkan perubahan bila data lebih ketat sudah cukup; target tetap milikmu.",
+          "Lihat lagi porsi, kelengkapan catatan, dan cara kamu menimbang. Target baru baru ditawarkan kalau datanya sudah cukup rapi, dan keputusannya tetap di kamu.",
         evidence: `${rate.toFixed(2)} kg/minggu · ${weight.observedDays} ukuran sepanjang ${span} hari`,
         priority: 88,
         href: "/progress",
-        actionLabel: "Tinjau Body Response",
+        actionLabel: "Lihat respons tubuhmu",
       });
     }
     if (!weight.ready || !current.food.ready)
       recommendations.push({
         id: "body-data",
-        title: "Lengkapi pola data sebelum menilai respons tubuh",
+        title: "Data belum cukup untuk menilai respons tubuhmu",
         detail:
-          "Konfirmasi catatan makan yang benar-benar lengkap dan ukur berat secara berkala pada kondisi serupa. Data jarang belum cukup untuk memperketat target.",
+          "Tutup hari hanya kalau catatan makannya benar-benar lengkap, dan timbang berat rutin dengan kondisi yang mirip. Data yang jarang belum cukup untuk mengubah target.",
         evidence: `${current.food.observedDays}/28 hari asupan lengkap · ${weight.observedDays} ukuran berat`,
         priority: 72,
         href: "/progress",
-        actionLabel: "Lihat kesiapan data",
+        actionLabel: "Lihat data yang kurang",
       });
     if (
       current.protein.ready &&
@@ -402,13 +402,13 @@ export function buildAdaptiveCoach(
     )
       recommendations.push({
         id: "body-protein",
-        title: "Bangun konsistensi protein harian",
+        title: "Naikkan protein harianmu pelan-pelan",
         detail:
-          "Rata-rata protein tercatat masih di bawah target. Pilih sumber protein pada makan utama; angka ini tidak mengukur massa otot.",
+          "Rata-rata proteinmu masih di bawah target. Coba taruh sumber protein di tiap makan utama. Angka ini tidak mengukur massa ototmu, ya.",
         evidence: `${current.protein.average} g/hari dari ${current.protein.observedDays} hari lengkap · target ${settings.proteinTargetG} g`,
         priority: 92,
         href: "/makan",
-        actionLabel: "Rencanakan sumber protein",
+        actionLabel: "Atur sumber proteinmu",
       });
   }
 
@@ -425,23 +425,23 @@ export function buildAdaptiveCoach(
   ) {
     recommendations.push({
       id: "large-repeat",
-      title: `Kalau memilih ${repeatedLargeMeal.name}, sesuaikan porsinya`,
+      title: `Kalau mau ${repeatedLargeMeal.name}, kecilkan porsinya`,
       detail:
-        "Menu ini tetap boleh dipilih, tetapi rata-rata porsimu lebih besar daripada sisa budget hari ini. Gunakan porsi lebih kecil atau sederhanakan pendampingnya.",
-      evidence: `Biasanya ${repeatedLargeMeal.averageCalories} kcal · hari ini tersisa ${summary.remaining} kcal`,
+        "Tetap boleh, tapi biasanya porsimu lebih besar dari sisa budget hari ini. Ambil porsi lebih kecil atau kurangi pendampingnya.",
+      evidence: `biasanya ${repeatedLargeMeal.averageCalories} kcal · hari ini sisa ${summary.remaining} kcal`,
       priority: moment === "hungry" || moment === "very_hungry" ? 108 : 78,
       href: "/makan/habits",
-      actionLabel: "Lihat pola porsinya",
+      actionLabel: "Lihat porsi biasanya",
     });
   }
 
   if (!log.plan) {
     recommendations.push({
       id: "plan",
-      title: "Tentukan strategi hari ini",
+      title: "Pilih strategi buat hari ini",
       detail:
-        "Rencana sederhana membuat keputusan makan berikutnya lebih mudah dan mengurangi keputusan reaktif.",
-      evidence: "Belum ada rencana makan yang dipilih hari ini",
+        "Punya rencana sederhana bikin keputusan makan berikutnya lebih gampang dan nggak asal ambil.",
+      evidence: "belum ada rencana hari ini",
       priority: 96,
       href: "/plan",
       actionLabel: "Pilih rencana",
@@ -451,10 +451,10 @@ export function buildAdaptiveCoach(
   if (log.burns.length === 0 && surplus === 0) {
     recommendations.push({
       id: "movement",
-      title: "Tambahkan gerak ringan bila memungkinkan",
+      title: "Kalau sempat, gerak ringan dulu",
       detail:
-        "Jalan singkat dapat membantu energi dan mengalihkan craving, tetapi bukan kewajiban dan bukan kompensasi makanan.",
-      evidence: "Belum ada aktivitas tercatat hari ini",
+        "Jalan santai bisa bikin segar dan mengalihkan craving. Tapi ini bukan kewajiban, dan bukan untuk 'membayar' makanan.",
+      evidence: "belum ada aktivitas tercatat",
       priority: 45,
     });
   }
@@ -462,11 +462,11 @@ export function buildAdaptiveCoach(
   if (!recommendations.length) {
     recommendations.push({
       id: "maintain",
-      title: "Pertahankan pola yang sedang berjalan",
+      title: "Pola kamu sudah bagus, lanjut",
       detail:
-        "Tidak ada koreksi besar yang diperlukan. Lanjutkan makan sesuai rasa lapar dan target yang sudah ditetapkan.",
+        "Nggak ada yang perlu dikoreksi. Makan sesuai rasa lapar dan target yang sudah kamu tetapkan.",
       evidence:
-        "Kalori, protein, dan budget mingguan tidak menunjukkan prioritas mendesak",
+        "kalori, protein, dan budget mingguan semuanya aman",
       priority: 20,
     });
   }

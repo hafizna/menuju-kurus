@@ -45,7 +45,7 @@ export default function CalorieRing({
         <div className="text-4xl font-extrabold tabular-nums leading-none">
           {left.toLocaleString("id-ID")}
         </div>
-        <div className="mt-1 text-xs text-brand-100">{over ? "kcal melebihi target" : "kcal tersisa"}</div>
+        <div className="mt-1 text-xs text-white/80">{over ? "kcal melebihi target" : "kcal tersisa"}</div>
       </div>
     </div>
   );

@@ -10,12 +10,12 @@ export async function POST(req: NextRequest) {
 
   if (await isPinRateLimited(ip)) {
     return NextResponse.json(
-      { error: "Terlalu banyak percobaan. Coba lagi dalam beberapa menit." },
+      { error: "Terlalu banyak percobaan. Tunggu beberapa menit ya." },
       { status: 429 },
     );
   }
   if (!isValidPinFormat(pin)) {
-    return NextResponse.json({ error: "PIN salah" }, { status: 401 });
+    return NextResponse.json({ error: "PIN-nya belum pas, coba lagi" }, { status: 401 });
   }
 
   const matches = [];
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   if (!user) {
     await recordPinAttempt(ip);
-    return NextResponse.json({ error: "PIN salah" }, { status: 401 });
+    return NextResponse.json({ error: "PIN-nya belum pas, coba lagi" }, { status: 401 });
   }
 
   const token = await makeSessionToken(user.id);

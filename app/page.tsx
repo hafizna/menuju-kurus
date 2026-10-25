@@ -22,6 +22,8 @@ import {
 import DailyCoach from "@/components/DailyCoach";
 import Mascot, { type MascotMood } from "@/components/Mascot";
 import CalorieRing from "@/components/CalorieRing";
+import SkyBackdrop, { skyBackground } from "@/components/SkyBackdrop";
+import { skyForHour } from "@/lib/skyTheme";
 import RecoveryMode from "@/components/RecoveryMode";
 
 interface TodayResponse {
@@ -61,7 +63,7 @@ export default function DashboardPage() {
       const res = await fetch("/api/today");
       if (!res.ok)
         throw new Error(
-          "Data hari ini belum dapat dimuat. Periksa koneksi dan konfigurasi database.",
+          "Data hari ini belum bisa dimuat. Cek koneksimu lalu coba lagi.",
         );
       setData(await res.json());
       return true;
@@ -93,14 +95,14 @@ export default function DashboardPage() {
         body: JSON.stringify({ foodLogComplete: !data.log.foodLogComplete }),
       });
       if (!response.ok)
-        throw new Error("Status catatan belum tersimpan. Coba lagi.");
+        throw new Error("Belum tersimpan. Coba lagi ya.");
       if (!(await load()))
         throw new Error(
-          "Status tersimpan, tetapi data hari ini belum dimuat ulang.",
+          "Tersimpan, tapi tampilannya belum diperbarui. Tarik ulang halamannya.",
         );
     } catch (error) {
       setCompletionError(
-        error instanceof Error ? error.message : "Gagal menyimpan status.",
+        error instanceof Error ? error.message : "Belum bisa menyimpan.",
       );
     } finally {
       setSavingCompletion(false);
@@ -213,6 +215,7 @@ export default function DashboardPage() {
   });
 
   const hour = new Date().getHours();
+  const sky = skyForHour(hour);
   const greeting =
     hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 19 ? "Selamat sore" : "Selamat malam";
   const mood: MascotMood = over
@@ -224,10 +227,10 @@ export default function DashboardPage() {
         : "happy";
   const statusLine =
     summary.foodLogStatus !== "complete"
-      ? "Hari ini masih berjalan"
+      ? "Hari ini masih jalan"
       : onTrack
         ? "Hari ini on track"
-        : "Perlu dicek lagi";
+        : "Yuk cek lagi sebentar";
 
   return (
     <div className="pb-4">
@@ -236,10 +239,15 @@ export default function DashboardPage() {
           {loadError}
         </p>
       )}
-      <section className="rounded-b-[2rem] bg-linear-to-b from-brand-600 via-brand-700 to-brand-800 px-4 pb-6 pt-6 text-white shadow-xs">
+      <section
+        className="relative isolate overflow-hidden rounded-b-[2rem] px-4 pb-6 pt-6 text-white shadow-xs"
+        style={{ background: skyBackground(sky) }}
+      >
+        <SkyBackdrop sky={sky} />
+        <div className="relative z-10">
         <header className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm text-brand-100">
+            <p className="text-sm text-white/80">
               {greeting}
               {data.userName ? `, ${data.userName}` : ""}
             </p>
@@ -260,7 +268,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between text-sm text-brand-100">
+        <div className="mt-4 flex items-center justify-between text-sm text-white/80">
           <span>
             {summary.caloriesIn} / {summary.target} kcal
           </span>
@@ -279,6 +287,7 @@ export default function DashboardPage() {
           <IconCamera className="h-5 w-5" />
           Catat makan
         </Link>
+        </div>
       </section>
 
       <div className="space-y-4 p-4">
@@ -383,14 +392,14 @@ export default function DashboardPage() {
         <div className="text-sm font-semibold">Tutup hari</div>
         <div className="mt-0.5 text-sm text-neutral-600 dark:text-neutral-300">
           {summary.foodLogStatus === "complete"
-            ? "Catatan makan lengkap"
+            ? "Catatan hari ini sudah lengkap"
             : summary.foodLogStatus === "partial"
-              ? "Catatan makan baru sebagian"
-              : "Belum ada catatan makan"}
+              ? "Baru sebagian yang tercatat"
+              : "Belum ada yang dicatat"}
         </div>
         <p className="mt-1 text-xs text-neutral-500">
-          Tekan setelah semua makanan dan minuman hari ini tercatat. Streak menghitung hari
-          pencatatan lengkap, bukan defisit.
+          Kalau semua makan dan minum hari ini sudah kamu catat, tutup harinya di sini. Streak
+          dihitung dari hari yang catatannya lengkap, bukan dari seberapa sedikit kamu makan.
         </p>
         <button
           type="button"
@@ -405,8 +414,8 @@ export default function DashboardPage() {
           {savingCompletion
             ? "Menyimpan..."
             : log.foodLogComplete
-              ? "Buka kembali catatan"
-              : "Semua asupan hari ini sudah dicatat"}
+              ? "Buka lagi catatannya"
+              : "Sudah semua, tutup hari"}
         </button>
         {completionError && (
           <p role="alert" className="mt-2 text-sm text-red-500">
@@ -416,14 +425,14 @@ export default function DashboardPage() {
         {summary.foodLogStatus === "complete" &&
           summary.caloriesIn < summary.target * TARGET_FEEDBACK_MIN_RATIO && (
             <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-              Asupan tercatat jauh di bawah target. Periksa kelengkapan catatan;
-              angka lebih rendah tidak otomatis lebih baik.
+              Yang tercatat jauh di bawah target. Pastikan nggak ada yang kelewat;
+              makan lebih sedikit belum tentu lebih baik.
             </p>
           )}
         <p className="mt-3 text-xs text-neutral-400">
-          Skor kebiasaan hari ini {healthScore.total}/100 (heuristik aplikasi, bukan penilaian medis).
+          Skor kebiasaan hari ini: {healthScore.total}/100. Ini perkiraan dari app, bukan penilaian medis.
           {log.plan === "if" && log.eatingWindowStart && log.eatingWindowHours
-            ? ` Mode Intermittent Fasting · window makan ${log.eatingWindowHours} jam sejak bangun.`
+            ? ` Mode puasa intermiten: jendela makan ${log.eatingWindowHours} jam sejak bangun.`
             : ""}
         </p>
       </section>

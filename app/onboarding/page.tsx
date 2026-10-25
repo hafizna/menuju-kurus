@@ -14,8 +14,8 @@ import {
 
 const GOALS: { value: FitnessGoal; label: string; hint: string }[] = [
   { value: "weight_loss", label: "Turun berat badan", hint: "Defisit moderat, ritme yang bisa dijalani." },
-  { value: "very_lean", label: "Lebih ramping dan tetap berotot", hint: "Defisit lebih ringan, protein lebih tinggi." },
-  { value: "athletic", label: "Jaga bentuk dan performa", hint: "Mulai dari kalori maintenance." },
+  { value: "very_lean", label: "Lebih ramping, otot tetap terjaga", hint: "Defisit lebih ringan, protein lebih tinggi." },
+  { value: "athletic", label: "Jaga bentuk badan dan performa", hint: "Mulai dari kalori maintenance." },
   { value: "muscle_gain", label: "Tambah otot", hint: "Surplus kecil dan terkontrol." },
 ];
 
@@ -73,7 +73,7 @@ export default function OnboardingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...draft, applyRecommendation: true }),
       });
-      if (!res.ok) throw new Error("Pengaturan belum tersimpan. Coba lagi.");
+      if (!res.ok) throw new Error("Belum tersimpan. Coba lagi ya.");
       await fetch("/api/weight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -82,7 +82,7 @@ export default function OnboardingPage() {
       router.replace("/");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Gagal menyimpan.");
+      setError(e instanceof Error ? e.message : "Belum bisa menyimpan.");
       setSaving(false);
     }
   }
@@ -118,8 +118,8 @@ export default function OnboardingPage() {
           <div className="space-y-3">
             <h1 className="text-2xl font-bold">Halo! Kita atur targetmu dulu.</h1>
             <p className="text-neutral-500">
-              Empat pertanyaan singkat, lalu aku hitung berapa kalori dan protein yang pas untukmu.
-              Angka ini titik awal; setelah beberapa minggu aku koreksi dari data nyatamu.
+              Cuma empat pertanyaan singkat, lalu aku hitung berapa kalori dan protein yang pas buatmu.
+              Angkanya baru titik awal. Setelah beberapa minggu, aku sesuaikan dari catatan nyatamu.
             </p>
           </div>
         )}
@@ -165,7 +165,7 @@ export default function OnboardingPage() {
               </label>
             </div>
             <p className="text-xs text-neutral-400">
-              Lingkar pinggang dan body fat bisa ditambah nanti di Progress; tidak perlu untuk menghitung target.
+              Lingkar pinggang dan body fat bisa ditambah nanti di Progress. Nggak wajib buat menghitung target.
             </p>
           </div>
         )}
@@ -173,7 +173,7 @@ export default function OnboardingPage() {
         {step === 3 && (
           <div className="space-y-3">
             <h1 className="text-xl font-bold">Seaktif apa minggu normalmu?</h1>
-            <p className="text-sm text-neutral-500">Pilih yang paling mendekati minggu biasa, bukan minggu paling rajin.</p>
+            <p className="text-sm text-neutral-500">Pilih yang paling mirip minggu biasamu, bukan minggu paling rajin.</p>
             {ACTIVITIES.map((a) => (
               <button key={a.value} type="button" onClick={() => setActivity(a.value)} className={optionClass(activity === a.value)}>
                 <div className="font-medium">{a.label}</div>

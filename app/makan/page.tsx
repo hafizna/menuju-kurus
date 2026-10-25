@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { IconCamera, IconSparkle, IconBowl, IconBolt } from "@/components/icons";
 import type { DayLog } from "@/lib/types";
 import type { DaySummary } from "@/lib/day";
+import AnalysisSheet, { type SheetPhase } from "@/components/AnalysisSheet";
+import { compressImage, postPhoto, UploadAborted } from "@/lib/clientImage";
 
 interface TodayData {
   log: DayLog;
@@ -99,14 +101,18 @@ async function postMeal(body: Record<string, unknown>) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "meal", ...body }),
   });
-  if (!res.ok) throw new Error("Gagal menyimpan. Coba lagi.");
+  if (!res.ok) throw new Error("Belum tersimpan. Coba lagi ya.");
 }
 
 function CatatTab({ onSaved }: { onSaved: () => void }) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [sheet, setSheet] = useState<SheetPhase | null>(null);
+  const [seconds, setSeconds] = useState(0);
+  const [photoError, setPhotoError] = useState("");
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const lastFile = useRef<File | null>(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Analysis | null>(null);
   const [name, setName] = useState("");
@@ -116,28 +122,55 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
   const [saved, setSaved] = useState("");
   const [manualOpen, setManualOpen] = useState(false);
 
+  useEffect(() => {
+    if (sheet !== "upload" && sheet !== "read") return;
+    const id = setInterval(() => setSeconds((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [sheet]);
+
   async function handleFile(file: File) {
+    lastFile.current = file;
     setError("");
+    setPhotoError("");
     setResult(null);
     setSaved("");
     setPortion(1);
     setKcalEdit(null);
     setManualOpen(false);
+    setSeconds(0);
     setPreview(URL.createObjectURL(file));
-    setAnalyzing(true);
+    setSheet("upload");
     try {
-      const form = new FormData();
-      form.append("photo", file);
-      const res = await fetch("/api/analyze-food", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal menganalisa foto");
-      setResult(data.analysis);
-      setName(data.analysis.foodName);
+      const photo = await compressImage(file);
+      // Some networks never report upload progress; don't leave step 1 spinning.
+      const nudge = setTimeout(() => setSheet((p) => (p === "upload" ? "read" : p)), 2500);
+      const { status, data } = await postPhoto(photo, {
+        onUploaded: () => setSheet("read"),
+        register: (xhr) => {
+          xhrRef.current = xhr;
+        },
+      });
+      clearTimeout(nudge);
+      if (status < 200 || status >= 300 || !data?.analysis) {
+        throw new Error(data?.error || "Foto belum bisa dibaca. Coba lagi atau isi manual.");
+      }
+      const analysis = data.analysis as Analysis;
+      setResult(analysis);
+      setName(analysis.foodName);
+      setSheet("done");
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      setSheet(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Gagal menganalisa foto");
-    } finally {
-      setAnalyzing(false);
+      if (e instanceof UploadAborted) return;
+      setPhotoError(e instanceof Error ? e.message : "Foto belum bisa dibaca.");
+      setSheet("error");
     }
+  }
+
+  function cancelAnalysis() {
+    xhrRef.current?.abort();
+    setSheet(null);
+    reset();
   }
 
   function reset() {
@@ -152,7 +185,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
     if (!result) return;
     const kcal = kcalEdit !== null ? Number(kcalEdit) : Math.round(result.calories * portion);
     if (!Number.isFinite(kcal) || kcal <= 0) {
-      setError("Isi kalori dengan angka lebih dari 0.");
+      setError("Isi kalorinya dulu, harus lebih dari 0.");
       return;
     }
     setSaving(true);
@@ -253,22 +286,25 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
         <img src={preview} alt="Foto makanan" className="max-h-72 w-full rounded-2xl object-cover" />
       )}
 
-      {analyzing && <p className="text-center text-sm text-neutral-500">Menganalisa foto...</p>}
+      {sheet && (
+        <AnalysisSheet
+          phase={sheet}
+          seconds={seconds}
+          preview={preview}
+          error={photoError}
+          onCancel={cancelAnalysis}
+          onRetry={() => lastFile.current && handleFile(lastFile.current)}
+          onManual={() => {
+            setSheet(null);
+            reset();
+            setManualOpen(true);
+          }}
+        />
+      )}
       {error && (
-        <div className="space-y-2 text-center">
-          <p role="alert" className="text-sm text-red-500">{error}</p>
-          {preview && !result && (
-            <button
-              onClick={() => {
-                reset();
-                setManualOpen(true);
-              }}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700"
-            >
-              Isi manual saja
-            </button>
-          )}
-        </div>
+        <p role="alert" className="text-center text-sm text-red-500">
+          {error}
+        </p>
       )}
 
       {result && (
@@ -285,7 +321,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
             </div>
             {result.confidence === "low" && (
               <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                Ini perkiraan kasar. Cek nama dan kalorinya sebelum disimpan.
+                Tebakannya masih kasar. Cek nama dan kalorinya dulu sebelum disimpan.
               </p>
             )}
           </div>
@@ -364,7 +400,7 @@ function ManualForm({ onSaved }: { onSaved: (label: string) => void }) {
     e.preventDefault();
     const calories = Number(kcal);
     if (!name.trim() || !Number.isFinite(calories) || calories <= 0) {
-      setError("Isi nama makanan dan kalori (lebih dari 0).");
+      setError("Isi nama makanan dan kalorinya dulu ya.");
       return;
     }
     setSaving(true);
@@ -479,15 +515,15 @@ function CariTab() {
           className="min-h-20 w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
         />
         <button onClick={() => run(false)} disabled={loading} className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">
-          {loading ? "Mencari..." : "Cari pilihan paling mengenyangkan"}
+          {loading ? "Mencari..." : "Cari yang paling bikin kenyang"}
         </button>
       </section>
 
       {result?.strategy && (
         <>
           <section className="rounded-2xl bg-brand-50 p-4 dark:bg-brand-950/30">
-            <div className="text-sm font-medium">Strategi makan berikutnya</div>
-            <div className="mt-1 text-sm">Sisa {result.input.remainingCalories} kcal · protein tersisa {result.input.remainingProteinG} g</div>
+            <div className="text-sm font-medium">Ide buat makan berikutnya</div>
+            <div className="mt-1 text-sm">Sisa {result.input.remainingCalories} kcal · sisa protein {result.input.remainingProteinG} g</div>
             <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">{result.strategy.message}</p>
           </section>
 
@@ -504,7 +540,7 @@ function CariTab() {
                     <div className="text-xs text-neutral-400">{food.proteinG} g protein</div>
                   </div>
                 </div>
-                <div className="mt-2 text-sm">Fullness {"★".repeat(food.fullnessScore)}{"☆".repeat(5 - food.fullnessScore)}</div>
+                <div className="mt-2 text-sm">Kenyangnya {"★".repeat(food.fullnessScore)}{"☆".repeat(5 - food.fullnessScore)}</div>
                 <p className="mt-2 text-xs text-neutral-500">{food.why}</p>
               </article>
             ))}
@@ -538,7 +574,7 @@ function CariTab() {
                 </ul>
               </>
             ) : (
-              <p className="mt-2 text-xs text-neutral-400">Opsional dan hanya dipanggil saat tombol ditekan.</p>
+              <p className="mt-2 text-xs text-neutral-400">Opsional, baru jalan kalau kamu tekan tombolnya.</p>
             )}
             {result.aiError && <p className="mt-2 text-xs text-red-500">{result.aiError}</p>}
           </section>
