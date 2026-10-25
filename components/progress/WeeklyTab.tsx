@@ -47,7 +47,7 @@ export default function WeeklyTab() {
       const [trendsResponse, reviewResponse] = await Promise.all([
         fetch("/api/trends"), fetch("/api/weekly-review"),
       ]);
-      if (!trendsResponse.ok || !reviewResponse.ok) throw new Error("Ringkasan belum dapat dimuat. Periksa koneksi dan konfigurasi database.");
+      if (!trendsResponse.ok || !reviewResponse.ok) throw new Error("Ringkasan belum dapat dimuat. Periksa koneksi lalu coba lagi.");
       setData(await trendsResponse.json());
       setWeekly(await reviewResponse.json());
     } catch (error) {

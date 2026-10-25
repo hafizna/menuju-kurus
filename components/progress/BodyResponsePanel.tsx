@@ -64,7 +64,7 @@ export default function BodyResponsePanel({
       .then(async (response) => {
         if (!response.ok)
           throw new Error(
-            "Body Response belum dapat dimuat. Periksa koneksi dan konfigurasi database.",
+            "Analisis belum dapat dimuat. Periksa koneksi lalu coba lagi.",
           );
         const result: BodyResponseReport = await response.json();
         if (!controller.signal.aborted) { setReport(result); onReport?.(result); }

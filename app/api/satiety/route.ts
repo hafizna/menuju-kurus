@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       input,
       strategy,
       ai: null,
-      aiError: "Penjelasan AI sedang tidak tersedia. Coba lagi nanti.",
+      aiError: "Ringkasan belum dapat dibuat. Coba lagi nanti.",
     });
   }
 }
