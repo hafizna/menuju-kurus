@@ -95,13 +95,49 @@ interface Analysis {
 
 const CONFIDENCE_LABEL = { low: "rendah", medium: "sedang", high: "tinggi" } as const;
 
+function nowHHMM(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+// "HH:MM" today (browser clock) -> ISO instant; null if that time hasn't happened yet.
+function eatenAtIso(hhmm: string): string | null {
+  const [h, m] = hhmm.split(":").map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d.getTime() > Date.now() + 5 * 60_000 ? null : d.toISOString();
+}
+
+function MealTimeField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="flex items-center justify-between gap-3 text-sm">
+      <span className="text-neutral-500">Jam makan</span>
+      <span className="flex items-center gap-2">
+        <input
+          type="time"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="rounded-lg border border-neutral-300 px-3 py-1.5 tabular-nums dark:border-neutral-700 dark:bg-neutral-800"
+        />
+        <button type="button" onClick={() => onChange(nowHHMM())} className="text-xs font-medium text-brand-600">
+          Sekarang
+        </button>
+      </span>
+    </label>
+  );
+}
+
 async function postMeal(body: Record<string, unknown>) {
   const res = await fetch("/api/log", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "meal", ...body }),
   });
-  if (!res.ok) throw new Error("Belum tersimpan. Coba lagi ya.");
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Belum tersimpan. Coba lagi ya.");
+  }
 }
 
 function CatatTab({ onSaved }: { onSaved: () => void }) {
@@ -118,6 +154,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
   const [name, setName] = useState("");
   const [portion, setPortion] = useState(1);
   const [kcalEdit, setKcalEdit] = useState<string | null>(null);
+  const [mealTime, setMealTime] = useState(nowHHMM);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState("");
   const [manualOpen, setManualOpen] = useState(false);
@@ -157,6 +194,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
       const analysis = data.analysis as Analysis;
       setResult(analysis);
       setName(analysis.foodName);
+      setMealTime(nowHHMM());
       setSheet("done");
       await new Promise((resolve) => setTimeout(resolve, 450));
       setSheet(null);
@@ -188,9 +226,16 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
       setError("Isi kalorinya dulu, harus lebih dari 0.");
       return;
     }
+    const time = eatenAtIso(mealTime);
+    if (!time) {
+      setError("Jam makannya belum lewat. Pilih jam yang sudah terjadi.");
+      return;
+    }
+    setError("");
     setSaving(true);
     try {
       await postMeal({
+        time,
         foodName: name.trim() || result.foodName,
         calories: Math.round(kcal),
         protein_g: Math.round(result.protein_g * portion),
@@ -367,6 +412,8 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
             />
           </div>
 
+          <MealTimeField value={mealTime} onChange={setMealTime} />
+
           <div className="flex gap-2">
             <button
               onClick={reset}
@@ -393,6 +440,7 @@ function ManualForm({ onSaved }: { onSaved: (label: string) => void }) {
   const [name, setName] = useState("");
   const [kcal, setKcal] = useState("");
   const [protein, setProtein] = useState("");
+  const [mealTime, setMealTime] = useState(nowHHMM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -403,10 +451,16 @@ function ManualForm({ onSaved }: { onSaved: (label: string) => void }) {
       setError("Isi nama makanan dan kalorinya dulu ya.");
       return;
     }
+    const time = eatenAtIso(mealTime);
+    if (!time) {
+      setError("Jam makannya belum lewat. Pilih jam yang sudah terjadi.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
       await postMeal({
+        time,
         foodName: name.trim(),
         calories,
         protein_g: Number(protein) || 0,
@@ -426,8 +480,9 @@ function ManualForm({ onSaved }: { onSaved: (label: string) => void }) {
       <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama makanan, mis. nasi goreng" className={input} />
       <div className="grid grid-cols-2 gap-2">
         <input value={kcal} onChange={(e) => setKcal(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="kalori (kcal)" className={input} />
-        <input value={protein} onChange={(e) => setProtein(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="protein g (opsional)" className={input} />
+        <input value={protein} onChange={(e) => setProtein(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="protein (g)" className={input} />
       </div>
+      <MealTimeField value={mealTime} onChange={setMealTime} />
       {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
       <button type="submit" disabled={saving} className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">
         {saving ? "Menyimpan..." : "Simpan"}

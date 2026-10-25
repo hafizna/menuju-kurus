@@ -18,9 +18,20 @@ export async function POST(req: NextRequest) {
   const log = await getDayLog(userId, date);
 
   if (body.type === "meal") {
+    // Optional: when the meal was actually eaten (forgot to log it earlier).
+    // Must be a real instant, not in the future, and not older than a day.
+    let eatenAt = new Date().toISOString();
+    if (body.time !== undefined) {
+      const parsed = typeof body.time === "string" ? Date.parse(body.time) : NaN;
+      const now = Date.now();
+      if (!Number.isFinite(parsed) || parsed > now + 5 * 60_000 || parsed < now - 36 * 3_600_000) {
+        return NextResponse.json({ error: "Jam makannya belum masuk akal. Pilih jam yang sudah lewat." }, { status: 400 });
+      }
+      eatenAt = new Date(parsed).toISOString();
+    }
     const entry: MealEntry = {
       id: crypto.randomUUID(),
-      time: new Date().toISOString(),
+      time: eatenAt,
       foodName: String(body.foodName ?? "Makanan"),
       calories: Math.max(0, Math.round(Number(body.calories) || 0)),
       protein_g: Math.max(0, Math.round(Number(body.protein_g) || 0)),

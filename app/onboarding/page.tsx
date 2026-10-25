@@ -38,6 +38,7 @@ export default function OnboardingPage() {
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [goalWeight, setGoalWeight] = useState("");
+  const [waist, setWaist] = useState("");
   const [activity, setActivity] = useState<ActivityLevel | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -91,6 +92,14 @@ export default function OnboardingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ weightKg: weightN }),
       });
+      const waistN = Number(waist);
+      if (waist && waistN >= 30 && waistN <= 200) {
+        await fetch("/api/body", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ waistCm: waistN }),
+        }).catch(() => {});
+      }
       router.replace("/");
       router.refresh();
     } catch (e) {
@@ -187,8 +196,12 @@ export default function OnboardingPage() {
                 <input inputMode="decimal" value={goalWeight} onChange={(e) => setGoalWeight(e.target.value)} placeholder="kg" className={inputClass} />
               </label>
             </div>
+            <label className="block">
+              <span className="mb-1 block text-sm text-neutral-500">Lingkar pinggang (opsional)</span>
+              <input inputMode="decimal" value={waist} onChange={(e) => setWaist(e.target.value)} placeholder="cm, ukur setinggi pusar" className={inputClass} />
+            </label>
             <p className="text-xs text-neutral-400">
-              Lingkar pinggang dan body fat bisa ditambah nanti di Progress. Nggak wajib buat menghitung target.
+              Nggak wajib dan nggak dipakai buat menghitung target. Ini jadi titik awal buat melihat perubahan tubuhmu, selain angka timbangan.
             </p>
           </div>
         )}

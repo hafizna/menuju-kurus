@@ -386,7 +386,11 @@ export default function DashboardPage() {
             caption={
               daysSince(data.bodyResponse?.current.waist.last?.date, data.date) === null
                 ? "Ukur pertama kali"
-                : `${daysSince(data.bodyResponse?.current.waist.last?.date, data.date)} hari lalu`
+                : `${
+                    settings.heightCm && data.bodyResponse?.current.waist.last
+                      ? `Rasio ${(data.bodyResponse.current.waist.last.value / settings.heightCm).toFixed(2).replace(".", ",")} (patokan < 0,5) · `
+                      : ""
+                  }${daysSince(data.bodyResponse?.current.waist.last?.date, data.date)} hari lalu`
             }
             chip={due(daysSince(data.bodyResponse?.current.waist.last?.date, data.date), 7)}
           />

@@ -143,6 +143,21 @@ test('ambiguous invite codes or sync tokens fail closed rather than choosing ano
   assert.equal(findUserByHealthSyncToken('test-health-1'), null);
 });
 
+test('meal time can be backdated within a day but never future, stale or malformed', async () => {
+  const date = todayKey(DEFAULT_SETTINGS.timezone);
+  const hoursAgo = (h) => new Date(Date.now() - h * 3600_000).toISOString();
+  const post = (time) => logRoute.POST(request('/api/log', 'POST', { type: 'meal', calories: 500, foodName: 'Sarapan', time }));
+  const threeHoursAgo = hoursAgo(3);
+  const ok = await post(threeHoursAgo);
+  assert.equal(ok.status, 200);
+  assert.equal(store.get(keys.day('u3', date)).meals[0].time, threeHoursAgo);
+  for (const bad of [new Date(Date.now() + 3600_000).toISOString(), hoursAgo(40), 'bukan-tanggal', 12345]) {
+    assert.equal((await post(bad)).status, 400);
+  }
+  assert.equal(store.get(keys.day('u3', date)).meals.length, 1);
+  assert.equal((await logRoute.POST(request('/api/log', 'POST', { type: 'meal', calories: 100 }))).status, 200);
+});
+
 test('food confirmation validates input, supports past days, and food edits reopen it', async () => {
   const date = todayKey(DEFAULT_SETTINGS.timezone);
   for (const invalid of [null, { foodLogComplete: 'true' }, { foodLogComplete: true, date: '2026-02-30' }, { foodLogComplete: true, date: '9999-01-01' }, { foodLogComplete: true, date: 1 }]) {
