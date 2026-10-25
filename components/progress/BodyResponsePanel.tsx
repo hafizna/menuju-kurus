@@ -41,13 +41,22 @@ function Readiness({ metric }: { metric: Coverage }) {
 }
 export default function BodyResponsePanel({
   period,
+  initialReport,
+  onReport,
 }: {
   period: ResponsePeriod;
+  initialReport?: BodyResponseReport;
+  onReport?: (report: BodyResponseReport) => void;
 }) {
   const [report, setReport] = useState<BodyResponseReport | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   useEffect(() => {
+    if (initialReport?.periodDays === period) {
+      setReport(initialReport);
+      setError("");
+      return;
+    }
     const controller = new AbortController();
     setReport(null);
     setError("");
@@ -58,7 +67,7 @@ export default function BodyResponsePanel({
             "Body Response belum dapat dimuat. Periksa koneksi dan konfigurasi database.",
           );
         const result: BodyResponseReport = await response.json();
-        if (!controller.signal.aborted) setReport(result);
+        if (!controller.signal.aborted) { setReport(result); onReport?.(result); }
       })
       .catch((error) => {
         if (!controller.signal.aborted)
@@ -69,7 +78,7 @@ export default function BodyResponsePanel({
           );
       });
     return () => controller.abort();
-  }, [period, retry]);
+  }, [period, retry, initialReport, onReport]);
   if (error)
     return (
       <section className="space-y-3 rounded-2xl border border-neutral-100 p-4 dark:border-neutral-800">

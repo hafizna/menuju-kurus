@@ -1,1 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#059669"/><stop offset="1" stop-color="#065f46"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/><g transform="translate(12 11) scale(0.95)"><g><rect x="4" y="69" width="72" height="6" rx="3" fill="#7b5b3b"></rect><ellipse cx="14" cy="68" rx="5" ry="2.4" transform="rotate(-20 14 68)" fill="#4ade80"></ellipse><ellipse cx="66" cy="68" rx="5" ry="2.4" transform="rotate(20 66 68)" fill="#4ade80"></ellipse></g><g class="mascot-breathe"><ellipse cx="40" cy="57" rx="17" ry="14" fill="#a98f6e"></ellipse><ellipse cx="40" cy="60" rx="10.5" ry="9" fill="#d6c2a0"></ellipse><ellipse cx="30" cy="69" rx="5" ry="3" fill="#8c7354"></ellipse><ellipse cx="50" cy="69" rx="5" ry="3" fill="#8c7354"></ellipse><path d="M26 50 Q17 57 21 64" fill="none" stroke="#a98f6e" stroke-width="6" stroke-linecap="round"></path><g transform="translate(21 64) rotate(170)"><path d="M-2.2 0 L-3.2 -4 M0 0 L0 -4.6 M2.2 0 L3.2 -4" fill="none" stroke="#f1e9d6" stroke-width="1.5" stroke-linecap="round"></path></g><g transform="translate(40 33) rotate(0) scale(1)"><ellipse rx="19" ry="15.5" fill="#a98f6e"></ellipse><ellipse cy="2" rx="15.5" ry="12" fill="#f2e8d3"></ellipse><ellipse cx="-7.5" cy="0.6" rx="5.6" ry="3.9" transform="rotate(-25 -7.5 0.6)" fill="#4b392c"></ellipse><ellipse cx="7.5" cy="0.6" rx="5.6" ry="3.9" transform="rotate(25 7.5 0.6)" fill="#4b392c"></ellipse><g class="mascot-blink"><g><circle cx="-7.5" cy="0.6" r="3.3" fill="#fff8e7"></circle><circle cx="-7.5" cy="0.9" r="2.5" fill="#2b1d14"></circle><circle cx="-6.6" cy="-0.1" r="0.8" fill="#fff"></circle></g><g><circle cx="7.5" cy="0.6" r="3.3" fill="#fff8e7"></circle><circle cx="7.5" cy="0.9" r="2.5" fill="#2b1d14"></circle><circle cx="6.6" cy="-0.1" r="0.8" fill="#fff"></circle></g></g><ellipse cy="5.4" rx="2.7" ry="1.9" fill="#2b1d14"></ellipse><path d="M-5 8 Q0 13 5 8" fill="none" stroke="#2b1d14" stroke-width="1.7" stroke-linecap="round"></path><g fill="#f4a9a0" opacity="0.55"><ellipse cx="-11.5" cy="7" rx="2.6" ry="1.7"></ellipse><ellipse cx="11.5" cy="7" rx="2.6" ry="1.7"></ellipse></g></g><g class="mascot-wave"><path d="M54 50 Q65 45 63 31" fill="none" stroke="#a98f6e" stroke-width="6" stroke-linecap="round"></path><g transform="translate(63 30) rotate(4)"><path d="M-2.2 0 L-3.2 -4 M0 0 L0 -4.6 M2.2 0 L3.2 -4" fill="none" stroke="#f1e9d6" stroke-width="1.5" stroke-linecap="round"></path></g></g></g></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Slothly">
+  <title>Slothly</title>
+  <!-- Full-bleed cream is safe to crop. The face stays inside the centered
+       80% maskable safe circle; the leaf is a decorative accent. -->
+  <rect width="512" height="512" fill="#f8f3e9"/>
+  <circle cx="256" cy="256" r="191" fill="#e2ecd7"/>
+  <path d="M365 155C350 121 374 86 421 91C424 129 400 155 365 155Z" fill="#628955"/>
+  <path d="M369 151Q389 121 411 102" fill="none" stroke="#c6d9b9" stroke-width="5" stroke-linecap="round"/>
+  <g transform="translate(256 254) scale(2.3)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-65-3C-72-34-50-63-23-64C-17-77-4-74 5-64C30-72 54-50 65-25C77-5 62 33 38 47C9 63-27 58-49 39C-61 28-71 9-65-3Z" fill="#b59470" stroke="#473025" stroke-width="3"/>
+    <path d="M-49-28C-42-47-31-51-20-52M10-55Q28-54 39-43" fill="none" stroke="#cfb28d" stroke-width="5"/>
+    <path d="M0-34C-29-59-58-33-53-2C-49 24-22 47 0 49C23 46 50 25 53-3C58-34 30-58 0-34Z" fill="#f8ecd3"/>
+    <ellipse cx="-25" cy="-6" rx="22" ry="17" transform="rotate(27 -25 -6)" fill="#6a4938"/>
+    <ellipse cx="25" cy="-6" rx="22" ry="17" transform="rotate(-27 25 -6)" fill="#6a4938"/>
+    <g transform="translate(0 -7)">
+      <ellipse cx="-25" rx="11.5" ry="13" fill="#fff9eb"/>
+      <ellipse cx="25" rx="11.5" ry="13" fill="#fff9eb"/>
+      <ellipse cx="-24" cy="1.5" rx="8.2" ry="10.3" fill="#473025"/>
+      <ellipse cx="24" cy="1.5" rx="8.2" ry="10.3" fill="#473025"/>
+      <ellipse cx="-26.5" cy="-2" rx="3" ry="3.8" fill="#fff9eb"/>
+      <ellipse cx="21.5" cy="-2" rx="3" ry="3.8" fill="#fff9eb"/>
+    </g>
+    <g fill="#e79b95" opacity=".7">
+      <ellipse cx="-41" cy="16" rx="9" ry="5.5"/>
+      <ellipse cx="41" cy="16" rx="9" ry="5.5"/>
+    </g>
+    <path d="M-8 6Q0 1 8 6Q7 14 0 14Q-7 14-8 6Z" fill="#473025"/>
+    <path d="M-13 23Q0 36 13 23" fill="none" stroke="#473025" stroke-width="3.2"/>
+    <path d="M-4-61Q2-70 9-65" fill="none" stroke="#957353" stroke-width="2.3"/>
+  </g>
+</svg>

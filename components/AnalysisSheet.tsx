@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Mascot, { type MascotMood } from "@/components/Mascot";
 
 export type SheetPhase = "upload" | "read" | "done" | "error";
@@ -48,12 +49,31 @@ export default function AnalysisSheet({
   onRetry: () => void;
   onManual: () => void;
 }) {
-  const mood: MascotMood = phase === "error" ? "worried" : phase === "done" ? "cheer" : "happy";
+  const mood: MascotMood = phase === "error" ? "worried" : phase === "done" ? "cheer" : "thinking";
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef(onCancel);
+  cancelRef.current = onCancel;
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    dialogRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); cancelRef.current(); return; }
+      if (event.key !== "Tab") return;
+      const buttons = [...(dialogRef.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [])].filter(button => button.getClientRects().length > 0);
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener("keydown", keydown);
+    return () => { document.removeEventListener("keydown", keydown); document.body.style.overflow = previousOverflow; if (previousFocus?.isConnected) previousFocus.focus(); };
+  }, []);
   const uploadState = phase === "upload" ? "active" : "done";
   const readState = phase === "upload" ? "pending" : phase === "read" || phase === "error" ? "active" : "done";
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end bg-black/40" role="dialog" aria-modal="true" aria-label="Membaca foto makanan">
+    <div ref={dialogRef} className="fixed inset-0 z-40 flex items-end bg-black/40" role="dialog" aria-modal="true" aria-label="Membaca foto makanan">
       <div className="mx-auto w-full max-w-md rounded-t-3xl bg-neutral-50 px-5 pb-8 pt-3 dark:bg-neutral-950">
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700" />
         <div className="mb-3 flex items-center justify-between">

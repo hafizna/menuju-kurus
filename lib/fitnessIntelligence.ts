@@ -1,11 +1,14 @@
 import type { FitnessGoal, UserSettings, WeightEntry } from "./types";
 import type { WeightTrend } from "./weight";
+import { lastNDateKeys } from "./dates";
 
 export interface FitnessIntelligence {
   goal: FitnessGoal;
   label: string;
-  score: number;
-  scoreLabel: "needs-attention" | "building" | "on-track";
+  score: number | null;
+  scoreLabel: "baseline" | "needs-attention" | "building" | "on-track";
+  baselineReady: boolean;
+  baselineReasons: string[];
   dataConfidence: "low" | "medium" | "high";
   bodyFatLatest: number | null;
   bodyFatDate: string | null;
@@ -66,6 +69,22 @@ export function computeFitnessIntelligence(
   ].filter(Boolean).length;
   const dataConfidence =
     availableMetrics >= 4 ? "high" : availableMetrics >= 2 ? "medium" : "low";
+
+  const baselineReasons: string[] = [];
+  if (settings.fitnessGoal === "athletic") {
+    if (settings.vo2Max === null && settings.restingHeartRate === null)
+      baselineReasons.push("Tambahkan VO₂ max atau resting HR jika tersedia.");
+    if (settings.cardioMinutesWeekly === 0 && settings.strengthDaysWeekly === 0)
+      baselineReasons.push("Lengkapi profil latihan mingguan untuk mulai membaca fokus fitness.");
+  } else {
+    const dates = lastNDateKeys(14, settings.timezone);
+    const observed = new Set(weightEntries.filter((entry) => dates.includes(entry.date) && Number.isFinite(entry.weightKg) && entry.weightKg > 0).map((entry) => entry.date));
+    const previousSamples = dates.slice(0, 7).filter((date) => observed.has(date)).length;
+    const recentSamples = dates.slice(7).filter((date) => observed.has(date)).length;
+    if (!hasWeightTrend || previousSamples < 2 || recentSamples < 2)
+      baselineReasons.push(`Berat tersedia ${previousSamples} kali pada 7 hari sebelumnya dan ${recentSamples} kali pada 7 hari terakhir. Skor menunggu setidaknya 2 pada tiap jendela.`);
+  }
+  const baselineReady = baselineReasons.length === 0;
 
   let score = 45;
   const priorities: string[] = [];
@@ -147,14 +166,18 @@ export function computeFitnessIntelligence(
     if (settings.cardioMinutesWeekly >= 60) score += 5;
   }
 
-  const finalScore = clamp(score);
+  const finalScore = baselineReady ? clamp(score) : null;
   const scoreLabel =
-    finalScore >= 75
+    finalScore === null
+      ? "baseline"
+      : finalScore >= 75
       ? "on-track"
       : finalScore >= 55
         ? "building"
         : "needs-attention";
-  const recap = `${LABELS[settings.fitnessGoal]} score ${finalScore}/100. ${
+  const recap = finalScore === null
+    ? "Sedang membangun baseline. Data yang belum tersedia belum menjadi penilaian performamu."
+    : `${LABELS[settings.fitnessGoal]} score ${finalScore}/100. ${
     dataConfidence === "low"
       ? "Data masih terbatas, jadi fokus utama saat ini adalah membangun baseline yang konsisten."
       : "Penilaian menggunakan tren berat dan metrik fitness yang tersedia, bukan satu pengukuran saja."
@@ -165,6 +188,8 @@ export function computeFitnessIntelligence(
     label: LABELS[settings.fitnessGoal],
     score: finalScore,
     scoreLabel,
+    baselineReady,
+    baselineReasons,
     dataConfidence,
     bodyFatLatest: latestBodyFat,
     bodyFatDate,

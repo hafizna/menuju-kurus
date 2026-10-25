@@ -42,6 +42,8 @@ export default function OnboardingPage() {
   const [activity, setActivity] = useState<ActivityLevel | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [attempted, setAttempted] = useState(false);
+  const [programSaved, setProgramSaved] = useState(false);
 
   useEffect(() => {
     fetch("/api/me")
@@ -54,15 +56,21 @@ export default function OnboardingPage() {
   }, []);
 
   const ageN = Number(age);
-  const heightN = Number(height);
-  const weightN = Number(weight);
-  const goalWeightN = Number(goalWeight);
+  const heightN = Number(height.replace(",", "."));
+  const weightN = Number(weight.replace(",", "."));
+  const goalWeightN = Number(goalWeight.replace(",", "."));
+  const waistN = Number(waist.replace(",", "."));
+  const wantsWeightTarget = goal === "weight_loss" || goal === "very_lean";
+  const errors = {
+    sex: sex === null ? "Pilih jenis kelamin biologis untuk perhitungan energi." : "",
+    age: !age || !Number.isInteger(ageN) || ageN < 18 || ageN > 100 ? "Isi usia 18–100 tahun." : "",
+    height: !height || !Number.isFinite(heightN) || heightN < 120 || heightN > 230 ? "Isi tinggi 120–230 cm." : "",
+    weight: !weight || !Number.isFinite(weightN) || weightN < 30 || weightN > 300 ? "Isi berat 30–300 kg." : "",
+    goalWeight: wantsWeightTarget && (!goalWeight || !Number.isFinite(goalWeightN) || goalWeightN < 30 || goalWeightN > 300) ? "Isi target berat 30–300 kg." : "",
+    waist: waist && (!Number.isFinite(waistN) || waistN < 30 || waistN > 200) ? "Isi pinggang 30–200 cm, atau kosongkan dulu." : "",
+  };
   const bodyValid =
-    sex !== null &&
-    ageN >= 18 && ageN <= 100 &&
-    heightN >= 120 && heightN <= 230 &&
-    weightN >= 30 && weightN <= 300 &&
-    goalWeightN >= 30 && goalWeightN <= 300;
+    Object.values(errors).every((value) => !value);
 
   const draft: UserSettings = {
     ...DEFAULT_SETTINGS,
@@ -72,7 +80,7 @@ export default function OnboardingPage() {
     age: ageN || null,
     heightCm: heightN || null,
     weightKg: weightN || DEFAULT_SETTINGS.weightKg,
-    goalWeightKg: goalWeightN || DEFAULT_SETTINGS.goalWeightKg,
+    goalWeightKg: wantsWeightTarget ? goalWeightN || weightN : weightN,
     activityLevel: activity,
   };
   const rec = computeProgramRecommendation(draft);
@@ -87,23 +95,25 @@ export default function OnboardingPage() {
         body: JSON.stringify({ ...draft, applyRecommendation: true }),
       });
       if (!res.ok) throw new Error("Belum tersimpan. Coba lagi ya.");
-      await fetch("/api/weight", {
+      setProgramSaved(true);
+      const weightResponse = await fetch("/api/weight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ weightKg: weightN }),
       });
-      const waistN = Number(waist);
+      if (!weightResponse.ok) throw new Error("Program sudah tersimpan, tetapi berat awal belum tersimpan. Coba simpan lagi atau lanjutkan dan catat di Progress nanti.");
       if (waist && waistN >= 30 && waistN <= 200) {
-        await fetch("/api/body", {
+        const waistResponse = await fetch("/api/body", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ waistCm: waistN }),
-        }).catch(() => {});
+        });
+        if (!waistResponse.ok) throw new Error("Program dan berat sudah tersimpan, tetapi pinggang belum tersimpan. Coba lagi atau lengkapi di Progress nanti.");
       }
-      router.replace("/");
+      router.replace("/makan");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Belum bisa menyimpan.");
+      setError(e instanceof Error ? e.message : "Koneksi terputus saat menyimpan. Coba lagi; isianmu tetap ada.");
       setSaving(false);
     }
   }
@@ -139,11 +149,11 @@ export default function OnboardingPage() {
           <div className="space-y-3">
             <h1 className="text-2xl font-bold">Halo! Kita atur targetmu dulu.</h1>
             <p className="text-neutral-500">
-              Cuma empat pertanyaan singkat, lalu aku hitung berapa kalori dan protein yang pas buatmu.
-              Angkanya baru titik awal. Setelah beberapa minggu, aku sesuaikan dari catatan nyatamu.
+              Empat langkah singkat untuk menyiapkan target awal, lalu kamu bisa mencatat makanan pertama.
+              Setelah ada cukup catatan, kita bisa meninjau target bersama. Perubahan tetap atas pilihanmu.
             </p>
             <label className="block pt-2">
-              <span className="mb-1 block text-sm text-neutral-500">Biar akrab, aku panggil kamu siapa?</span>
+              <span className="mb-1 block text-sm text-neutral-500">Biar akrab, aku panggil kamu siapa? (opsional)</span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -171,6 +181,7 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div className="space-y-4">
             <h1 className="text-xl font-bold">Data tubuhmu</h1>
+            <p className="text-sm text-neutral-500">Dipakai untuk menghitung titik awal. Data ukuran tambahan bisa dilengkapi nanti.</p>
             <div className="grid grid-cols-2 gap-2">
               {([["male", "Laki-laki"], ["female", "Perempuan"]] as const).map(([value, label]) => (
                 <button key={value} type="button" onClick={() => setSex(value)} className={optionClass(sex === value)}>
@@ -178,27 +189,33 @@ export default function OnboardingPage() {
                 </button>
               ))}
             </div>
+            {attempted && errors.sex && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{errors.sex}</p>}
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">Usia</span>
                 <input inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value)} placeholder="tahun" className={inputClass} />
+                {attempted && errors.age && <span className="mt-1 block text-xs text-red-600 dark:text-red-300">{errors.age}</span>}
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">Tinggi</span>
                 <input inputMode="numeric" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="cm" className={inputClass} />
+                {attempted && errors.height && <span className="mt-1 block text-xs text-red-600 dark:text-red-300">{errors.height}</span>}
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">Berat sekarang</span>
                 <input inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="kg" className={inputClass} />
+                {attempted && errors.weight && <span className="mt-1 block text-xs text-red-600 dark:text-red-300">{errors.weight}</span>}
               </label>
-              <label className="block">
+              {wantsWeightTarget && <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">Berat target</span>
                 <input inputMode="decimal" value={goalWeight} onChange={(e) => setGoalWeight(e.target.value)} placeholder="kg" className={inputClass} />
-              </label>
+                {attempted && errors.goalWeight && <span className="mt-1 block text-xs text-red-600 dark:text-red-300">{errors.goalWeight}</span>}
+              </label>}
             </div>
             <label className="block">
               <span className="mb-1 block text-sm text-neutral-500">Lingkar pinggang (opsional)</span>
               <input inputMode="decimal" value={waist} onChange={(e) => setWaist(e.target.value)} placeholder="cm, ukur setinggi pusar" className={inputClass} />
+              {attempted && errors.waist && <span className="mt-1 block text-xs text-red-600 dark:text-red-300">{errors.waist}</span>}
             </label>
             <p className="text-xs text-neutral-400">
               Nggak wajib dan nggak dipakai buat menghitung target. Ini jadi titik awal buat melihat perubahan tubuhmu, selain angka timbangan.
@@ -242,6 +259,7 @@ export default function OnboardingPage() {
               ))}
             </ul>
             {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+            {error && programSaved && <button type="button" onClick={() => { router.replace("/makan"); router.refresh(); }} className="text-sm font-medium text-brand-700 underline dark:text-brand-300">Lanjut dulu, lengkapi ukuran nanti</button>}
           </div>
         )}
       </div>
@@ -260,8 +278,8 @@ export default function OnboardingPage() {
         {step < STEPS ? (
           <button
             type="button"
-            onClick={() => setStep(step + 1)}
-            disabled={(step === 0 && !name.trim()) || (step === 2 && !bodyValid) || (step === 3 && activity === null)}
+            onClick={() => { if (step === 2 && !bodyValid) { setAttempted(true); return; } setAttempted(false); setStep(step + 1); }}
+            disabled={step === 3 && activity === null}
             className="flex-1 rounded-2xl bg-brand-600 py-3.5 font-semibold text-white disabled:opacity-40"
           >
             {step === 0 ? "Mulai" : "Lanjut"}
@@ -273,7 +291,7 @@ export default function OnboardingPage() {
             disabled={saving || !rec.complete}
             className="flex-1 rounded-2xl bg-brand-600 py-3.5 font-semibold text-white disabled:opacity-40"
           >
-            {saving ? "Menyimpan..." : "Pakai target ini dan mulai"}
+            {saving ? "Menyimpan..." : "Pakai target ini dan catat makan"}
           </button>
         )}
       </div>

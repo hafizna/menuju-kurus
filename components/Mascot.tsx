@@ -1,250 +1,165 @@
-export type MascotMood = "happy" | "neutral" | "worried" | "cheer" | "full";
+"use client";
 
-const FUR = "#a98f6e";
-const FUR_D = "#8c7354";
-const BELLY = "#d6c2a0";
-const FACE = "#f2e8d3";
-const MASK = "#4b392c";
-const INK = "#2b1d14";
-const CLAW = "#f1e9d6";
-const BRANCH = "#7b5b3b";
-const LEAF = "#4ade80";
+import { useEffect, useRef, useState } from "react";
 
-// Placeholder mascot: a three-toed sloth, drawn so each state has its own
-// silhouette (sitting, hanging, arms-up, hunched, lying on its back) rather
-// than one pose with a swapped face. Swapping in final artwork only means
-// replacing this file.
+export type MascotMood = "happy" | "neutral" | "worried" | "cheer" | "full" | "dance" | "thinking";
 
-function Claws({ x, y, angle }: { x: number; y: number; angle: number }) {
+const LABELS: Record<MascotMood, string> = {
+  happy: "menyapa", neutral: "mengantuk", worried: "khawatir", cheer: "bersorak",
+  full: "beristirahat setelah makan", dance: "bergoyang", thinking: "sedang berpikir",
+};
+
+function Hand({ x, y, angle = 0 }: { x: number; y: number; angle?: number }) {
   return (
     <g transform={`translate(${x} ${y}) rotate(${angle})`}>
-      <path d="M-2.2 0 L-3.2 -4 M0 0 L0 -4.6 M2.2 0 L3.2 -4" fill="none" stroke={CLAW} strokeWidth="1.5" strokeLinecap="round" />
+      <ellipse className="kukang-fur" rx="13" ry="12.5" />
+      <path className="kukang-claws" d="M-8 5Q-9 11-7 13M0 7Q0 13 2 14M8 5Q9 11 11 12" />
     </g>
   );
 }
 
-function Arm({ d, width = 6 }: { d: string; width?: number }) {
-  return <path d={d} fill="none" stroke={FUR} strokeWidth={width} strokeLinecap="round" />;
-}
-
-function Branch({ y }: { y: number }) {
-  return (
-    <g>
-      <rect x="4" y={y} width="72" height="6" rx="3" fill={BRANCH} />
-      <ellipse cx="14" cy={y - 1} rx="5" ry="2.4" transform={`rotate(-20 14 ${y - 1})`} fill={LEAF} />
-      <ellipse cx="66" cy={y - 1} rx="5" ry="2.4" transform={`rotate(20 66 ${y - 1})`} fill={LEAF} />
-    </g>
-  );
-}
-
-function Head({ mood, x, y, tilt = 0, scale = 1 }: { mood: MascotMood; x: number; y: number; tilt?: number; scale?: number }) {
-  const closed = mood === "neutral" || mood === "full";
-  const eyes = (side: -1 | 1) => {
-    const cx = 7.5 * side;
-    if (mood === "cheer") {
-      return <path key={side} d={`M${cx - 3.6} 1.6 Q${cx} -2.6 ${cx + 3.6} 1.6`} fill="none" stroke={FACE} strokeWidth="2" strokeLinecap="round" />;
-    }
-    if (closed) {
-      return <path key={side} d={`M${cx - 3.6} 0.2 Q${cx} 3.4 ${cx + 3.6} 0.2`} fill="none" stroke={FACE} strokeWidth="1.9" strokeLinecap="round" />;
-    }
-    const r = mood === "worried" ? 2.1 : 2.5;
-    return (
-      <g key={side}>
-        <circle cx={cx} cy="0.6" r="3.3" fill="#fff8e7" />
-        <circle cx={cx} cy="0.9" r={r} fill={INK} />
-        <circle cx={cx + 0.9 * side * -1} cy="-0.1" r="0.8" fill="#fff" />
-      </g>
-    );
-  };
-
-  const mouth =
-    mood === "cheer" ? (
-      <path d="M-5.5 7.5 Q0 15 5.5 7.5 Z" fill="#7a2e2e" />
-    ) : mood === "worried" ? (
-      <path d="M-4 10.5 Q0 7 4 10.5" fill="none" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
-    ) : mood === "full" ? (
-      <path d="M-6 8 Q0 14 6 8" fill="none" stroke={INK} strokeWidth="1.7" strokeLinecap="round" />
-    ) : mood === "neutral" ? (
-      <path d="M-3.5 9 Q0 11 3.5 9" fill="none" stroke={INK} strokeWidth="1.6" strokeLinecap="round" />
-    ) : (
-      <path d="M-5 8 Q0 13 5 8" fill="none" stroke={INK} strokeWidth="1.7" strokeLinecap="round" />
-    );
-
-  return (
-    <g transform={`translate(${x} ${y}) rotate(${tilt}) scale(${scale})`}>
-      <ellipse rx="19" ry="15.5" fill={FUR} />
-      <ellipse cy="2" rx="15.5" ry="12" fill={FACE} />
-      <ellipse cx="-7.5" cy="0.6" rx="5.6" ry="3.9" transform="rotate(-25 -7.5 0.6)" fill={MASK} />
-      <ellipse cx="7.5" cy="0.6" rx="5.6" ry="3.9" transform="rotate(25 7.5 0.6)" fill={MASK} />
-      <g className={mood === "happy" || mood === "worried" ? "mascot-blink" : undefined}>
-        {eyes(-1)}
-        {eyes(1)}
-      </g>
-      {mood === "worried" && (
-        <g fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="round">
-          <path d="M-12 -6.5 L-4.5 -9" />
-          <path d="M12 -6.5 L4.5 -9" />
-        </g>
-      )}
-      <ellipse cy="5.4" rx="2.7" ry="1.9" fill={INK} />
-      {mouth}
-      {(mood === "happy" || mood === "cheer" || mood === "full") && (
-        <g fill="#f4a9a0" opacity="0.55">
-          <ellipse cx="-11.5" cy="7" rx="2.6" ry="1.7" />
-          <ellipse cx="11.5" cy="7" rx="2.6" ry="1.7" />
-        </g>
-      )}
-    </g>
-  );
-}
-
-// Drifts down and fades; the outer <g> positions it, the inner path animates.
-function FallingLeaf({ x, y, delay = 0 }: { x: number; y: number; delay?: number }) {
-  return (
-    <g transform={`translate(${x} ${y})`}>
-      <path className="mascot-leaf" style={{ animationDelay: `${delay}s` }} d="M0 0 Q3.5 -2.6 7 0 Q3.5 3 0 0 Z" fill={LEAF} />
-    </g>
-  );
-}
-
-function Heart({ x, y, delay = 0, s = 1 }: { x: number; y: number; delay?: number; s?: number }) {
-  return (
-    <g transform={`translate(${x} ${y}) scale(${s})`}>
-      <path
-        className="mascot-float"
-        style={{ animationDelay: `${delay}s` }}
-        d="M0 2.4 C-4 -0.6 -2.6 -4 0 -2 C2.6 -4 4 -0.6 0 2.4 Z"
-        fill="#f9a8b8"
-      />
-    </g>
-  );
-}
-
-function Sparkle({ x, y, s = 1, delay = 0 }: { x: number; y: number; s?: number; delay?: number }) {
-  return (
-    <path
-      className="mascot-twinkle"
-      style={{ animationDelay: `${delay}s` }}
-      transform={`translate(${x} ${y}) scale(${s})`}
-      d="M0 -4 L1.2 -1.2 L4 0 L1.2 1.2 L0 4 L-1.2 1.2 L-4 0 L-1.2 -1.2 Z"
-      fill="#fde68a"
-    />
-  );
-}
-
-export default function Mascot({ mood = "happy", className }: { mood?: MascotMood; className?: string }) {
-  const label = { happy: "senang", neutral: "mengantuk", worried: "khawatir", cheer: "bersorak", full: "kenyang" }[mood];
-
-  let pose: React.ReactNode;
+function Arm({ side, mood }: { side: "left" | "right"; mood: MascotMood }) {
+  const left = side === "left";
+  let d = left ? "M0 0C-27 10-33 28-39 40" : "M0 0C25-5 40-35 44-62";
+  let hand = left ? [-39, 40, 12] : [44, -62, 185];
   if (mood === "neutral") {
-    // Hanging from a branch, swaying, asleep.
-    pose = (
-      <>
-        <Branch y={5} />
-        <g className="mascot-sway">
-          <Arm d="M31 41 Q22 24 27 10" />
-          <Arm d="M49 41 Q58 24 53 10" />
-          <Claws x={27} y={9} angle={-8} />
-          <Claws x={53} y={9} angle={8} />
-          <ellipse cx="33" cy="66" rx="4" ry="6.5" fill={FUR_D} />
-          <ellipse cx="47" cy="66" rx="4" ry="6.5" fill={FUR_D} />
-          <Claws x={33} y={71} angle={180} />
-          <Claws x={47} y={71} angle={180} />
-          <g className="mascot-breathe">
-            <ellipse cx="40" cy="53" rx="15" ry="13.5" fill={FUR} />
-            <ellipse cx="40" cy="56" rx="9" ry="8" fill={BELLY} />
-          </g>
-          <Head mood={mood} x={40} y={35} />
-          <text className="mascot-zzz" x="58" y="27" fontSize="6" fontWeight="700" fill="#ffffff">z</text>
-          <text className="mascot-zzz" x="62" y="22" fontSize="8" fontWeight="700" fill="#ffffff" style={{ animationDelay: "1s" }}>z</text>
-          <text className="mascot-zzz" x="67" y="16" fontSize="10" fontWeight="700" fill="#ffffff" style={{ animationDelay: "2s" }}>z</text>
-        </g>
-        <FallingLeaf x={12} y={10} delay={1.5} />
-      </>
-    );
-  } else if (mood === "full") {
-    // Lying on its back with a round belly, a leaf on top.
-    pose = (
-      <>
-        <rect x="4" y="68" width="72" height="6" rx="3" fill={BRANCH} />
-        <ellipse cx="44" cy="58" rx="27" ry="12.5" fill={FUR} />
-        <g className="mascot-belly">
-          <ellipse cx="46" cy="52" rx="19" ry="11" fill={BELLY} />
-          <ellipse cx="52" cy="46" rx="6.5" ry="2.8" transform="rotate(-25 52 46)" fill={LEAF} />
-        </g>
-        <Arm d="M27 56 Q33 44 44 46" width={5.5} />
-        <Arm d="M60 57 Q56 46 46 47" width={5.5} />
-        <ellipse cx="68" cy="52" rx="4" ry="8" transform="rotate(-25 68 52)" fill={FUR_D} />
-        <ellipse cx="73" cy="59" rx="3.6" ry="7" transform="rotate(-50 73 59)" fill={FUR_D} />
-        <Head mood={mood} x={17} y={52} tilt={-14} scale={0.88} />
-        <Heart x={36} y={34} s={1.1} />
-        <Heart x={48} y={30} delay={1.2} s={0.8} />
-        <Heart x={26} y={36} delay={2.3} s={0.7} />
-      </>
-    );
-  } else if (mood === "cheer") {
-    pose = (
-      <>
-        <Branch y={69} />
-        <g className="mascot-bounce">
-          <Arm d="M28 49 Q12 40 14 20" />
-          <Arm d="M52 49 Q68 40 66 20" />
-          <Claws x={14} y={18} angle={-6} />
-          <Claws x={66} y={18} angle={6} />
-          <ellipse cx="40" cy="57" rx="17" ry="14" fill={FUR} />
-          <ellipse cx="40" cy="60" rx="10.5" ry="9" fill={BELLY} />
-          <ellipse cx="30" cy="69" rx="5" ry="3" fill={FUR_D} />
-          <ellipse cx="50" cy="69" rx="5" ry="3" fill={FUR_D} />
-          <Head mood={mood} x={40} y={33} />
-          <Sparkle x={6} y={34} s={1.1} />
-          <Sparkle x={74} y={36} s={0.9} delay={0.4} />
-          <Sparkle x={40} y={7} s={0.8} delay={0.8} />
-        </g>
-      </>
-    );
+    d = left ? "M0 0C-45-24-38-90-22-135" : "M0 0C45-24 38-90 22-135";
+    hand = left ? [-22, -135, 185] : [22, -135, 175];
+  } else if (mood === "cheer" || mood === "dance") {
+    d = left ? "M0 0C-23-10-41-38-48-67" : "M0 0C23-10 41-38 48-67";
+    hand = left ? [-48, -67, 175] : [48, -67, 185];
   } else if (mood === "worried") {
-    // Hunched, arms wrapped around its belly, head tilted.
-    pose = (
-      <>
-        <Branch y={69} />
-        <g className="mascot-breathe">
-          <ellipse cx="40" cy="58" rx="18" ry="13.5" fill={FUR} />
-          <ellipse cx="40" cy="61" rx="11" ry="8.5" fill={BELLY} />
-          <ellipse cx="30" cy="69" rx="5" ry="3" fill={FUR_D} />
-          <ellipse cx="50" cy="69" rx="5" ry="3" fill={FUR_D} />
-          <Arm d="M25 50 Q34 64 49 58" />
-          <Arm d="M55 50 Q46 64 31 58" />
-          <Head mood={mood} x={40} y={36} tilt={-7} />
-          <path className="mascot-drop" d="M57 25 Q60.5 31 57 34 Q53.5 31 57 25 Z" fill="#7dd3fc" />
-        </g>
-      </>
-    );
-  } else {
-    // Sitting on a branch, waving.
-    pose = (
-      <>
-        <Branch y={69} />
-        <FallingLeaf x={10} y={4} delay={0.5} />
-        <g className="mascot-breathe">
-          <ellipse cx="40" cy="57" rx="17" ry="14" fill={FUR} />
-          <ellipse cx="40" cy="60" rx="10.5" ry="9" fill={BELLY} />
-          <ellipse cx="30" cy="69" rx="5" ry="3" fill={FUR_D} />
-          <ellipse cx="50" cy="69" rx="5" ry="3" fill={FUR_D} />
-          <Arm d="M26 50 Q17 57 21 64" />
-          <Claws x={21} y={64} angle={170} />
-          <Head mood={mood} x={40} y={33} />
-          <g className="mascot-wave">
-            <Arm d="M54 50 Q65 45 63 31" />
-            <Claws x={63} y={30} angle={4} />
-          </g>
-        </g>
-      </>
-    );
+    d = left ? "M0 0C-16 34 20 45 51 38" : "M0 0C12 26-15 43-47 41";
+    hand = left ? [51, 38, -70] : [-47, 41, 73];
+  } else if (mood === "full") {
+    d = left ? "M0 0C-9 27 7 43 25 39" : "M0 0C8 29-12 35-27 25";
+    hand = left ? [25, 39, -100] : [-27, 25, 75];
+  } else if (mood === "thinking" && !left) {
+    d = "M0 0C27 12 29-15 8-30";
+    hand = [8, -30, 120];
   }
-
   return (
-    <svg viewBox="0 0 80 80" className={className} role="img" aria-label={`Maskot sloth ${label}`}>
-      {pose}
+    <g transform={`translate(${left ? -36 : 36} 0)`}>
+      <g className={`kukang-motion kukang-arm kukang-arm--${side}`}>
+        <path d={d} className="kukang-arm-outline" />
+        <path d={d} className="kukang-arm-fill" />
+        <Hand x={hand[0]} y={hand[1]} angle={hand[2]} />
+      </g>
+    </g>
+  );
+}
+
+function Head({ mood }: { mood: MascotMood }) {
+  const asleep = mood === "neutral" || mood === "full";
+  const cheer = mood === "cheer";
+  const mouth = cheer ? "M-16 21Q0 27 16 21C12 43-12 43-16 21Z"
+    : mood === "worried" ? "M-10 29Q0 21 10 29"
+      : mood === "neutral" ? "M-5 25C-6 34 6 34 5 25C4 20-4 20-5 25Z"
+        : mood === "thinking" ? "M-7 26Q0 29 7 26" : "M-13 23Q0 36 13 23";
+  return (
+    <g transform={mood === "full" ? "translate(-2 -57) rotate(66)" : mood === "worried" ? "translate(-2 -47) rotate(-8)" : "translate(0 -53)"}>
+      <g className="kukang-motion kukang-head">
+        <path className="kukang-fur" d="M-65-3C-72-34-50-63-23-64C-17-77-4-74 5-64C30-72 54-50 65-25C77-5 62 33 38 47C9 63-27 58-49 39C-61 28-71 9-65-3Z" />
+        <path d="M-49-28C-42-47-31-51-20-52M10-55Q28-54 39-43" className="kukang-fur-highlight" />
+        <path d="M0-34C-29-59-58-33-53-2C-49 24-22 47 0 49C23 46 50 25 53-3C58-34 30-58 0-34Z" fill="var(--kukang-face)" />
+        <ellipse cx="-25" cy="-6" rx="22" ry="17" transform="rotate(27 -25 -6)" fill="var(--kukang-mask)" />
+        <ellipse cx="25" cy="-6" rx="22" ry="17" transform="rotate(-27 25 -6)" fill="var(--kukang-mask)" />
+        {asleep || cheer ? (
+          <g fill="none" stroke="var(--kukang-face)" strokeWidth="3.5">
+            <path d={cheer ? "M-34-4Q-25-15-16-4M16-4Q25-15 34-4" : "M-34-7Q-25 1-16-7M16-7Q25 1 34-7"} />
+          </g>
+        ) : (
+          <g transform="translate(0 -7)">
+            <g className="kukang-motion kukang-blink">
+              <ellipse cx="-25" rx="11.5" ry="13" fill="var(--kukang-eye)" />
+              <ellipse cx="25" rx="11.5" ry="13" fill="var(--kukang-eye)" />
+              <g className="kukang-motion kukang-gaze">
+                <ellipse cx="-24" cy="1.5" rx="8.2" ry="10.3" fill="var(--kukang-ink)" />
+                <ellipse cx="24" cy="1.5" rx="8.2" ry="10.3" fill="var(--kukang-ink)" />
+                <ellipse cx="-26.5" cy="-2" rx="3" ry="3.8" fill="var(--kukang-eye)" />
+                <ellipse cx="21.5" cy="-2" rx="3" ry="3.8" fill="var(--kukang-eye)" />
+                <circle cx="-20" cy="6" r="1.5" fill="var(--kukang-eye)" />
+                <circle cx="28" cy="6" r="1.5" fill="var(--kukang-eye)" />
+              </g>
+            </g>
+          </g>
+        )}
+        {!asleep && (
+          <path className="kukang-face-line" strokeWidth="3" d={mood === "worried" ? "M-39-26Q-26-23-13-33M13-33Q26-23 39-26" : "M-37-29Q-25-34-14-28M14-28Q25-34 37-29"} />
+        )}
+        <g fill="var(--kukang-blush)" opacity=".7"><ellipse cx="-41" cy="16" rx="9" ry="5.5" /><ellipse cx="41" cy="16" rx="9" ry="5.5" /></g>
+        <path d="M-8 6Q0 1 8 6Q7 14 0 14Q-7 14-8 6Z" fill="var(--kukang-ink)" />
+        <path d={mouth} fill={cheer || mood === "neutral" ? "var(--kukang-mouth)" : "none"} stroke="var(--kukang-ink)" strokeWidth="3.2" />
+        {cheer && <path d="M-7 31Q0 26 7 31Q0 38-7 31Z" fill="var(--kukang-blush)" />}
+        <path d="M-4-61Q2-70 9-65" fill="none" stroke="var(--kukang-fur-shadow)" strokeWidth="2.3" />
+      </g>
+    </g>
+  );
+}
+
+function Foot({ left, hanging }: { left: boolean; hanging: boolean }) {
+  return (
+    <g transform={`translate(${left ? -28 : 28} ${hanging ? 87 : 78}) rotate(${left ? -7 : 7})`}>
+      <g className={`kukang-motion kukang-foot kukang-foot--${left ? "left" : "right"}`}>
+        <ellipse className="kukang-fur" rx="19" ry="12" />
+        <path className="kukang-claws" d="M-9 5L-9 10M-1 6L-1 11M7 5L7 10" />
+      </g>
+    </g>
+  );
+}
+
+/** An original SVG rig. Only visible mascots run CSS motion; reduced-motion and
+ * the user's display preference pause the same independent body/face/arm layers. */
+export default function Mascot({ mood = "happy", className = "", animated = true, decorative = false }: {
+  mood?: MascotMood; className?: string; animated?: boolean; decorative?: boolean;
+}) {
+  const ref = useRef<SVGSVGElement>(null);
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => {
+    if (!animated || !ref.current) { setPlaying(false); return; }
+    let visible = false;
+    const update = () => setPlaying(visible && !document.hidden);
+    const observer = typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting; update();
+    }, { rootMargin: "40px" });
+    if (observer) observer.observe(ref.current);
+    else { visible = true; update(); }
+    document.addEventListener("visibilitychange", update);
+    return () => { observer?.disconnect(); document.removeEventListener("visibilitychange", update); };
+  }, [animated]);
+
+  const hanging = mood === "neutral";
+  const reclining = mood === "full";
+  return (
+    <svg ref={ref} viewBox="0 0 320 300" className={`kukang ${className}`} data-mood={mood} data-playing={playing} role={decorative ? undefined : "img"} aria-label={decorative ? undefined : `Kukang Slothly ${LABELS[mood]}`} aria-hidden={decorative || undefined} focusable="false">
+      <ellipse cx="160" cy="269" rx={reclining ? 80 : 55} ry="8" fill="var(--kukang-shadow)" opacity=".12" />
+      {(hanging || mood === "happy") && (
+        <g transform={`translate(0 ${hanging ? 43 : 263})`}>
+          <path d="M49 0Q158 5 271-1" fill="none" stroke="var(--kukang-ink)" strokeWidth="13" strokeLinecap="round" />
+          <path d="M49 0Q158 5 271-1" fill="none" stroke="var(--kukang-branch)" strokeWidth="8" strokeLinecap="round" />
+          <path d="M65-1Q50-23 33-17Q36 2 65-1ZM252 0Q268-23 285-18Q282 1 252 0Z" fill="var(--kukang-leaf)" />
+        </g>
+      )}
+      <g transform={reclining ? "translate(151 195) rotate(-72)" : hanging ? "translate(160 179)" : "translate(160 174)"}>
+        <g className="kukang-motion kukang-rig">
+          <Foot left hanging={hanging} /><Foot left={false} hanging={hanging} />
+          <g className="kukang-motion kukang-body">
+            <path className="kukang-fur" d="M-39-17C-54 11-55 53-30 73C-13 87 14 85 33 70C54 49 48 13 37-13C18-37-18-38-39-17Z" />
+            <path d="M-39-12C-46 16-45 49-25 69C-16 77-8 80 2 80C-23 82-41 65-46 46C-53 22-45-4-39-12Z" fill="var(--kukang-fur-shadow)" opacity=".65" />
+            <g className="kukang-motion kukang-belly">
+              <path d="M-27 16C-34 38-25 65 0 68C27 65 32 37 24 16C13-1-15-2-27 16Z" fill="var(--kukang-belly)" />
+              <path d="M-8 50Q0 56 8 50" fill="none" stroke="var(--kukang-fur-shadow)" strokeWidth="2" opacity=".65" />
+            </g>
+          </g>
+          <Arm side="left" mood={mood} /><Arm side="right" mood={mood} />
+          <Head mood={mood} />
+        </g>
+      </g>
+      {hanging && [0, 1, 2].map(i => <g key={i} transform={`translate(${236 + i * 12} ${141 - i * 23}) scale(${.55 + i * .18})`}><path className="kukang-motion kukang-zzz" style={{ animationDelay: `${i * .8}s` }} d="M-5-5H5L-5 5H5" fill="none" stroke="var(--kukang-note)" strokeWidth="3" /></g>)}
+      {reclining && [0, 1, 2].map(i => <g key={i} transform={`translate(${215 + i * 23} ${139 - i * 12}) scale(${.55 + i * .06})`}><path className="kukang-motion kukang-heart" style={{ animationDelay: `${i * .9}s` }} d="M0 3C-20-9-8-21 0-11C8-21 20-9 0 3Z" fill="var(--kukang-blush)" /></g>)}
+      {mood === "cheer" && [0, 1, 2].map(i => <g key={i} transform={`translate(${[56, 265, 233][i]} ${[167, 132, 61][i]})`}><path className="kukang-motion kukang-spark" style={{ animationDelay: `${i * .4}s` }} d="M0-10L3-3L10 0L3 3L0 10L-3 3L-10 0L-3-3Z" fill="var(--kukang-spark)" /></g>)}
+      {mood === "worried" && <g transform="translate(225 122) rotate(-12) scale(.55)"><path className="kukang-motion kukang-drop" d="M0-11C-15 7-5 17 0 17C7 17 14 7 0-11Z" fill="var(--kukang-sweat)" /></g>}
+      {mood === "dance" && [0, 1].map(i => <g key={i} transform={`translate(${i ? 267 : 49} ${i ? 139 : 109}) scale(.8)`}><g className="kukang-motion kukang-note" style={{ animationDelay: `${i * .35}s` }} fill="var(--kukang-note)"><path d="M0 0V-22L15-25V-5H11V-19L4-17V0Z" /><ellipse cx="-1" cy="1" rx="6" ry="4" /><ellipse cx="10" cy="-5" rx="6" ry="4" /></g></g>)}
     </svg>
   );
 }

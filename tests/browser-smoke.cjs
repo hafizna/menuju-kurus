@@ -100,6 +100,7 @@ for (const i of [26, 25, 20, 13, 8, 1])
 put("mk:u3:weight", weights);
 const apiErrors = [],
   browserErrors = [];
+const browserConsoleErrors = [];
 const redisToken = randomBytes(16).toString("hex");
 const backend = http.createServer(async (req, res) => {
   if (req.headers.authorization !== `Bearer ${redisToken}`) {
@@ -211,13 +212,197 @@ let child, browser;
     hasTouch: true,
   });
   const page = await context.newPage();
+  page.setDefaultTimeout(15_000);
+  const base = `http://127.0.0.1:${appPort}`;
+  const allowDraftNavigation = async (action) => {
+    const accept = (dialog) => dialog.accept();
+    page.on("dialog", accept);
+    try { await action(); } finally { page.off("dialog", accept); }
+  };
+  const openAnalysis = async (days) => {
+    await page.locator("summary").filter({ hasText: `Lihat analisis dan grafik ${days} hari` }).click();
+  };
+  const openCalibration = async () => {
+    await page.locator("summary").filter({ hasText: "Evaluasi target · periode terpisah 28 hari" }).click();
+  };
   page.on("pageerror", (error) => browserErrors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") browserConsoleErrors.push(message.text()); });
   await page.goto(`http://127.0.0.1:${appPort}/login`);
   await page.getByRole("button", { name: "Masuk dengan PIN", exact: true }).click();
   await page.locator("input[type=password]").fill(testPin);
   await page.getByRole("button", { name: "Masuk", exact: true }).click();
   await page.waitForURL(`http://127.0.0.1:${appPort}/`);
   await page.getByText(/\/ 1800 kcal$/).first().waitFor();
+  await fs.mkdir(path.join(projectRoot, ".next/validation"), { recursive: true });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Home mobile overflow");
+  await page.screenshot({ path: path.join(projectRoot, ".next/validation/home-mobile.png"), fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Home desktop overflow");
+  await page.screenshot({ path: path.join(projectRoot, ".next/validation/home-desktop.png"), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  // A draft survives the recommendation mode, other meal routes and a reload.
+  await page.goto(`${base}/makan`);
+  await page.getByRole("button", { name: "Tulis manual", exact: true }).click();
+  await page.getByRole("textbox", { name: "Nama makanan", exact: true }).fill("Draft makan uji");
+  await page.getByRole("textbox", { name: "Kalori (kcal)", exact: true }).fill("325");
+  await page.getByRole("textbox", { name: "Protein (g)", exact: true }).fill("18");
+  await page.getByRole("link", { name: "Ide makan", exact: true }).click();
+  await page.getByRole("link", { name: "Catat", exact: true }).click();
+  assert.equal(await page.getByRole("textbox", { name: "Nama makanan", exact: true }).inputValue(), "Draft makan uji");
+  await page.getByRole("link", { name: "Yang sering →", exact: true }).click();
+  await page.getByText("Kesiapan data", { exact: true }).waitFor();
+  await page.getByRole("link", { name: "Catat", exact: true }).click();
+  assert.equal(await page.getByRole("textbox", { name: "Kalori (kcal)", exact: true }).inputValue(), "325");
+  await allowDraftNavigation(() => page.reload());
+  await page.getByRole("textbox", { name: "Nama makanan", exact: true }).waitFor();
+  assert.equal(await page.getByRole("textbox", { name: "Protein (g)", exact: true }).inputValue(), "18");
+  assert.equal(await page.locator('input[type="time"]').first().inputValue().then(Boolean), true);
+
+  await page.route("**/api/log", (route) => route.request().method() === "POST"
+    ? route.fulfill({ status: 503, contentType: "application/json", body: '{"error":"Simulasi simpan gagal; coba lagi."}' })
+    : route.continue());
+  await page.getByRole("button", { name: "Simpan", exact: true }).click();
+  await page.getByRole("alert").filter({ hasText: "Simulasi simpan gagal" }).waitFor();
+  assert.equal(await page.getByRole("textbox", { name: "Nama makanan", exact: true }).inputValue(), "Draft makan uji", "failed save lost draft");
+  await page.unroute("**/api/log");
+  await page.getByRole("button", { name: "Simpan", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Tersimpan: Draft makan uji" }).waitFor();
+  assert.equal(JSON.parse(store.get(`mk:u3:day:${today}`)).meals.filter((meal) => meal.foodName === "Draft makan uji").length, 1);
+  assert.equal(JSON.parse(store.get(`mk:u3:day:${today}`)).foodLogComplete, false, "saving food did not reopen complete day");
+  await page.route("**/api/log?*", (route) => route.fulfill({ status: 503, contentType: "application/json", body: '{"error":"Simulasi batalkan gagal."}' }));
+  await page.getByRole("button", { name: "Batalkan", exact: true }).click();
+  await page.getByRole("alert").filter({ hasText: "Simulasi batalkan gagal" }).waitFor();
+  await page.getByRole("status").filter({ hasText: "Tersimpan: Draft makan uji" }).waitFor();
+  await page.unroute("**/api/log?*");
+  await page.getByRole("button", { name: "Batalkan", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Tersimpan: Draft makan uji" }).waitFor({ state: "hidden" });
+  assert.equal(JSON.parse(store.get(`mk:u3:day:${today}`)).meals.some((meal) => meal.foodName === "Draft makan uji"), false, "undo did not remove saved meal");
+
+  // Recent choices require a portion/time check and support undo.
+  const quickChoice = page.getByRole("button").filter({ hasText: "Catatan uji" }).filter({ hasText: "Terakhir dicatat" });
+  await quickChoice.click();
+  await page.getByRole("spinbutton", { name: "Jumlah porsi", exact: true }).fill("0.5");
+  await page.getByRole("button", { name: "Tambahkan ke hari ini", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Tersimpan: Catatan uji · 900 kcal" }).waitFor();
+  const added = JSON.parse(store.get(`mk:u3:day:${today}`)).meals.find((meal) => meal.id !== "meal-0" && meal.foodName === "Catatan uji");
+  assert.equal(added.protein_g, 60);
+  assert.ok(Number.isFinite(Date.parse(added.time)), "quick meal has no reviewed time");
+  await page.getByRole("button", { name: "Batalkan", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Tersimpan:" }).waitFor({ state: "hidden" });
+
+  // While A is pending, choosing/editing B is blocked; a route remount observes
+  // the same in-flight lock and receives confirmation without logging twice.
+  await page.locator("summary").filter({ hasText: "Cemilan & minuman" }).click();
+  await page.getByRole("button", { name: /^Teh manis / }).click();
+  let releaseQuick;
+  const heldQuick = new Promise((resolve) => { releaseQuick = resolve; });
+  let quickRequests = 0;
+  await page.route("**/api/log", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    quickRequests++;
+    await heldQuick;
+    const response = await route.fetch();
+    await route.fulfill({ response });
+  });
+  await page.getByRole("button", { name: "Tambahkan ke hari ini", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Draft dikunci" }).waitFor();
+  assert.equal(await page.getByRole("button", { name: /^Kopi susu / }).isDisabled(), true, "another quick choice remained editable while saving");
+  assert.equal(await page.getByRole("spinbutton", { name: "Jumlah porsi", exact: true }).isDisabled(), true, "portion remained editable while saving");
+  await page.getByRole("link", { name: "Sering", exact: true }).click();
+  await page.getByText("Kesiapan data", { exact: true }).waitFor();
+  await page.getByRole("link", { name: "Catat", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Draft dikunci" }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Tambahkan ke hari ini", exact: true }).isDisabled(), true, "pending request became resubmittable after navigation");
+  releaseQuick();
+  await page.getByRole("status").filter({ hasText: "Tersimpan: Teh manis" }).waitFor();
+  assert.equal(quickRequests, 1, "pending meal was submitted more than once");
+  assert.equal(JSON.parse(store.get(`mk:u3:day:${today}`)).meals.filter((meal) => meal.foodName === "Teh manis").length, 1);
+  await page.unroute("**/api/log");
+  await page.getByRole("button", { name: "Batalkan", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Tersimpan:" }).waitFor({ state: "hidden" });
+
+  // Synthetic photo analysis isolates UI corrections from external AI availability.
+  const photoAnalysis = {
+    foodName: "Nasi telur uji", calories: 480, protein_g: 17, carbs_g: 59, fat_g: 17,
+    portionNote: "1 piring", confidence: "medium", kcalLow: 400, kcalHigh: 600,
+    components: [
+      { name: "Nasi uji", role: "staple", grams: 200, calories: 260, protein_g: 5, carbs_g: 57, fat_g: 1 },
+      { name: "Telur uji", role: "other", grams: 80, calories: 120, protein_g: 12, carbs_g: 2, fat_g: 6 },
+      { name: "Minyak uji", role: "oil_sauce", grams: 10, calories: 100, protein_g: 0, carbs_g: 0, fat_g: 10 },
+    ],
+  };
+  await page.route("**/api/analyze-food", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ analysis: photoAnalysis }) }));
+  await page.locator('input[type="file"]').last().setInputFiles({ name: "synthetic.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j0hQAAAAASUVORK5CYII=", "base64") });
+  await page.getByRole("textbox", { name: "Nama makanan", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Tambah Nasi uji", exact: true }).click();
+  await page.getByRole("radio", { name: "Sedikit", exact: true }).click();
+  await page.getByRole("radio", { name: "½", exact: true }).click();
+  const correctedCard = page.locator("section").filter({ has: page.locator("#meal-name") });
+  assert.equal(await page.getByRole("textbox", { name: "Kalori", exact: true }).inputValue(), "248");
+  assert.ok((await correctedCard.locator("ul").innerText()).includes("163 kcal"), "rice detail did not follow correction");
+  await page.getByRole("textbox", { name: "Kalori", exact: true }).fill("300");
+  await page.getByText("Kalori memakai angka yang kamu isi.", { exact: false }).waitFor();
+  assert.equal(await page.getByText(/Perkiraan kasar, bisa sekitar/).count(), 0, "old calorie range remained after manual override");
+  await page.getByRole("link", { name: "Sering", exact: true }).click();
+  await page.getByRole("link", { name: "Catat", exact: true }).click();
+  assert.equal(await page.getByRole("textbox", { name: "Kalori", exact: true }).inputValue(), "300");
+  await allowDraftNavigation(() => page.reload());
+  await page.getByRole("textbox", { name: "Kalori", exact: true }).waitFor();
+  assert.equal(await page.getByRole("radio", { name: "½", exact: true }).getAttribute("aria-checked"), "true");
+  assert.equal(await page.getByRole("textbox", { name: "Kalori", exact: true }).inputValue(), "300");
+  const persistedDraft = await page.evaluate(() => Object.entries(sessionStorage).find(([key]) => key.startsWith("slothly:meal-draft:v1:u3:"))?.[1]);
+  assert.ok(persistedDraft && !persistedDraft.includes("data:image") && !persistedDraft.includes("blob:"), "photo bytes persisted in draft storage");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Buang draft", exact: true }).first().click();
+  await page.getByRole("textbox", { name: "Kalori", exact: true }).waitFor({ state: "hidden" });
+  await page.unroute("**/api/analyze-food");
+
+  await page.route("**/api/today", (route) => route.fulfill({ status: 503, contentType: "application/json", body: '{"error":"Simulasi riwayat gagal."}' }));
+  await page.reload();
+  await page.getByRole("alert").filter({ hasText: "Simulasi riwayat gagal" }).waitFor();
+  await page.unroute("**/api/today");
+  await page.getByRole("button", { name: "Coba muat lagi", exact: true }).click();
+  await page.getByRole("button", { name: "Foto sekarang", exact: true }).waitFor();
+  assert.equal((await page.locator("#riwayat").innerText()).includes("Invalid Date"), false, "legacy history times rendered Invalid Date");
+  assert.ok((await page.locator("#riwayat").innerText()).includes("12:00"), "legacy meal time was not preserved");
+  assert.ok((await page.locator("#riwayat").innerText()).includes("18:00"), "legacy activity time was not preserved");
+  await page.screenshot({ path: path.join(projectRoot, ".next/validation/meal-mobile.png"), fullPage: true });
+
+  // A midnight refresh cannot change the draft's day. After reload, recovery is
+  // offered only by an explicit action; the confirmed save targets the old day.
+  await page.getByRole("button", { name: "Tulis manual", exact: true }).click();
+  await page.getByRole("textbox", { name: "Nama makanan", exact: true }).fill("Draft sebelum tengah malam");
+  await page.getByRole("textbox", { name: "Kalori (kcal)", exact: true }).fill("222");
+  await page.locator('input[type="time"]').first().fill("00:00");
+  const todaySnapshot = await page.evaluate(async () => {
+    const response = await fetch("/api/today");
+    return { status: response.status, data: await response.json() };
+  });
+  assert.equal(todaySnapshot.status, 200, "authenticated browser could not read today's fixture");
+  const actualToday = todaySnapshot.data;
+  assert.equal(actualToday.settings?.timezone, "Asia/Jakarta", "midnight fixture has no account timezone");
+  assert.equal(actualToday.userId, "u3", "midnight fixture has no authenticated user scope");
+  const tomorrow = new Date(Date.parse(today) + 86400000).toISOString().slice(0, 10);
+  await page.clock.install({ time: new Date(`${tomorrow}T00:10:00+07:00`) });
+  await page.route("**/api/today", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...actualToday, date: tomorrow, log: { date: tomorrow, meals: [], burns: [] } }) }));
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await page.getByRole("button", { name: `Lanjutkan draft ${today}`, exact: true }).waitFor();
+  assert.equal(await page.getByRole("textbox", { name: "Nama makanan", exact: true }).inputValue(), "Draft sebelum tengah malam");
+  assert.equal(await page.getByRole("textbox", { name: "Nama makanan", exact: true }).isDisabled(), true, "old draft was editable before its date was reviewed");
+  await allowDraftNavigation(() => page.reload());
+  await page.getByRole("button", { name: `Lanjutkan draft ${today}`, exact: true }).click();
+  await page.getByRole("textbox", { name: "Nama makanan", exact: true }).waitFor();
+  assert.equal(await page.getByRole("textbox", { name: "Nama makanan", exact: true }).inputValue(), "Draft sebelum tengah malam", "prior draft could not be recovered after reload");
+  assert.equal(await page.getByRole("textbox", { name: "Nama makanan", exact: true }).isEnabled(), true);
+  await page.getByRole("button", { name: "Simpan", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Tersimpan: Draft sebelum tengah malam" }).waitFor();
+  assert.equal(JSON.parse(store.get(`mk:u3:day:${today}`)).meals.filter((meal) => meal.foodName === "Draft sebelum tengah malam").length, 1);
+  assert.equal(store.has(`mk:u3:day:${tomorrow}`), false, "recovered draft was silently migrated to the new day");
+  await page.getByRole("button", { name: "Batalkan", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Tersimpan:" }).waitFor({ state: "hidden" });
+  await page.unroute("**/api/today");
+  await page.clock.setSystemTime(new Date());
   await page.goto(`http://127.0.0.1:${appPort}/progress`);
   await page
     .getByRole("heading", { name: "Lihat pola, beri tubuh waktu" })
@@ -228,18 +413,22 @@ let child, browser;
       .getAttribute("aria-selected"),
     "true",
   );
+  await openAnalysis(28);
   await page
     .getByRole("heading", { name: "Body Response · 28 hari", exact: true })
     .waitFor();
   await page.getByRole("button", { name: "14 hari", exact: true }).click();
+  await openAnalysis(14);
   await page
     .getByRole("heading", { name: "Body Response · 14 hari", exact: true })
     .waitFor();
   await page.getByRole("button", { name: "56 hari", exact: true }).click();
+  await openAnalysis(56);
   await page
     .getByRole("heading", { name: "Body Response · 56 hari", exact: true })
     .waitFor();
   await page.getByRole("button", { name: "28 hari", exact: true }).click();
+  await openAnalysis(28);
   await page
     .getByRole("heading", { name: "Body Response · 28 hari", exact: true })
     .waitFor();
@@ -266,6 +455,7 @@ let child, browser;
     }),
   );
   await page.getByRole("button", { name: "14 hari", exact: true }).click();
+  await openAnalysis(14);
   await page
     .getByRole("button", { name: "Coba muat Body Response lagi", exact: true })
     .waitFor();
@@ -284,6 +474,7 @@ let child, browser;
     .getByRole("heading", { name: "Body Response · 14 hari", exact: true })
     .waitFor();
   await page.getByRole("button", { name: "28 hari", exact: true }).click();
+  await openAnalysis(28);
   await page
     .getByRole("heading", { name: "Body Response · 28 hari", exact: true })
     .waitFor();
@@ -400,7 +591,7 @@ let child, browser;
   await page.getByRole("tab", { name: "Fitness", exact: true }).click();
   await page.getByText("Prioritas berikutnya", { exact: true }).waitFor();
   await page.getByRole("tab", { name: "Mingguan", exact: true }).click();
-  await page.getByText("Ringkasan Minggu Ini", { exact: true }).waitFor();
+  await page.getByText("Review 7 hari terakhir", { exact: true }).waitFor();
   await page.route("**/api/body", (route) =>
     route.fulfill({
       status: 500,
@@ -490,6 +681,7 @@ let child, browser;
   }
   seedCalibration();
   await page.goto(`http://127.0.0.1:${appPort}/progress`);
+  await openCalibration();
   await page
     .getByRole("heading", { name: "Usulan penyesuaian bertahap", exact: true })
     .waitFor();
@@ -519,6 +711,7 @@ let child, browser;
     .waitFor();
   seedCalibration(); // New synthetic scenario, independent of the keep decision.
   await page.reload();
+  await openCalibration();
   await page
     .getByRole("heading", { name: "Usulan penyesuaian bertahap", exact: true })
     .waitFor();
@@ -589,17 +782,82 @@ let child, browser;
     .getByText(/\/ 1850 kcal$/)
     .first()
     .waitFor();
+
+  // The explicit animation preference persists and the OS preference wins in auto mode.
+  await page.goto(`${base}/settings`);
+  const storedBeforePreview = JSON.parse(store.get("mk:u3:settings"));
+  await page.getByRole("spinbutton", { name: "Tinggi badan", exact: true }).fill("300");
+  await page.getByRole("button", { name: "Lihat rekomendasi dari isian ini", exact: true }).click();
+  await page.getByRole("alert").filter({ hasText: "Isi tinggi 120–230 cm." }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Gunakan rekomendasi", exact: true }).count(), 0, "invalid height still allowed applying recommendation");
+  assert.deepEqual(JSON.parse(store.get("mk:u3:settings")), storedBeforePreview, "viewing invalid preview changed active settings");
+  await page.getByRole("spinbutton", { name: "Tinggi badan", exact: true }).fill("170");
+  await page.getByRole("button", { name: "Lihat rekomendasi dari isian ini", exact: true }).click();
+  await page.getByRole("button", { name: "Gunakan rekomendasi", exact: true }).waitFor();
+  assert.deepEqual(JSON.parse(store.get("mk:u3:settings")), storedBeforePreview, "viewing valid preview changed active settings");
+  const reduceMotion = page.getByRole("checkbox", { name: /^Kurangi animasi/ });
+  await reduceMotion.check();
+  assert.equal(await page.locator("html").getAttribute("data-motion"), "off");
+  await page.reload();
+  await reduceMotion.waitFor();
+  assert.equal(await reduceMotion.isChecked(), true, "animation setting did not survive reload");
+  await page.goto(`${base}/`);
+  await page.locator(".kukang-motion").first().waitFor({ state: "attached" });
+  assert.equal(await page.locator(".kukang-motion").evaluateAll((nodes) => nodes.every((node) => getComputedStyle(node).animationName === "none")), true, "motion setting did not stop mascot animations");
+  await page.goto(`${base}/settings`);
+  await reduceMotion.uncheck();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(`${base}/`);
+  await page.locator(".kukang-motion").first().waitFor({ state: "attached" });
+  assert.equal(await page.locator(".kukang-motion").evaluateAll((nodes) => nodes.every((node) => getComputedStyle(node).animationName === "none")), true, "device reduced-motion was ignored");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  // A name is optional; an athletic goal does not request a weight-loss target.
+  await page.goto(`${base}/onboarding`);
+  const nickname = page.getByRole("textbox", { name: /Biar akrab/ });
+  await nickname.waitFor();
+  await nickname.fill("");
+  await page.getByRole("button", { name: "Mulai", exact: true }).click();
+  await page.getByRole("heading", { name: "Apa tujuan utamamu?", exact: true }).waitFor();
+  await page.getByRole("button", { name: /Jaga bentuk badan dan performa/ }).click();
+  await page.getByRole("button", { name: "Lanjut", exact: true }).click();
+  await page.getByRole("button", { name: "Lanjut", exact: true }).click();
+  await page.getByRole("alert").filter({ hasText: "Pilih jenis kelamin biologis" }).waitFor();
+  assert.equal(await page.getByRole("heading", { name: "Data tubuhmu", exact: true }).isVisible(), true, "invalid body details advanced onboarding");
+  assert.equal(await page.getByRole("textbox", { name: "Berat target", exact: true }).count(), 0, "athletic onboarding asks for weight-loss target");
+  await page.getByRole("button", { name: "Laki-laki", exact: true }).click();
+  await page.getByPlaceholder("tahun", { exact: true }).fill("17");
+  await page.getByRole("button", { name: "Lanjut", exact: true }).click();
+  await page.getByText("Isi usia 18–100 tahun.", { exact: true }).waitFor();
+  await page.getByPlaceholder("tahun", { exact: true }).fill("30");
+  await page.getByPlaceholder("cm", { exact: true }).fill("170");
+  await page.getByPlaceholder("kg", { exact: true }).fill("77");
+  await page.getByRole("button", { name: "Lanjut", exact: true }).click();
+  await page.getByRole("button", { name: /^Ringan/ }).click();
+  await page.getByRole("button", { name: "Lanjut", exact: true }).click();
+  await page.getByRole("heading", { name: "Ini titik awalmu", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Pakai target ini dan catat makan", exact: true }).click();
+  await page.waitForURL(`${base}/makan`);
+  assert.equal(JSON.parse(store.get("mk:u3:settings")).displayName, null, "optional blank name was not preserved");
+  assert.equal(JSON.parse(store.get("mk:u3:settings")).fitnessGoal, "athletic");
   assert.deepEqual(apiErrors, []);
   assert.deepEqual(browserErrors, []);
   console.log(
-    "Mobile browser: PASS — third-user login, calibration keep/apply/context/stale proposal/cooldown/Home target, Body Response 14/28/56-day selection, response failure/retry without stale data, mobile table, overview/body, comparison, no overflow, avatar preference, partial correction, deletion, legacy link, keyboard navigation, Fitness/Weekly regression, API failure/retry, empty/missing-height states, 320px/mobile/desktop layout.",
+    "Browser: PASS — third-user login, Rumah Kukang mobile/desktop, meal draft across mode/route/reload, photo corrections and override, reviewed recent meal, save/undo failure and retry, today failure/retry, scoped session draft without photos, calibration keep/apply/context/stale proposal/cooldown/Home target, Body Response 14/28/56-day selection and failure/retry, body comparison/check-in/deletion, keyboard navigation, Fitness/Weekly regression, empty/missing-height states, 320px/mobile/desktop layout, persisted motion toggle and OS reduced-motion, optional-name/athletic onboarding validation.",
   );
   console.log(
     "Synthetic Redis REST test adapter used; real Upstash/Gemini access not tested.",
   );
 })()
-  .catch((error) => {
-    console.error(error.message);
+  .catch(async (error) => {
+    console.error(error.stack || error.message);
+    console.error("Browser errors:", JSON.stringify(browserErrors));
+    console.error("Browser console:", JSON.stringify(browserConsoleErrors.slice(-12)));
+    const failedPage = browser?.contexts()[0]?.pages()[0];
+    if (failedPage) {
+      await fs.mkdir(path.join(projectRoot, ".next/validation"), { recursive: true });
+      await failedPage.screenshot({ path: path.join(projectRoot, ".next/validation/browser-failure.png"), fullPage: true }).catch(() => {});
+    }
     process.exitCode = 1;
   })
   .finally(async () => {

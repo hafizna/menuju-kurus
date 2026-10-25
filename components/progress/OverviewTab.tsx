@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { checkInDue } from "@/lib/body";
-import { RESPONSE_PERIODS, type ResponsePeriod } from "@/lib/bodyResponse";
+import { RESPONSE_PERIODS, type ResponsePeriod, type BodyResponseReport } from "@/lib/bodyResponse";
 import type { BodyResponse } from "./BodyTab";
 import CalibrationPanel from "./CalibrationPanel";
 import BodyResponsePanel from "./BodyResponsePanel";
@@ -11,6 +11,21 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
   const [data, setData] = useState<BodyResponse | null>(null);
   const [error, setError] = useState("");
   const [days, setDays] = useState<ResponsePeriod>(28);
+  const [report, setReport] = useState<BodyResponseReport | null>(null);
+  const [reportError, setReportError] = useState("");
+  const onReport = useCallback((next: BodyResponseReport) => { setReport(next); setReportError(""); }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    setReport(null); setReportError("");
+    fetch(`/api/body-response?days=${days}`, { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Kesiapan analisis belum dapat dimuat. Buka detail untuk mencoba lagi.");
+        const next = await res.json();
+        if (!controller.signal.aborted) setReport(next);
+      })
+      .catch((e) => { if (!controller.signal.aborted) setReportError(e instanceof Error ? e.message : "Kesiapan analisis belum dapat dimuat."); });
+    return () => controller.abort();
+  }, [days]);
   const load = useCallback(async () => {
     setError("");
     try {
@@ -47,6 +62,7 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
       <p className="py-6 text-center text-neutral-500">Memuat progress...</p>
     );
   const waistDue = checkInDue(data.snapshots, "waistCm", data.today);
+  const analysisReady = !!report && report.current.food.ready && report.current.weight.ready;
   return (
     <div className="space-y-4">
       {error && (
@@ -91,31 +107,24 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
           ))}
         </div>
       </div>
-      {data.snapshots.length === 0 ? (
-        <>
-          <section className="rounded-2xl border border-neutral-100 bg-white p-4 text-sm text-neutral-600 shadow-xs dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-            <div className="font-semibold text-neutral-900 dark:text-neutral-100">Mulai dari yang sederhana</div>
-            <p className="mt-1">
-              Catat makan setiap hari dan timbang berat beberapa kali seminggu. Analisis pola dan
-              evaluasi target akan lebih bermakna setelah ada beberapa minggu data.
-            </p>
-          </section>
-          <details className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
-            <summary className="cursor-pointer text-sm font-medium text-neutral-500">
-              Analisis lanjutan (belum ada data)
-            </summary>
-            <div className="mt-4 space-y-4">
-              <BodyResponsePanel period={days} />
-              <CalibrationPanel />
-            </div>
-          </details>
-        </>
-      ) : (
-        <>
-          <BodyResponsePanel period={days} />
-          <CalibrationPanel />
-        </>
-      )}
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 text-sm text-neutral-600 shadow-xs dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
+        <h2 className="font-semibold text-neutral-900 dark:text-neutral-100">{analysisReady ? "Pola mulai bisa dibaca" : "Bangun catatan sedikit demi sedikit"}</h2>
+        {report ? <>
+          <p className="mt-1">{report.current.start} — {report.current.end} · {report.current.food.observedDays}/{days} hari asupan lengkap · {report.current.weight.observedDays} ukuran berat.</p>
+          {analysisReady ? <p className="mt-2">Data cukup untuk deskripsi terbatas. Lihat detail bila ingin meninjau grafik dan sumber angkanya.</p> : <>
+            <p className="mt-2">Catat makan dan konfirmasikan hanya hari yang benar-benar lengkap. Jika berkenan, timbang dengan kondisi yang mirip. Kesiapan bergantung pada jumlah dan sebaran data.</p>
+            <ul className="mt-2 list-disc space-y-1 pl-4 text-xs">{[...report.current.food.reasons, ...report.current.weight.reasons].map((reason) => <li key={reason}>{reason}</li>)}</ul>
+          </>}
+        </> : <p role="status" className="mt-1">{reportError || "Memeriksa catatan yang tersedia..."}</p>}
+      </section>
+      <details key={days} className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+        <summary className="cursor-pointer text-sm font-medium">Lihat analisis dan grafik {days} hari{analysisReady ? "" : " · data masih dikumpulkan"}</summary>
+        <div className="mt-4 space-y-4">{report || reportError ? <BodyResponsePanel period={days} initialReport={report ?? undefined} onReport={onReport} /> : <p role="status" className="text-sm text-neutral-500">Memuat analisis...</p>}</div>
+      </details>
+      <details className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+        <summary className="cursor-pointer text-sm font-medium">Evaluasi target · periode terpisah 28 hari</summary>
+        <div className="mt-4"><CalibrationPanel /></div>
+      </details>
     </div>
   );
 }
