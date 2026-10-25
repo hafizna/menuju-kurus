@@ -32,7 +32,7 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
       const response = await fetch("/api/body");
       if (!response.ok)
         throw new Error(
-          "Progress belum dapat dimuat. Periksa koneksi dan konfigurasi database.",
+          "Progress belum dapat dimuat. Periksa koneksi lalu coba lagi.",
         );
       setData(await response.json());
     } catch (error) {

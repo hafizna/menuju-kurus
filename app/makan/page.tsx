@@ -1020,17 +1020,15 @@ function CariTab() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" />
-                {result.ai?.source === "template" ? "Penjelasan Otomatis" : "Penjelasan AI"}
+                Alasan pilihan ini
               </div>
               <button onClick={() => run(true)} disabled={loading} className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">
-                Buat recap
+                {loading ? "Menyusun..." : result.ai ? "Perbarui" : "Buat ringkasan"}
               </button>
             </div>
-            {result.ai?.source === "template" && (
-              <p className="mt-1 text-xs text-neutral-400">
-                Dibuat dari data langsung tanpa AI (DeepSeek belum diaktifkan) — tetap gratis.
-              </p>
-            )}
+            <p className="mt-1 text-xs text-neutral-400">
+              Berdasarkan sisa target harian dan preferensi makanmu.
+            </p>
             {result.ai ? (
               <>
                 <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">{result.ai.summary}</p>
@@ -1044,7 +1042,7 @@ function CariTab() {
                 </ul>
               </>
             ) : (
-              <p className="mt-2 text-xs text-neutral-400">Opsional, baru jalan kalau kamu tekan tombolnya.</p>
+              <p className="mt-2 text-xs text-neutral-400">Buat ringkasan untuk melihat alasan di balik pilihan makanan ini.</p>
             )}
             {result.aiError && <p className="mt-2 text-xs text-red-500">{result.aiError}</p>}
           </section>
