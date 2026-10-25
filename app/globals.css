@@ -5,6 +5,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  /* Softer neutrals for light mode: a warm paper-like page and slightly darker
+     hairlines instead of near-white on white. Dark mode uses the 800+ shades. */
+  --color-neutral-50: #f3f1eb;
+  --color-neutral-100: #eae6dd;
+  --color-neutral-200: #dcd7ca;
+
   --color-brand-50: #eefdf3;
   --color-brand-100: #d6fae1;
   --color-brand-200: #a7f3d0;
@@ -116,3 +122,8 @@ button {
   .mascot-leaf, .mascot-float { animation: none; }
   .mascot-zzz { animation: none; opacity: 0.85; }
 }
+
+/* Cards and inputs: warm off-white instead of pure white (light mode only).
+   Unlayered on purpose, so it wins over the utility layer without touching
+   text-white or translucent bg-white/NN used on gradients. */
+html:not(.dark) .bg-white { background-color: #fbfaf6; }
