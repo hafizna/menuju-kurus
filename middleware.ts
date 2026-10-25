@@ -8,7 +8,12 @@ import { SESSION_COOKIE, verifySessionToken } from "./lib/auth";
 // Not renamed yet since that would also force this off the Edge runtime;
 // revisit before middleware.ts is actually removed in a future major version.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.json|icon.svg).*)"],
+  // App icons must be public: iOS fetches the apple-touch-icon without a session
+// cookie when adding to the Home Screen, and falls back to a generic letter
+// icon if it gets redirected to /login.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|icon.svg|apple-touch-icon.png|icon-192.png|icon-512.png).*)",
+  ],
 };
 
 const PUBLIC_PATHS = ["/login", "/api/auth", "/api/health-sync"];

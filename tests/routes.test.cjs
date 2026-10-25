@@ -158,6 +158,15 @@ test('meal time can be backdated within a day but never future, stale or malform
   assert.equal((await logRoute.POST(request('/api/log', 'POST', { type: 'meal', calories: 100 }))).status, 200);
 });
 
+test('app icons and manifest are excluded from the login gate, real pages are not', () => {
+  const { config } = require('../middleware');
+  const gated = new RegExp('^' + config.matcher[0] + '$');
+  for (const path of ['/apple-touch-icon.png', '/icon-192.png', '/icon-512.png', '/icon.svg', '/manifest.json']) {
+    assert.equal(gated.test(path), false, path + ' must be public');
+  }
+  for (const path of ['/', '/api/today', '/makan', '/settings']) assert.equal(gated.test(path), true, path + ' must stay gated');
+});
+
 test('food confirmation validates input, supports past days, and food edits reopen it', async () => {
   const date = todayKey(DEFAULT_SETTINGS.timezone);
   for (const invalid of [null, { foodLogComplete: 'true' }, { foodLogComplete: true, date: '2026-02-30' }, { foodLogComplete: true, date: '9999-01-01' }, { foodLogComplete: true, date: 1 }]) {
