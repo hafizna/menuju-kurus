@@ -98,6 +98,28 @@ function Head({ mood, x, y, tilt = 0, scale = 1 }: { mood: MascotMood; x: number
   );
 }
 
+// Drifts down and fades; the outer <g> positions it, the inner path animates.
+function FallingLeaf({ x, y, delay = 0 }: { x: number; y: number; delay?: number }) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <path className="mascot-leaf" style={{ animationDelay: `${delay}s` }} d="M0 0 Q3.5 -2.6 7 0 Q3.5 3 0 0 Z" fill={LEAF} />
+    </g>
+  );
+}
+
+function Heart({ x, y, delay = 0, s = 1 }: { x: number; y: number; delay?: number; s?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <path
+        className="mascot-float"
+        style={{ animationDelay: `${delay}s` }}
+        d="M0 2.4 C-4 -0.6 -2.6 -4 0 -2 C2.6 -4 4 -0.6 0 2.4 Z"
+        fill="#f9a8b8"
+      />
+    </g>
+  );
+}
+
 function Sparkle({ x, y, s = 1, delay = 0 }: { x: number; y: number; s?: number; delay?: number }) {
   return (
     <path
@@ -133,8 +155,11 @@ export default function Mascot({ mood = "happy", className }: { mood?: MascotMoo
             <ellipse cx="40" cy="56" rx="9" ry="8" fill={BELLY} />
           </g>
           <Head mood={mood} x={40} y={35} />
-          <text className="mascot-zzz" x="60" y="26" fontSize="9" fontWeight="700" fill="#ffffff">z</text>
+          <text className="mascot-zzz" x="58" y="27" fontSize="6" fontWeight="700" fill="#ffffff">z</text>
+          <text className="mascot-zzz" x="62" y="22" fontSize="8" fontWeight="700" fill="#ffffff" style={{ animationDelay: "1s" }}>z</text>
+          <text className="mascot-zzz" x="67" y="16" fontSize="10" fontWeight="700" fill="#ffffff" style={{ animationDelay: "2s" }}>z</text>
         </g>
+        <FallingLeaf x={12} y={10} delay={1.5} />
       </>
     );
   } else if (mood === "full") {
@@ -152,6 +177,9 @@ export default function Mascot({ mood = "happy", className }: { mood?: MascotMoo
         <ellipse cx="68" cy="52" rx="4" ry="8" transform="rotate(-25 68 52)" fill={FUR_D} />
         <ellipse cx="73" cy="59" rx="3.6" ry="7" transform="rotate(-50 73 59)" fill={FUR_D} />
         <Head mood={mood} x={17} y={52} tilt={-14} scale={0.88} />
+        <Heart x={36} y={34} s={1.1} />
+        <Heart x={48} y={30} delay={1.2} s={0.8} />
+        <Heart x={26} y={36} delay={2.3} s={0.7} />
       </>
     );
   } else if (mood === "cheer") {
@@ -196,6 +224,7 @@ export default function Mascot({ mood = "happy", className }: { mood?: MascotMoo
     pose = (
       <>
         <Branch y={69} />
+        <FallingLeaf x={10} y={4} delay={0.5} />
         <g className="mascot-breathe">
           <ellipse cx="40" cy="57" rx="17" ry="14" fill={FUR} />
           <ellipse cx="40" cy="60" rx="10.5" ry="9" fill={BELLY} />
