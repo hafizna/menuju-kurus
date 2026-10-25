@@ -16,7 +16,9 @@ export const config = {
   ],
 };
 
-const PUBLIC_PATHS = ["/login", "/api/auth", "/api/health-sync"];
+// Generic signed Shortcut contains no account credentials and must also be
+// downloadable by the Shortcuts app, which does not share Safari's session.
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/health-sync", "/shortcuts"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

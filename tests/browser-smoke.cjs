@@ -126,17 +126,15 @@ const backend = http.createServer(async (req, res) => {
         );
         result = "OK";
       } else if (op === "eval") {
-        const evalKey = command[3];
-        const expected = JSON.parse(command[4]);
-        const current = store.has(evalKey)
-          ? JSON.parse(store.get(evalKey))
-          : null;
-        if (!require("node:util").isDeepStrictEqual(current, expected))
-          result = 0;
-        else {
-          store.set(evalKey, command[5]);
-          result = 1;
-        }
+        const count = Number(command[2]);
+        const evalKeys = command.slice(3, 3 + count);
+        const args = command.slice(3 + count);
+        const unchanged = evalKeys.every((evalKey, i) => require("node:util").isDeepStrictEqual(
+          store.has(evalKey) ? JSON.parse(store.get(evalKey)) : null,
+          JSON.parse(args[i]),
+        ));
+        if (!unchanged) result = 0;
+        else { evalKeys.forEach((evalKey, i) => store.set(evalKey, args[count + i])); result = 1; }
       } else throw new Error("Unsupported test command " + op);
       if (
         typeof result === "string" &&
@@ -840,13 +838,158 @@ let child, browser;
   await page.waitForURL(`${base}/makan`);
   assert.equal(JSON.parse(store.get("mk:u3:settings")).displayName, null, "optional blank name was not preserved");
   assert.equal(JSON.parse(store.get("mk:u3:settings")).fitnessGoal, "athletic");
+
+  // A real receipt, rather than opening the Shortcut or testing its token,
+  // marks Health as synced. The browser never reads device health data.
+  for (const method of ["GET", "POST", "DELETE"]) {
+    const denied = await fetch(`${base}/api/health-connection`, { method });
+    assert.equal(denied.status, 401, `unauthenticated Health management ${method} was allowed`);
+  }
+  const shortcutDownload = await fetch(`${base}/shortcuts/slothly-health-sync.shortcut`);
+  assert.equal(shortcutDownload.status, 200, "Shortcuts cannot download the generic artifact without a browser session");
+  const shortcutBytes = Buffer.from(await shortcutDownload.arrayBuffer());
+  assert.equal(shortcutBytes.subarray(0, 4).toString("ascii"), "AEA1", "Shortcut download is not a signed Apple archive");
+
+  await page.goto(`${base}/settings`);
+  await page.getByRole("link", { name: "Hubungkan Apple Health →", exact: true }).click();
+  await page.waitForURL(`${base}/settings/health`);
+  await page.getByRole("heading", { name: "Hubungkan Apple Health", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Belum terhubung", exact: true }).waitFor();
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async (text) => { window.__healthClipboard = text; } },
+    });
+  });
+  const createHealthResponse = page.waitForResponse((response) =>
+    response.url() === `${base}/api/health-connection` && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Siapkan koneksi", exact: true }).click();
+  const healthCreated = await (await createHealthResponse).json();
+  const healthToken = healthCreated.token;
+  assert.ok(typeof healthToken === "string" && healthToken.length > 40, "Health setup did not issue a private credential");
+  await page.getByRole("heading", { name: "Menunggu data pertama", exact: true }).waitFor();
+  const expectNoHealthSecret = async (...tokens) => {
+    const exposed = await page.evaluate((secrets) => {
+      const rendered = document.body.textContent || "";
+      const persisted = JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]);
+      return secrets.some((secret) => rendered.includes(secret) || persisted.includes(secret));
+    }, tokens);
+    assert.equal(exposed, false, "a Health credential leaked into rendered text or browser storage");
+    assert.equal([...store.values()].some((value) => tokens.some((token) => value.includes(token))), false, "raw Health credential persisted in the database");
+  };
+  await expectNoHealthSecret(healthToken);
+  await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).click();
+  await page.getByRole("button", { name: "Disalin ✓", exact: true }).waitFor();
+  const copiedHealthConfiguration = await page.evaluate(() => JSON.parse(window.__healthClipboard));
+  assert.equal(copiedHealthConfiguration.endpoint, `${base}/api/health-sync`);
+  assert.ok(copiedHealthConfiguration.token === healthToken, "copied configuration did not match the fresh connection");
+  const shortcutLink = await page.getByRole("link", { name: "Buka Shortcut", exact: true }).getAttribute("href");
+  assert.ok(shortcutLink.startsWith("shortcuts://run-shortcut?") && shortcutLink.includes("input=clipboard"), "setup cannot pass the configuration to Shortcuts");
+  assert.equal(shortcutLink.includes(healthToken), false, "Health credential was exposed in a URL");
+  await page.setViewportSize({ width: 320, height: 720 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Shortcut installation steps overflow at 320px");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: path.join(projectRoot, ".next/validation/health-setup-mobile.png"), fullPage: true });
+
+  const beforeHealthTestWeights = store.get("mk:u3:weight");
+  const beforeHealthTestBody = store.get("mk:u3:body");
+  const testHealthResponse = await fetch(`${base}/api/health-sync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${healthToken}` },
+    body: JSON.stringify({ test: true, provider: "apple_health" }),
+  });
+  assert.equal(testHealthResponse.status, 200);
+  assert.equal((await testHealthResponse.json()).tested, true);
+  await page.getByRole("button", { name: "Periksa status", exact: true }).click();
+  await page.getByText(/^Koneksi diuji:/).waitFor();
+  assert.equal(await page.getByRole("heading", { name: "Menunggu data pertama", exact: true }).isVisible(), true, "connection test falsely claimed a measurement arrived");
+  assert.equal(store.get("mk:u3:weight"), beforeHealthTestWeights, "connection test changed weight history");
+  assert.equal(store.get("mk:u3:body"), beforeHealthTestBody, "connection test changed body history");
+
+  // Historical samples are separate readings. UTC timestamps are assigned to
+  // the user's timezone, so this weight belongs to the following Jakarta day.
+  const importedWeightTime = `${offset(250)}T23:45:00.000Z`;
+  const importedWeightDate = offset(249);
+  const importedFatTime = `${offset(247)}T01:00:00.000Z`;
+  const importedFatDate = offset(247);
+  const healthSamples = {
+    provider: "apple_health",
+    samples: [
+      { metric: "weightKg", value: 90.2, measuredAt: importedWeightTime },
+      { metric: "bodyFatPercent", value: 30.3, measuredAt: importedFatTime },
+    ],
+  };
+  const sendHealthSamples = () => fetch(`${base}/api/health-sync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${healthToken}` },
+    body: JSON.stringify(healthSamples),
+  });
+  const importedHealthResponse = await sendHealthSamples();
+  assert.equal(importedHealthResponse.status, 200);
+  assert.equal((await importedHealthResponse.json()).received, 2);
+  const importedWeight = JSON.parse(store.get("mk:u3:weight")).find((entry) => entry.date === importedWeightDate);
+  assert.equal(importedWeight.weightKg, 90.2);
+  assert.equal(importedWeight.source, "shortcuts");
+  assert.equal(importedWeight.createdAt, importedWeightTime, "import replaced the original measurement time with today");
+  const importedFat = JSON.parse(store.get("mk:u3:body")).find((entry) => entry.date === importedFatDate).bodyFatPercent;
+  assert.equal(importedFat.value, 30.3);
+  assert.equal(importedFat.recordedAt, importedFatTime);
+  assert.equal((await sendHealthSamples()).status, 200);
+  assert.equal(JSON.parse(store.get("mk:u3:weight")).filter((entry) => entry.date === importedWeightDate).length, 1, "retry duplicated a Health weight sample");
+  await page.getByRole("button", { name: "Periksa status", exact: true }).click();
+  await page.getByRole("heading", { name: "Data sudah diterima", exact: true }).waitFor();
+  await page.getByText("Persentase lemak, Berat badan", { exact: true }).waitFor();
+  const healthStatus = await (await context.request.get(`${base}/api/health-connection`)).json();
+  assert.deepEqual(healthStatus.lastSync.dates, [importedWeightDate, importedFatDate].sort());
+  assert.equal(healthStatus.token, undefined, "status API returned a reusable credential");
+  const importedBody = await (await context.request.get(`${base}/api/body`)).json();
+  assert.equal(importedBody.snapshots.find((entry) => entry.date === importedWeightDate).weightKg.value, 90.2, "Health weight missing from shared body history");
+  assert.equal(importedBody.snapshots.find((entry) => entry.date === importedFatDate).bodyFatPercent.value, 30.3, "Health body fat missing from shared body history");
+  await page.reload();
+  await page.getByRole("heading", { name: "Data sudah diterima", exact: true }).waitFor();
+  await expectNoHealthSecret(healthToken);
+  assert.equal(await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).count(), 0, "reload recovered a credential that should exist only in memory");
+  await page.setViewportSize({ width: 320, height: 720 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Health setup mobile overflow");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => { localStorage.setItem("mk_theme", "light"); window.dispatchEvent(new Event("mk-theme")); });
+  await page.waitForFunction(() => !document.documentElement.classList.contains("dark"));
+  await page.screenshot({ path: path.join(projectRoot, ".next/validation/health-connection-mobile.png"), fullPage: true });
+  await page.evaluate(() => { localStorage.setItem("mk_theme", "dark"); window.dispatchEvent(new Event("mk-theme")); });
+  await page.waitForFunction(() => document.documentElement.classList.contains("dark"));
+  await page.screenshot({ path: path.join(projectRoot, ".next/validation/health-connection-dark.png"), fullPage: true });
+  await page.evaluate(() => { localStorage.setItem("mk_theme", "light"); window.dispatchEvent(new Event("mk-theme")); });
+
+  await page.locator("summary").filter({ hasText: "Kelola koneksi" }).click();
+  const rotateHealthResponse = page.waitForResponse((response) =>
+    response.url() === `${base}/api/health-connection` && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Sambungkan ulang", exact: true }).click();
+  const rotatedHealth = await (await rotateHealthResponse).json();
+  assert.ok(typeof rotatedHealth.token === "string" && rotatedHealth.token !== healthToken, "reconnect reused the old credential");
+  await expectNoHealthSecret(healthToken, rotatedHealth.token);
+  assert.equal((await sendHealthSamples()).status, 401, "old Health credential still worked after reconnect");
+  assert.equal((await fetch(`${base}/api/health-sync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${rotatedHealth.token}` },
+    body: JSON.stringify({ test: true, provider: "apple_health" }),
+  })).status, 200, "fresh Health credential could not test the connection");
+  await page.getByRole("button", { name: "Putuskan koneksi", exact: true }).click();
+  await page.getByRole("heading", { name: "Belum terhubung", exact: true }).waitFor();
+  assert.equal((await fetch(`${base}/api/health-sync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${rotatedHealth.token}` },
+    body: JSON.stringify({ test: true, provider: "apple_health" }),
+  })).status, 401, "revoked Health credential could still submit");
+  assert.equal(JSON.parse(store.get("mk:u3:weight")).find((entry) => entry.date === importedWeightDate).weightKg, 90.2, "disconnect deleted imported history");
   assert.deepEqual(apiErrors, []);
   assert.deepEqual(browserErrors, []);
   console.log(
     "Browser: PASS — third-user login, Rumah Kukang mobile/desktop, meal draft across mode/route/reload, photo corrections and override, reviewed recent meal, save/undo failure and retry, today failure/retry, scoped session draft without photos, calibration keep/apply/context/stale proposal/cooldown/Home target, Body Response 14/28/56-day selection and failure/retry, body comparison/check-in/deletion, keyboard navigation, Fitness/Weekly regression, empty/missing-height states, 320px/mobile/desktop layout, persisted motion toggle and OS reduced-motion, optional-name/athletic onboarding validation.",
   );
   console.log(
-    "Synthetic Redis REST test adapter used; real Upstash/Gemini access not tested.",
+    "Health connection: PASS — unauthenticated management denied, public signed Shortcut download, private configuration copy, test versus receipt status, historical timestamp/timezone preservation, independent weight/body-fat history, retry deduplication, secret-free status/reload/storage, 320px/light/dark layouts, rotation and revocation. Synthetic Redis REST and synthetic Health samples used; real Upstash/Gemini/HealthKit/device access not tested.",
   );
 })()
   .catch(async (error) => {

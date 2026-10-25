@@ -1,92 +1,91 @@
-import { getBodyCheckIns, upsertBodyCheckIn } from "./bodyStore";
+import { upsertBodyCheckIn } from "./bodyStore";
+import type { BodyCheckIn } from "./body";
 import { redis, keys } from "./redis";
 import { WeightEntry } from "./types";
 import { lastNDateKeys } from "./dates";
+import { updateJsonRecord, updateJsonRecords } from "./atomicStore";
 
 export async function getWeightEntries(userId: string): Promise<WeightEntry[]> {
   const stored = await redis.get<WeightEntry[]>(keys.weight(userId));
   return stored ?? [];
 }
 
-async function saveWeightEntries(
-  userId: string,
-  entries: WeightEntry[],
-): Promise<void> {
-  await redis.set(keys.weight(userId), entries);
+interface WeightInput {
+  date: string;
+  weightKg: number;
+  bodyFat?: number;
+  note?: string;
+  source?: "manual" | "shortcuts";
+  heightCm?: number;
+  recordedAt?: string;
 }
 
 // One weigh-in per date — logging again the same day overwrites the earlier entry.
 export async function upsertWeightEntry(
   userId: string,
-  input: {
-    date: string;
-    weightKg: number;
-    bodyFat?: number;
-    note?: string;
-    source?: "manual" | "shortcuts";
-    heightCm?: number;
-  },
+  input: WeightInput,
 ): Promise<WeightEntry[]> {
-  const entries = await getWeightEntries(userId);
-  const existing = entries.find((entry) => entry.date === input.date);
-  const entry: WeightEntry = {
-    id: existing?.id ?? crypto.randomUUID(),
-    date: input.date,
-    weightKg: input.weightKg,
-    bodyFat: input.bodyFat ?? existing?.bodyFat,
-    bodyFatSource:
-      input.bodyFat !== undefined
-        ? (input.source ?? "manual")
-        : (existing?.bodyFatSource ?? existing?.source),
-    bodyFatRecordedAt:
-      input.bodyFat !== undefined
-        ? new Date().toISOString()
-        : (existing?.bodyFatRecordedAt ?? existing?.createdAt),
-    heightCm: input.heightCm ?? existing?.heightCm,
-    note: input.note ?? existing?.note,
-    createdAt: new Date().toISOString(),
-    source: input.source ?? "manual",
-  };
-  const next = [...entries.filter((e) => e.date !== input.date), entry].sort(
-    (a, b) => a.date.localeCompare(b.date),
-  );
-  await saveWeightEntries(userId, next);
-  if (input.bodyFat !== undefined) {
+  return (await upsertWeightEntryResult(userId, input)).entries;
+}
+
+export async function upsertWeightEntryResult(userId: string, input: WeightInput) {
+  const timestamp = input.recordedAt ?? new Date().toISOString();
+  const id = crypto.randomUUID();
+  const outcome = await updateJsonRecord<WeightEntry[], { entries: WeightEntry[]; applied: boolean; heightCm?: number }>(keys.weight(userId), (stored) => {
+    const entries = stored ?? [];
+    const existing = entries.find((entry) => entry.date === input.date);
+    // Recheck against each CAS retry, including changes committed by a manual
+    // edit or another automatic import after this request's first read.
+    if (input.source === "shortcuts" && input.recordedAt && existing &&
+      Date.parse(existing.createdAt) > Date.parse(input.recordedAt)) return { result: { entries, applied: false } };
+    const updateFat = input.bodyFat !== undefined && !(input.source === "shortcuts" && input.recordedAt &&
+      existing?.bodyFat !== undefined && Date.parse(existing.bodyFatRecordedAt ?? existing.createdAt) > Date.parse(input.recordedAt));
+    const entry: WeightEntry = {
+      id: existing?.id ?? id, date: input.date, weightKg: input.weightKg,
+      bodyFat: updateFat ? input.bodyFat : existing?.bodyFat,
+      bodyFatSource: updateFat ? (input.source ?? "manual") : (existing?.bodyFatSource ?? existing?.source),
+      bodyFatRecordedAt: updateFat ? timestamp : (existing?.bodyFatRecordedAt ?? existing?.createdAt),
+      heightCm: input.heightCm ?? existing?.heightCm, note: input.note ?? existing?.note,
+      createdAt: timestamp, source: input.source ?? "manual",
+    };
+    const next = [...entries.filter((entry) => entry.date !== input.date), entry].sort((a, b) => a.date.localeCompare(b.date));
+    return { next, result: { entries: next, applied: true, heightCm: entry.heightCm } };
+  });
+  if (outcome.applied && input.bodyFat !== undefined) {
     await upsertBodyCheckIn(
       userId,
       input.date,
       { bodyFatPercent: input.bodyFat },
       input.source ?? "manual",
-      input.heightCm ?? existing?.heightCm ?? null,
+      outcome.heightCm ?? null,
+      timestamp,
     );
   }
-  return next;
+  return outcome;
 }
 
 export async function deleteWeightEntry(
   userId: string,
   id: string,
 ): Promise<WeightEntry[]> {
-  const entries = await getWeightEntries(userId);
-  const entry = entries.find((item) => item.id === id);
-  if (entry?.bodyFat !== undefined) {
-    const bodyEntry = (await getBodyCheckIns(userId)).find(
-      (item) => item.date === entry.date,
-    );
-    if (!bodyEntry?.bodyFatPercent) {
-      await upsertBodyCheckIn(
-        userId,
-        entry.date,
-        { bodyFatPercent: entry.bodyFat },
-        entry.bodyFatSource ?? entry.source ?? "manual",
-        entry.heightCm,
-        entry.bodyFatRecordedAt ?? entry.createdAt,
-      );
+  return updateJsonRecords<[WeightEntry[], BodyCheckIn[]], WeightEntry[]>([keys.weight(userId), keys.body(userId)], ([storedWeights, storedBody]) => {
+    const entries = storedWeights ?? [];
+    const entry = entries.find((item) => item.id === id);
+    if (!entry) return { result: entries };
+    let body = storedBody ?? [];
+    const bodyEntry = body.find((item) => item.date === entry.date);
+    if (entry.bodyFat !== undefined && !bodyEntry?.bodyFatPercent) {
+      const migrated: BodyCheckIn = { ...bodyEntry, date: entry.date, bodyFatPercent: {
+        value: entry.bodyFat, source: entry.bodyFatSource ?? entry.source ?? "manual",
+        recordedAt: entry.bodyFatRecordedAt ?? entry.createdAt, heightCm: entry.heightCm ?? null,
+      } };
+      body = [...body.filter((item) => item.date !== entry.date), migrated].sort((a, b) => a.date.localeCompare(b.date));
     }
-  }
-  const next = entries.filter((e) => e.id !== id);
-  await saveWeightEntries(userId, next);
-  return next;
+    const next = entries.filter((item) => item.id !== id);
+    // The migration and deletion commit together; a concurrent body-fat import
+    // forces a retry that keeps its independent, more recent reading.
+    return { next: [next, body], result: next };
+  });
 }
 
 export interface WeightTrend {
@@ -149,14 +148,15 @@ export function computeWeightTrend(
 }
 
 export async function deleteWeightBodyFat(userId: string, date: string) {
-  const entries = await getWeightEntries(userId);
-  const next = entries.map((entry) => {
-    if (entry.date !== date) return entry;
-    const copy = { ...entry };
-    delete copy.bodyFat;
-    delete copy.bodyFatSource;
-    delete copy.bodyFatRecordedAt;
-    return copy;
+  return updateJsonRecord<WeightEntry[], void>(keys.weight(userId), (stored) => {
+    const next = (stored ?? []).map((entry) => {
+      if (entry.date !== date) return entry;
+      const copy = { ...entry };
+      delete copy.bodyFat;
+      delete copy.bodyFatSource;
+      delete copy.bodyFatRecordedAt;
+      return copy;
+    });
+    return { next, result: undefined };
   });
-  await saveWeightEntries(userId, next);
 }
