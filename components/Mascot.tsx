@@ -54,20 +54,28 @@ export default function Mascot({
   return (
     <svg viewBox="0 0 64 64" className={className} role="img" aria-label={`Maskot kukang ${label}`}>
       <ellipse cx="32" cy="60" rx="16" ry="2.6" fill="rgba(0,0,0,0.14)" />
+      <g className={mood === "cheer" ? "mascot-bounce" : undefined}>
+      <g className={`mascot-breathe${mood === "neutral" ? " mascot-slow" : ""}`}>
       <ellipse cx="32" cy="52" rx="17" ry="9.5" fill="#c9a479" />
       <ellipse cx="19" cy="55" rx="5" ry="3.4" fill="#b88e63" />
       <ellipse cx="45" cy="55" rx="5" ry="3.4" fill="#b88e63" />
-      <circle cx="14" cy="21" r="5.2" fill="#c9a479" />
-      <circle cx="14" cy="21" r="2.6" fill="#8a6444" />
-      <circle cx="50" cy="21" r="5.2" fill="#c9a479" />
-      <circle cx="50" cy="21" r="2.6" fill="#8a6444" />
+      <g className="mascot-ear mascot-ear-l">
+        <circle cx="14" cy="21" r="5.2" fill="#c9a479" />
+        <circle cx="14" cy="21" r="2.6" fill="#8a6444" />
+      </g>
+      <g className="mascot-ear mascot-ear-r">
+        <circle cx="50" cy="21" r="5.2" fill="#c9a479" />
+        <circle cx="50" cy="21" r="2.6" fill="#8a6444" />
+      </g>
       <ellipse cx="32" cy="32" rx="21" ry="19" fill="#dcbb8d" />
       <rect x="30.2" y="13.5" width="3.6" height="14" rx="1.8" fill="#7a5538" />
       <ellipse cx="32" cy="42" rx="9.5" ry="6.5" fill="#f3e2c4" />
       <ellipse cx="22.5" cy="33" rx="7.2" ry="8.6" transform="rotate(-12 22.5 33)" fill={PATCH} />
       <ellipse cx="41.5" cy="33" rx="7.2" ry="8.6" transform="rotate(12 41.5 33)" fill={PATCH} />
-      {eye(22.5)}
-      {eye(41.5)}
+      <g className={mood === "happy" || mood === "worried" ? "mascot-blink" : undefined}>
+        {eye(22.5)}
+        {eye(41.5)}
+      </g>
       {mood === "worried" && (
         <g fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="round">
           <path d="M16.5 25.5 L26 22.5" />
@@ -76,12 +84,14 @@ export default function Mascot({
       )}
       <ellipse cx="32" cy="39.6" rx="2.7" ry="1.9" fill={INK} />
       {mouth}
-      {mood === "worried" && <path d="M53 29 Q56 34 53 37 Q50 34 53 29 Z" fill="#7dd3fc" />}
+      {mood === "worried" && <path className="mascot-drop" d="M53 29 Q56 34 53 37 Q50 34 53 29 Z" fill="#7dd3fc" />}
+      </g>
       {mood === "neutral" && (
-        <text x="50" y="12" fontSize="9" fontWeight="700" fill="#ffffff" opacity="0.85">
+        <text className="mascot-zzz" x="50" y="12" fontSize="9" fontWeight="700" fill="#ffffff">
           z
         </text>
       )}
+      </g>
     </svg>
   );
 }

@@ -310,14 +310,14 @@ export default function DashboardPage() {
           href="/makan?mode=cari"
           className="flex items-center justify-center gap-2 rounded-2xl bg-white p-3 text-sm font-medium shadow-xs dark:bg-neutral-900"
         >
-          <IconSearch className="h-5 w-5 text-brand-600" />
+          <IconSearch className="h-5 w-5 text-orange-500" />
           Aku lapar
         </Link>
         <button
           onClick={() => setShowWeightForm((v) => !v)}
           className="flex items-center justify-center gap-2 rounded-2xl bg-white p-3 text-sm font-medium shadow-xs dark:bg-neutral-900"
         >
-          <IconScaleWeight className="h-5 w-5 text-brand-600" />
+          <IconScaleWeight className="h-5 w-5 text-sky-500" />
           Catat berat
         </button>
       </div>
@@ -376,6 +376,7 @@ export default function DashboardPage() {
           <FeatureCard
             href="/progress?tab=body"
             icon={<IconRuler className="h-5 w-5" />}
+            tone="violet"
             label="Lingkar pinggang"
             value={
               data.bodyResponse?.current.waist.last
@@ -393,6 +394,7 @@ export default function DashboardPage() {
             <FeatureCard
               href="/progress"
               icon={<IconCalendarCheck className="h-5 w-5" />}
+              tone="amber"
               label="Minggu ini"
               value={`${Math.max(0, weeklyBudget.remaining).toLocaleString("id-ID")} kcal`}
               caption={`${weeklyBudget.completedDays}/${weeklyBudget.totalDays} hari lengkap${weeklyBudget.isComplete ? "" : " · sementara"}`}
@@ -401,6 +403,7 @@ export default function DashboardPage() {
           <FeatureCard
             href="/makan/restaurant"
             icon={<IconSearch className="h-5 w-5" />}
+            tone="orange"
             label="Makan di luar"
             value="Menu restoran"
             caption="Pilih yang pas buat sisa kalorimu"
@@ -410,6 +413,7 @@ export default function DashboardPage() {
             <FeatureCard
               href="/makan/habits"
               icon={<IconChartBar className="h-5 w-5" />}
+              tone="sky"
               label="Kebiasaan"
               value="Menu favorit"
               caption="Dipelajari dari catatanmu"

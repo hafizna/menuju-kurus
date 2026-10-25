@@ -56,3 +56,22 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .sky-drift { animation: none; }
 }
+
+/* Mascot motion: transforms/opacity only, so it stays on the compositor. */
+@keyframes mascot-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 1.03); } }
+@keyframes mascot-blink { 0%, 90%, 100% { transform: scaleY(1); } 94% { transform: scaleY(0.1); } }
+@keyframes mascot-ear { 0%, 86%, 100% { transform: rotate(0); } 90% { transform: rotate(-10deg); } 95% { transform: rotate(5deg); } }
+@keyframes mascot-zzz { 0% { opacity: 0; transform: translate(0, 3px); } 30% { opacity: 0.9; } 100% { opacity: 0; transform: translate(4px, -9px); } }
+@keyframes mascot-bounce { 0%, 45%, 100% { transform: translateY(0); } 10% { transform: translateY(-4px); } 20% { transform: translateY(0); } 30% { transform: translateY(-2px); } 40% { transform: translateY(0); } }
+@keyframes mascot-drop { 0% { opacity: 0; transform: translateY(-2px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(8px); } }
+.mascot-breathe { transform-box: view-box; transform-origin: 32px 58px; animation: mascot-breathe 3.4s ease-in-out infinite; }
+.mascot-breathe.mascot-slow { animation-duration: 5.5s; }
+.mascot-blink { transform-box: fill-box; transform-origin: center; animation: mascot-blink 5s infinite; }
+.mascot-ear { transform-box: fill-box; transform-origin: center; animation: mascot-ear 7s infinite; }
+.mascot-ear-r { animation-delay: 0.7s; }
+.mascot-zzz { animation: mascot-zzz 2.8s ease-out infinite; }
+.mascot-bounce { animation: mascot-bounce 2.6s ease-in-out infinite; }
+.mascot-drop { animation: mascot-drop 2.2s ease-in infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mascot-breathe, .mascot-blink, .mascot-ear, .mascot-zzz, .mascot-bounce, .mascot-drop { animation: none; }
+}
