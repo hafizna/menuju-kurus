@@ -8,4 +8,6 @@ export const keys = {
   body: (userId: string) => `mk:${userId}:body`,
   weight: (userId: string) => `mk:${userId}:weight`,
   weeklySummary: (userId: string) => `mk:${userId}:weeklySummary`,
+  healthConnection: (userId: string) => `mk:${userId}:healthConnection`,
+  healthSyncStatus: (userId: string) => `mk:${userId}:healthSyncStatus`,
 };

@@ -14,10 +14,12 @@ const redis = {
   async incr(key) { accesses.push(key); const next = (store.get(key) ?? 0) + 1; store.set(key, next); return next; },
   async expire(key) { accesses.push(key); return 1; },
   async eval(script, evalKeys, args) {
-    const key=evalKeys[0]; accesses.push(key);
-    const expected=JSON.parse(args[0]);
-    if(!require('node:util').isDeepStrictEqual(store.get(key)??null,expected)) return 0;
-    store.set(key,JSON.parse(args[1]));return 1;
+    accesses.push(...evalKeys);
+    for (let i = 0; i < evalKeys.length; i++) {
+      if (!require('node:util').isDeepStrictEqual(store.get(evalKeys[i]) ?? null, JSON.parse(args[i]))) return 0;
+    }
+    for (let i = 0; i < evalKeys.length; i++) store.set(evalKeys[i], JSON.parse(args[evalKeys.length + i]));
+    return 1;
   },
 };
 const keys = {
@@ -26,6 +28,8 @@ const keys = {
   body: (user) => `mk:${user}:body`,
   weight: (user) => `mk:${user}:weight`,
   weeklySummary: (user) => `mk:${user}:weeklySummary`,
+  healthConnection: (user) => `mk:${user}:healthConnection`,
+  healthSyncStatus: (user) => `mk:${user}:healthSyncStatus`,
 };
 // Use real handlers and middleware with an in-memory storage adapter. This
 // exercises key isolation and behavior, not external Upstash connectivity.
