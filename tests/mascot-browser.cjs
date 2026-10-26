@@ -1,0 +1,137 @@
+const assert = require("node:assert/strict");
+const path = require("node:path");
+
+// Run inside the authenticated smoke-test browser with synthetic /api/today
+// responses. The actual SVG motion is sampled, not just its animation name.
+module.exports = async function verifyMascot({ page, base, projectRoot, today }) {
+  const original = await page.evaluate(async () => (await fetch("/api/today")).json());
+  let fixture;
+  const todayRoute = route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture) });
+  await page.route("**/api/today", todayRoute);
+  const hero = page.getByRole("region", { name: "Sapaan harian", exact: true });
+  const mascot = hero.locator(".kukang");
+  const nextPose = hero.getByRole("button", { name: "Ganti pose kukang", exact: true });
+  const capture = name => hero.screenshot({ path: path.join(projectRoot, `.next/validation/mascot-${name}.png`) });
+  const setTheme = async theme => page.evaluate(theme => { localStorage.setItem("mk_theme", theme); window.dispatchEvent(new Event("mk-theme")); }, theme);
+  async function scenario(hour, { meals = 0, calories = 0, protein = 0, sugar = 0, knownSugar = 0, complete = false, timezone = "Asia/Jakarta" } = {}) {
+    fixture = structuredClone(original);
+    fixture.settings.timezone = timezone;
+    fixture.log.meals = Array.from({ length: meals }, (_, i) => ({ id: `scene-${i}`, foodName: "Catatan skenario", time: "06:00", calories: calories / meals, protein_g: protein / meals, source: "manual" }));
+    fixture.log.foodLogComplete = complete;
+    fixture.summary.caloriesIn = calories;
+    fixture.summary.foodLogStatus = complete ? "complete" : meals ? "partial" : "empty";
+    fixture.proteinToday = protein;
+    fixture.sugarToday = { grams: sugar, knownMeals: knownSugar, totalMeals: meals, complete: meals > 0 && knownSugar === meals };
+    const offset = timezone === "Asia/Tokyo" ? "+09:00" : "+07:00";
+    await page.clock.setFixedTime(new Date(`${today}T${String(hour).padStart(2, "0")}:00:00${offset}`));
+    await page.goto(base);
+    await hero.waitFor();
+    await page.waitForFunction(() => document.querySelector(".home-mascot .kukang")?.dataset.playing === "true");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `home overflow at ${hour}:00`);
+  }
+  async function expectMood(mood) {
+    await page.waitForFunction(mood => document.querySelector(".home-mascot .kukang")?.dataset.mood === mood, mood);
+  }
+  async function expectMovement(selector) {
+    const joint = mascot.locator(selector).first();
+    const first = await joint.evaluate(node => getComputedStyle(node).transform);
+    await page.waitForFunction(({ selector, first }) => {
+      const joint = document.querySelector(`.home-mascot .kukang ${selector}`);
+      return joint && getComputedStyle(joint).transform !== first;
+    }, { selector, first });
+  }
+  try {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await scenario(6);
+    await expectMood("exercise");
+    assert.equal(await mascot.locator('[data-prop="dumbbell"]').count(), 2);
+    await expectMovement(".kukang-arm--left");
+    await capture("morning-light");
+    const action = hero.getByRole("link", { name: "Catat makan", exact: true });
+    const actionY = (await action.boundingBox()).y;
+    await nextPose.click();
+    await expectMood("happy");
+    assert.equal((await action.boundingBox()).y, actionY, "changing pose shifted the meal action");
+    await nextPose.click();
+    await expectMood("dance");
+    await nextPose.click();
+    await expectMood("exercise");
+    await scenario(8);
+    await expectMood("hustle");
+    assert.equal(await mascot.locator('[data-prop="satchel"]').count(), 1);
+    await capture("hustle-light");
+    // Browser is in Jakarta; the profile is Tokyo. 06:00 Tokyo is 04:00
+    // Jakarta, so this catches accidental dependence on the device timezone.
+    await scenario(6, { timezone: "Asia/Tokyo" });
+    await expectMood("exercise");
+    await scenario(10);
+    await expectMood("work");
+    assert.equal(await mascot.locator('[data-prop="laptop"]').count(), 1);
+    await expectMovement(".kukang-arm--left");
+    await setTheme("dark");
+    await capture("work-dark");
+    await scenario(16, { meals: 2, calories: 1400, protein: 30 });
+    await expectMood("protein");
+    assert.equal(await mascot.locator('[data-prop="drumstick"]').count(), 1);
+    await expectMovement(".kukang-feeding-arm");
+    await capture("protein-dark");
+    await scenario(16, { meals: 2, calories: 1400, protein: 30, sugar: 65, knownSugar: 1 });
+    await expectMood("sugar");
+    assert.equal(await mascot.locator('[data-prop="ice-cream"]').count(), 1);
+    await expectMovement(".kukang-cheeks");
+    await capture("sugar-dark");
+    await page.setViewportSize({ width: 320, height: 720 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "sugar hero 320px overflow");
+    await capture("sugar-320-dark");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await scenario(23, { meals: 2, calories: 1400, protein: 30, sugar: 65, knownSugar: 1 });
+    await expectMood("neutral");
+    assert.equal(await mascot.locator(".kukang-zzz").count(), 3);
+    await expectMovement(".kukang-rig");
+    await capture("sleep-dark");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    assert.equal(await mascot.locator(".kukang-motion").evaluateAll(nodes => nodes.every(node => getComputedStyle(node).animationName === "none")), true);
+    assert.equal(await mascot.locator(".kukang-zzz").evaluateAll(nodes => nodes.every(node => Number(getComputedStyle(node).opacity) > 0)), true, "sleep disappeared with reduced motion");
+    await capture("sleep-static-dark");
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+
+    // Clock timers let us check the automatic rotation and off-screen/motion
+    // pauses without waiting 20 seconds for each interval.
+    await page.clock.install({ time: new Date(`${today}T18:00:00+07:00`) });
+    await scenario(18);
+    await expectMood("happy");
+    await page.clock.fastForward(20_100);
+    await expectMood("dance");
+    await page.evaluate(() => { localStorage.setItem("mk_motion", "off"); window.dispatchEvent(new Event("mk-motion")); });
+    await page.clock.fastForward(20_100);
+    await expectMood("dance");
+    await page.evaluate(() => { localStorage.removeItem("mk_motion"); window.dispatchEvent(new Event("mk-motion")); });
+    await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
+    await page.clock.fastForward(20_100);
+    await expectMood("dance");
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.clock.fastForward(20_100);
+    await expectMood("full");
+    await page.clock.resume();
+  } finally {
+    await page.unroute("**/api/today", todayRoute);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await setTheme("light");
+    await page.clock.setFixedTime(new Date());
+    await page.goto(base);
+  }
+  for (const [destination, name] of [["/makan", "meal"], ["/progress?tab=body", "progress"], ["/settings", "profile"]]) {
+    await page.goto(`${base}${destination}`);
+    await page.locator(".journal-header").waitFor();
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.screenshot({ path: path.join(projectRoot, `.next/validation/journal-${name}-light.png`) });
+    await setTheme("dark");
+    await page.screenshot({ path: path.join(projectRoot, `.next/validation/journal-${name}-dark.png`) });
+    await page.setViewportSize({ width: 320, height: 720 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${name} journal 320px overflow`);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setTheme("light");
+  }
+  await page.goto(base);
+  console.log("Mascot: PASS — profile timezone, varied time-of-day poses, manual/automatic rotation, food context, visible joint movement, static sleep and reduced-motion/off-screen pauses.");
+};

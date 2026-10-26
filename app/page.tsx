@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, type FormEvent } from "react";
+import { useEffect, useState, useCallback, useRef, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { DayLog, UserSettings } from "@/lib/types";
@@ -18,6 +18,7 @@ import WeeklyFocusCard from "@/components/WeeklyFocusCard";
 import { skyForHour } from "@/lib/skyTheme";
 import RecoveryMode from "@/components/RecoveryMode";
 import { sugarNote, type DaySugar, type WeekSugar } from "@/lib/sugar";
+import { buildMascotScenes } from "@/lib/mascotScene";
 
 interface TodayResponse {
   date: string;
@@ -59,6 +60,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [poseIndex, setPoseIndex] = useState(0);
+  const heroRef = useRef<HTMLElement>(null);
   const [burnLabel, setBurnLabel] = useState("");
   const [burnKcal, setBurnKcal] = useState("");
   const [savingBurn, setSavingBurn] = useState(false);
@@ -92,6 +95,19 @@ export default function DashboardPage() {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const hour = zonedHour(now, data?.settings.timezone ?? "Asia/Jakarta");
+  useEffect(() => {
+    setPoseIndex(0);
+  }, [hour, data?.proteinToday, data?.sugarToday.grams, data?.log.meals.length, data?.summary.foodLogStatus]);
+  useEffect(() => {
+    const id = setInterval(() => {
+      const bounds = heroRef.current?.getBoundingClientRect();
+      if (document.hidden || document.documentElement.dataset.motion === "off" || !bounds || bounds.bottom <= 0 || bounds.top >= innerHeight) return;
+      setPoseIndex(index => index + 1);
+    }, 20_000);
     return () => clearInterval(id);
   }, []);
 
@@ -169,7 +185,6 @@ export default function DashboardPage() {
   const { summary, log, streak, challenge, weeklyBudget, weightTrend, proteinToday, sugarToday, sugarWeek, settings, habits } = data;
   const fresh = (data.bodyResponse?.current.food.observedDays ?? 0) === 0 && streak === 0;
   const complete = summary.foodLogStatus === "complete";
-  const hour = zonedHour(now, settings.timezone);
   const evening = hour >= 18 || hour < 4;
   const sky = skyForHour(hour);
   const greeting = hour < 4 ? "Selamat malam" : hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 18 ? "Selamat sore" : "Selamat malam";
@@ -178,8 +193,10 @@ export default function DashboardPage() {
   const proteinLabel = `${proteinToday} / ${settings.proteinTargetG} g`;
   const intakePct = summary.target > 0 ? Math.min(100, Math.max(0, summary.caloriesIn / summary.target * 100)) : 0;
   const proteinPct = settings.proteinTargetG > 0 ? Math.min(100, Math.max(0, proteinToday / settings.proteinTargetG * 100)) : 0;
+  const scenes = buildMascotScenes({ localHour: hour, mealCount: log.meals.length, caloriesIn: summary.caloriesIn, calorieTarget: summary.target, proteinToday, proteinTarget: settings.proteinTargetG, sugar: sugarToday, foodLogComplete: complete });
+  const scene = scenes[poseIndex % scenes.length];
   const recent = [...log.meals].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 3);
-  const card = "rounded-2xl border border-neutral-200/70 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900";
+  const card = "home-card rounded-2xl border border-neutral-200/70 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900";
 
   const closeDay = (!fresh || log.meals.length > 0) && (
     <section className={`${card} ${evening && !complete ? "border-brand-200 dark:border-brand-800" : ""}`} aria-labelledby="close-day-title">
@@ -197,16 +214,25 @@ export default function DashboardPage() {
   return (
     <div className="slothly-home space-y-5 p-4 sm:space-y-6 sm:p-0">
       {loadError && <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30"><p role="alert" className="flex-1 text-sm text-amber-900 dark:text-amber-200">{loadError}</p><button type="button" onClick={() => void load()} className="rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold dark:border-amber-800">Coba lagi</button></div>}
-      <section className="slothly-canopy relative isolate overflow-hidden rounded-3xl px-5 py-4 sm:px-7 sm:py-5" style={{ background: skyBackground(sky, "canopy") }} aria-label="Sapaan harian">
+      <section ref={heroRef} className="home-canopy slothly-canopy relative isolate overflow-hidden rounded-3xl px-5 py-4 sm:px-7 sm:py-5" style={{ background: skyBackground(sky, "canopy") }} aria-label="Sapaan harian">
         <SkyBackdrop sky={sky} variant="canopy" />
-        <div className="grid grid-cols-[minmax(0,1fr)_112px] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_160px]">
+        <div className="home-greeting">
           <div className="min-w-0 py-2">
             <p className="break-words text-sm text-neutral-600 dark:text-neutral-300">{greeting}{data.userName ? `, ${data.userName}` : ""}.</p>
             <h1 className="mt-1 text-xl font-medium leading-tight sm:text-3xl">{complete ? "Catatanmu sudah lengkap." : fresh && !log.meals.length ? "Mulai dari satu catatan." : "Hari ini masih jalan."}</h1>
             <p className="mt-2 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">{complete ? "Terima kasih sudah meluangkan waktu untuk dirimu." : "Nggak perlu sempurna. Catat yang kamu ingat, pelan-pelan."}</p>
             {streak > 0 && <p className="mt-2 text-xs font-semibold text-brand-700 dark:text-brand-300">{streak} hari tercatat lengkap</p>}
           </div>
-          <Mascot mood={complete ? "cheer" : "happy"} className="h-[130px] w-[130px] max-w-none justify-self-end sm:h-40 sm:w-40" />
+          <button type="button" onClick={() => setPoseIndex(index => index + 1)} className="home-mascot" aria-label="Ganti pose kukang" aria-describedby="kukang-scene-caption" title="Ketuk untuk ganti pose">
+            <Mascot key={scene.mood} mood={scene.mood} className="home-mascot-art" decorative />
+            <span className="home-mascot-switch" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><path d="M15.7 7A6 6 0 0 0 5.2 5.8L3 8m0 0V3.5M3 8h4.5M4.3 13a6 6 0 0 0 10.5 1.2L17 12m0 0v4.5m0-4.5h-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+          </button>
+        </div>
+        <div className="home-scene-stage">
+          {scenes.map(item => <div key={item.mood} className="home-scene-note" data-scene={item.mood} data-active={item.mood === scene.mood} aria-hidden={item.mood !== scene.mood}>
+            <span className="home-scene-dot" aria-hidden="true" />
+            <div><p className="home-scene-badge">{item.badge}</p><p id={item.mood === scene.mood ? "kukang-scene-caption" : undefined} className="home-scene-caption">{item.caption}</p></div>
+          </div>)}
         </div>
         <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <Link href="/makan" className="flex items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-brand-700"><IconCamera className="h-5 w-5" />Catat makan</Link>

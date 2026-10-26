@@ -1,0 +1,94 @@
+/* Small journal scenes connect the destinations without repeating the mascot. */
+.journal-page {
+  --journal-accent: var(--slothly-leaf);
+  --journal-wash: color-mix(in srgb, var(--slothly-leaf) 8%, var(--slothly-card));
+  --journal-shadow: 0 5px 18px rgb(40 48 35 / 4%), 0 1px 2px rgb(40 48 35 / 3%);
+}
+
+.dark .journal-page {
+  --journal-wash: color-mix(in srgb, var(--slothly-leaf) 5%, var(--slothly-card));
+  --journal-shadow: 0 7px 24px rgb(0 0 0 / 13%), inset 0 1px 0 rgb(255 255 255 / 2%);
+}
+
+.journal-header {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  min-height: 145px;
+  padding: 20px 14px 20px 20px;
+  border: 1px solid var(--slothly-line);
+  border-radius: 25px 25px 25px 8px;
+  background: linear-gradient(125deg, var(--slothly-card) 20%, var(--journal-wash));
+  box-shadow: var(--journal-shadow);
+  isolation: isolate;
+}
+
+.journal-header::after {
+  position: absolute;
+  content: "";
+  inset: auto 0 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--journal-accent), transparent 75%);
+  opacity: .42;
+}
+
+.journal-header-copy { position: relative; min-width: 0; z-index: 1; }
+.journal-header-kicker { margin-bottom: 6px; color: var(--journal-accent); font-size: .69rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+.journal-header h1 { max-width: 24ch; font-size: clamp(1.3rem, 4.5vw, 1.65rem); line-height: 1.17; font-weight: 600; text-wrap: balance; }
+.journal-header-description { margin-top: 8px; max-width: 43ch; color: var(--slothly-muted); font-size: .82rem; line-height: 1.5; }
+.journal-header-art { display: block; width: 100%; height: auto; overflow: visible; stroke-linecap: round; stroke-linejoin: round; }
+.journal-art-halo { fill: var(--journal-accent); opacity: .07; }
+.journal-art-ground { stroke: var(--journal-accent); stroke-width: 4; opacity: .13; }
+.journal-art-solid { fill: var(--journal-accent); opacity: .74; }
+.journal-art-paper { fill: var(--slothly-card); }
+.journal-art-line { stroke: var(--journal-accent); stroke-width: 2.5; }
+.journal-art-leaf { fill: var(--journal-accent); opacity: .55; }
+.journal-art-dot { fill: var(--journal-accent); opacity: .4; }
+
+.journal-card,
+.journal-content :where(section, details, article, form).bg-white {
+  border-color: var(--slothly-line);
+  background-image: linear-gradient(135deg, transparent 65%, color-mix(in srgb, var(--journal-accent) 3%, transparent));
+  box-shadow: var(--journal-shadow);
+}
+
+.journal-page--meal .journal-today {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--slothly-leaf) 35%, transparent);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--slothly-leaf) 12%, transparent);
+}
+
+.journal-tabs {
+  border: 1px solid var(--slothly-line);
+  background: color-mix(in srgb, var(--slothly-card) 60%, var(--slothly-paper));
+}
+
+.journal-tabs [role="tab"] { position: relative; min-width: 0; min-height: 48px; }
+.journal-tabs [role="tab"][aria-selected="true"] {
+  color: var(--slothly-leaf);
+  background: var(--slothly-card);
+  box-shadow: 0 2px 7px rgb(0 0 0 / 7%);
+}
+.journal-tabs [role="tab"][aria-selected="true"]::after {
+  position: absolute;
+  content: "";
+  inset: auto calc(50% - 9px) 4px;
+  width: 18px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--slothly-leaf);
+}
+
+@media (min-width: 640px) {
+  .journal-header { grid-template-columns: minmax(0, 1fr) 112px; padding: 24px 26px; gap: 18px; }
+  .journal-header-description { font-size: var(--text-sm); }
+}
+
+@media (max-width: 359px) {
+  .journal-header { grid-template-columns: minmax(0, 1fr) 64px; padding-left: 16px; gap: 3px; }
+  .journal-header-description { font-size: .78rem; }
+}

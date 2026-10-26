@@ -239,6 +239,8 @@ let child, browser;
   await page.screenshot({ path: path.join(projectRoot, ".next/validation/home-desktop.png"), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
 
+  await require("./mascot-browser.cjs")({ page, base, projectRoot, today });
+
   // A draft survives the recommendation mode, other meal routes and a reload.
   await page.goto(`${base}/makan`);
   await page.getByRole("button", { name: "Tulis manual", exact: true }).click();

@@ -13,6 +13,7 @@ import { adjustMeal, hasOil, stapleOf, NO_ADJUST, STAPLE_STEP_G, CENTONG_G, type
 import { emptyMealDraft, formatMealTime, hasMealDraft, mealDraftKey, mealDraftUserPrefix, mealTimeIso, priorMealDraft, readMealDraft, recentMealChoices, serializeMealDraft, type ManualMealDraft, type MealDraft, type RepeatMeal } from "@/lib/mealDraft";
 import type { HabitStrategy } from "@/lib/habits";
 import Mascot from "@/components/Mascot";
+import JournalHeader from "@/components/JournalHeader";
 
 interface TodayData {
   userId: string;
@@ -50,8 +51,8 @@ function MakanContent() {
   }, [reload]);
 
   return (
-    <div className="space-y-4 p-4">
-      <div><p className="text-xs font-semibold uppercase tracking-widest text-brand-600">Meja makan</p><h1 className="mt-1 text-2xl font-bold">Sedikit catatan, lebih paham.</h1><p className="mt-1 text-sm text-neutral-500">Foto, cek porsi, lalu simpan. Kukang temani pelan-pelan.</p></div>
+    <div className="journal-page journal-page--meal journal-content space-y-4 p-4">
+      <JournalHeader scene="meal" kicker="Meja makan" title="Sedikit catatan, lebih paham." description="Foto, cek porsi, lalu simpan. Satu catatan setiap kali." />
       {loadError && <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><p>{loadError} {today ? "Ringkasan di bawah memakai data terakhir." : "Riwayat belum tersedia."}</p><button onClick={reload} className="mt-2 font-semibold underline">Coba muat lagi</button></div>}
       <TodayBar summary={today?.summary ?? null} />
 
@@ -77,7 +78,7 @@ function TodayBar({ summary }: { summary: DaySummary | null }) {
   const over = summary.caloriesIn > summary.target;
   const pct = Math.min(100, Math.max(0, (summary.caloriesIn / summary.target) * 100));
   return (
-    <section className="rounded-2xl bg-linear-to-br from-brand-600 to-brand-800 p-4 text-white">
+    <section className="journal-today rounded-2xl bg-linear-to-br from-brand-600 to-brand-800 p-4 text-white">
       <div className="flex items-baseline justify-between">
         <span className="text-sm text-brand-100">Hari ini</span>
         <span className="text-sm font-semibold tabular-nums">
