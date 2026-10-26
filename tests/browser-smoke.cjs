@@ -868,7 +868,7 @@ let child, browser;
   const createdHealthResponse = await createHealthResponse;
   assert.equal(createdHealthResponse.status(), 200, "Health connection creation failed");
   const healthCreated = await createdHealthResponse.json();
-  const healthToken = healthCreated.token;
+  let healthToken = healthCreated.token;
   assert.ok(typeof healthToken === "string" && healthToken.length > 40, "Health setup did not issue a private credential");
   await page.getByRole("heading", { name: "Menunggu data pertama", exact: true }).waitFor();
   const expectNoHealthSecret = async (...tokens) => {
@@ -881,6 +881,74 @@ let child, browser;
     assert.equal([...store.values()].some((value) => tokens.some((token) => value.includes(token))), false, "raw Health credential persisted in the database");
   };
   await expectNoHealthSecret(healthToken);
+
+  const manualConfiguration = page.getByRole("textbox", { name: "Konfigurasi koneksi pribadi", exact: true });
+  const openShortcutLink = page.getByRole("link", { name: "Buka Shortcut", exact: true });
+  const shortcutNameInput = page.getByRole("textbox", { name: "Nama Shortcut di iPhone", exact: true });
+  assert.equal(await shortcutNameInput.inputValue(), "slothly-health-sync", "default Shortcut name does not match the installed filename");
+  await page.getByRole("button", { name: "Salin manual", exact: true }).click();
+  await manualConfiguration.waitFor();
+  const initialManualConfiguration = JSON.parse(await manualConfiguration.inputValue());
+  assert.equal(initialManualConfiguration.token, healthToken, "manual configuration did not contain the current connection");
+  assert.equal(initialManualConfiguration.endpoint, `${base}/api/health-sync`);
+  assert.equal(await openShortcutLink.count(), 0, "showing a configuration falsely marked it copied");
+
+  const reconnectForClipboardTest = async () => {
+    const management = page.locator("details").filter({ has: page.locator("summary").filter({ hasText: "Kelola koneksi" }) });
+    if (!(await management.evaluate((details) => details.open))) await management.locator("summary").click();
+    const response = page.waitForResponse((result) =>
+      result.url() === `${base}/api/health-connection` && result.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: "Sambungkan ulang", exact: true }).click();
+    const nextConnectionResponse = await response;
+    assert.equal(nextConnectionResponse.status(), 200, "could not replace the Health connection for clipboard recovery");
+    const nextConnection = await nextConnectionResponse.json();
+    assert.ok(nextConnection.token && nextConnection.token !== healthToken, "reconnecting did not replace the configuration");
+    await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Salin konfigurasi lebih dulu", exact: true }).waitFor();
+    healthToken = nextConnection.token;
+  };
+
+  await reconnectForClipboardTest();
+  assert.equal(await manualConfiguration.count(), 0, "reconnecting exposed the new private configuration before manual copy was requested");
+  await page.evaluate(() => {
+    navigator.clipboard.writeText = async () => { throw new DOMException("Clipboard denied by browser", "NotAllowedError"); };
+  });
+  await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).click();
+  await manualConfiguration.waitFor();
+  assert.equal(await openShortcutLink.count(), 0, "denied clipboard access falsely marked the configuration copied");
+  await page.getByRole("button", { name: "Pilih teks", exact: true }).click();
+  assert.equal(await manualConfiguration.evaluate((field) => field.selectionStart === 0 && field.selectionEnd === field.value.length), true, "manual configuration cannot be selected in full");
+  await page.getByRole("button", { name: "Sudah saya salin", exact: true }).click();
+  await openShortcutLink.waitFor();
+
+  await reconnectForClipboardTest();
+  await page.evaluate(() => {
+    navigator.clipboard.writeText = (text) => new Promise((resolve) => {
+      window.__resolveDelayedHealthClipboard = () => { window.__healthClipboard = text; resolve(); };
+    });
+  });
+  const clipboardHangStarted = Date.now();
+  await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).click();
+  await manualConfiguration.waitFor({ timeout: 4500 });
+  assert.ok(Date.now() - clipboardHangStarted < 4500, "a hanging Clipboard API left setup without a timely recovery");
+  assert.equal(JSON.parse(await manualConfiguration.inputValue()).token, healthToken, "clipboard recovery showed an outdated connection");
+  assert.equal(await openShortcutLink.count(), 0, "a hanging Clipboard API falsely marked the configuration copied");
+  await page.getByRole("button", { name: "Pilih teks", exact: true }).click();
+  await page.getByRole("button", { name: "Sudah saya salin", exact: true }).click();
+  await openShortcutLink.waitFor();
+
+  await reconnectForClipboardTest();
+  await page.evaluate(async () => {
+    window.__resolveDelayedHealthClipboard();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+  assert.equal(await openShortcutLink.count(), 0, "a late clipboard result unlocked a different connection");
+  assert.equal(await page.getByRole("button", { name: "Salin konfigurasi lebih dulu", exact: true }).isDisabled(), true);
+  await expectNoHealthSecret(healthToken);
+  await page.evaluate(() => {
+    navigator.clipboard.writeText = async (text) => { window.__healthClipboard = text; };
+  });
   await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).click();
   await page.getByRole("button", { name: "Disalin ✓", exact: true }).waitFor();
   const copiedHealthConfiguration = await page.evaluate(() => JSON.parse(window.__healthClipboard));
@@ -888,7 +956,13 @@ let child, browser;
   assert.ok(copiedHealthConfiguration.token === healthToken, "copied configuration did not match the fresh connection");
   const shortcutLink = await page.getByRole("link", { name: "Buka Shortcut", exact: true }).getAttribute("href");
   assert.ok(shortcutLink.startsWith("shortcuts://run-shortcut?") && shortcutLink.includes("input=clipboard"), "setup cannot pass the configuration to Shortcuts");
+  assert.equal(new URL(shortcutLink).searchParams.get("name"), "slothly-health-sync", "handoff cannot find the installed Shortcut name");
   assert.equal(shortcutLink.includes(healthToken), false, "Health credential was exposed in a URL");
+  const customShortcutName = "Slothly Health Sync Hafizna";
+  await shortcutNameInput.fill(customShortcutName);
+  const customShortcutLink = await openShortcutLink.getAttribute("href");
+  assert.equal(new URL(customShortcutLink).searchParams.get("name"), customShortcutName, "renaming the installed Shortcut does not update handoff");
+  assert.equal(customShortcutLink.includes(healthToken), false, "custom Shortcut name exposed the Health credential in a URL");
   await page.setViewportSize({ width: 320, height: 720 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Shortcut installation steps overflow at 320px");
   await page.setViewportSize({ width: 390, height: 844 });
@@ -958,6 +1032,9 @@ let child, browser;
   assert.equal(importedBody.snapshots.find((entry) => entry.date === importedFatDate).bodyFatPercent.value, 30.3, "Health body fat missing from shared body history");
   await page.reload();
   await page.getByRole("heading", { name: "Data sudah diterima", exact: true }).waitFor();
+  assert.equal(await shortcutNameInput.inputValue(), customShortcutName, "the installed Shortcut name was forgotten on reload");
+  const syncShortcutLink = await page.getByRole("link", { name: "Sinkronkan sekarang", exact: true }).getAttribute("href");
+  assert.equal(new URL(syncShortcutLink).searchParams.get("name"), customShortcutName, "subsequent sync uses a different Shortcut name");
   await expectNoHealthSecret(healthToken);
   assert.equal(await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).count(), 0, "reload recovered a credential that should exist only in memory");
   await page.setViewportSize({ width: 320, height: 720 });
@@ -999,7 +1076,7 @@ let child, browser;
     "Browser: PASS — third-user login, Rumah Kukang mobile/desktop, meal draft across mode/route/reload, photo corrections and override, reviewed recent meal, save/undo failure and retry, today failure/retry, scoped session draft without photos, calibration keep/apply/context/stale proposal/cooldown/Home target, Body Response 14/28/56-day selection and failure/retry, body comparison/check-in/deletion, keyboard navigation, Fitness/Weekly regression, empty/missing-height states, 320px/mobile/desktop layout, persisted motion toggle and OS reduced-motion, optional-name/athletic onboarding validation.",
   );
   console.log(
-    "Health connection: PASS — unauthenticated management denied, public signed Shortcut download, private configuration copy, test versus receipt status, historical timestamp/timezone preservation, independent weight/body-fat history, retry deduplication, secret-free status/reload/storage, 320px/light/dark layouts, rotation and revocation. Synthetic Redis REST and synthetic Health samples used; real Upstash/Gemini/HealthKit/device access not tested.",
+    "Health connection: PASS — unauthenticated management denied, public signed Shortcut download, private configuration copy, denied/hanging clipboard recovery and manual confirmation, stale clipboard completion after rotation, installed/custom Shortcut name handoff and persistence, test versus receipt status, historical timestamp/timezone preservation, independent weight/body-fat history, retry deduplication, secret-free status/reload/storage, 320px/light/dark layouts, rotation and revocation. Synthetic Redis REST, Clipboard API outcomes, and Health samples used; real Upstash/Gemini/HealthKit/device access not tested.",
   );
 })()
   .catch(async (error) => {
