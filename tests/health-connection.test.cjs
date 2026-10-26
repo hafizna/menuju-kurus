@@ -5,7 +5,9 @@ const { createHash } = require('node:crypto');
 
 const store = new Map();
 let failWrites = false;
+let failReads = false;
 let beforeEval = null;
+const storageFailure = () => new Error('synthetic storage failure: https://redis.invalid upstream-private-detail');
 const keys = {
   day: (user, date) => `mk:${user}:day:${date}`,
   settings: (user) => `mk:${user}:settings`,
@@ -18,10 +20,10 @@ const redisPath = require.resolve('../lib/redis');
 require.cache[redisPath] = { id: redisPath, filename: redisPath, loaded: true, exports: {
   keys,
   redis: {
-    async get(key) { return structuredClone(store.get(key) ?? null); },
-    async set(key, value) { if (failWrites) throw new Error('synthetic storage failure'); store.set(key, structuredClone(value)); return 'OK'; },
+    async get(key) { if (failReads) throw storageFailure(); return structuredClone(store.get(key) ?? null); },
+    async set(key, value) { if (failWrites) throw storageFailure(); store.set(key, structuredClone(value)); return 'OK'; },
     async eval(script, evalKeys, args) {
-      if (failWrites) throw new Error('synthetic storage failure');
+      if (failWrites) throw storageFailure();
       if (beforeEval) await beforeEval(evalKeys, args);
       for (let i = 0; i < evalKeys.length; i++) {
         if (!require('node:util').isDeepStrictEqual(store.get(evalKeys[i]) ?? null, JSON.parse(args[i]))) return 0;
@@ -48,7 +50,7 @@ const send = (body, token = 'legacy-health-3') => sync.POST(request('/api/health
 const sample = (metric, value, measuredAt) => ({ metric, value, measuredAt });
 
 beforeEach(() => {
-  store.clear(); failWrites = false; beforeEval = null;
+  store.clear(); failWrites = false; failReads = false; beforeEval = null;
   process.env.SESSION_SECRET = 'synthetic-health-session-secret';
   for (const n of [1, 2, 3, 4, 5]) {
     process.env[`USER${n}_INVITE_CODE`] = `health-invite-${n}`;
@@ -111,6 +113,54 @@ test('connection tests validate credentials without creating health measurements
   assert.equal((await send({ test: true }, 'invalid')).status, 401);
 });
 
+async function diagnostic(response, status, code) {
+  assert.equal(response.status, status);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.match(response.headers.get('content-type'), /application\/json/);
+  const errors = {
+    connection_invalid: 'Koneksi belum valid. Sambungkan ulang dari Slothly.',
+    request_invalid: 'Format permintaan belum sesuai. Perbarui Shortcut dari Slothly lalu coba lagi.',
+    storage_unavailable: 'Data belum dapat disimpan. Coba lagi sebentar.',
+  };
+  assert.deepEqual(await response.json(), { status: 'error', code, error: errors[code] });
+}
+
+test('missing, malformed, and invalid bearer credentials have the same sanitized diagnostic at either stage', async () => {
+  for (const body of [{ provider: 'apple_health', test: true }, { provider: 'apple_health', samples: [sample('weightKg', 81, '2026-09-01T06:00:00Z')] }]) {
+    for (const authorization of ['', 'Basic synthetic-private-token', 'Bearer synthetic-private-token']) {
+      await diagnostic(await sync.POST(request('/api/health-sync', 'POST', body, null, { authorization })), 401, 'connection_invalid');
+    }
+  }
+  assert.equal(store.size, 0);
+});
+
+test('connection tests require a JSON boolean and never accept number or text substitutes', async () => {
+  for (const testValue of [false, 0, 1, 'true', 'false', '1', {}, []]) {
+    await diagnostic(await send({ provider: 'apple_health', test: testValue }), 400, 'request_invalid');
+    assert.equal(store.size, 0);
+  }
+  for (const fields of [{ weightKg: 81 }, { samples: [] }]) {
+    await diagnostic(await send({ provider: 'apple_health', test: true, ...fields }), 400, 'request_invalid');
+    assert.equal(store.size, 0);
+  }
+  const response = await send({ provider: 'apple_health', test: true });
+  assert.deepEqual(await response.json(), { ok: true, status: 'tested', tested: true });
+  assert.deepEqual([...store.keys()], [keys.healthSyncStatus('u3')]);
+  assert.ok(store.get(keys.healthSyncStatus('u3')).lastTestAt);
+  assert.equal(store.get(keys.healthSyncStatus('u3')).lastSync, null);
+});
+
+test('invalid JSON and unsupported requests return safe request diagnostics without recording a test or import', async () => {
+  for (const body of [null, [], {}, { provider: 'health_connect', test: true }]) {
+    await diagnostic(await send(body), 400, 'request_invalid');
+  }
+  const malformed = new NextRequest('http://localhost/api/health-sync', {
+    method: 'POST', headers: { authorization: 'Bearer legacy-health-3', 'content-type': 'application/json' }, body: '{"private-payload":',
+  });
+  await diagnostic(await sync.POST(malformed), 400, 'request_invalid');
+  assert.equal(store.size, 0);
+});
+
 test('sample imports preserve independent original dates and timestamps and do not relabel old data as today', async () => {
   const { token } = await issue();
   const response = await send({ provider: 'apple_health', userId: 'u1', samples: [
@@ -150,12 +200,14 @@ test('invalid sample batches are rejected completely before any measurement writ
   const good = sample('weightKg', 81, '2026-09-01T06:00:00Z');
   const bad = [
     sample('weightKg', true, '2026-09-01T06:00:00Z'), sample('weightKg', '81', '2026-09-01T06:00:00Z'),
+    sample('weightKg', '81,2', '2026-09-01T06:00:00Z'), sample('weightKg', false, '2026-09-01T06:00:00Z'),
+    sample('weightKg', null, '2026-09-01T06:00:00Z'),
     sample('weightKg', 0, '2026-09-01T06:00:00Z'), sample('bodyFatPercent', 100, '2026-09-01T06:00:00Z'),
     sample('unknown', 70, '2026-09-01T06:00:00Z'), sample('weightKg', 81, '2026-02-30T06:00:00Z'),
     sample('weightKg', 81, '2026-09-01'), sample('weightKg', 81, new Date(Date.now() + 60_000).toISOString()), null,
   ];
   for (const invalid of bad) {
-    assert.equal((await send({ provider: 'apple_health', samples: [good, invalid] })).status, 400);
+    await diagnostic(await send({ provider: 'apple_health', samples: [good, invalid] }), 400, 'request_invalid');
     assert.equal(store.size, 0);
   }
   for (const samples of [[], Array(201).fill(good), 'wrong']) assert.equal((await send({ provider: 'apple_health', samples })).status, 400);
@@ -175,13 +227,33 @@ test('legacy partial and zero snapshots work; malformed fields do not save valid
 
 test('failed storage cannot mark data as received, and later connection tests preserve real receipt', async () => {
   failWrites = true;
-  await assert.rejects(send({ provider: 'apple_health', samples: [sample('weightKg', 81, '2026-09-01T06:00:00Z')] }), /synthetic storage failure/);
+  await diagnostic(await send({ provider: 'apple_health', samples: [sample('weightKg', 81, '2026-09-01T06:00:00Z')] }), 503, 'storage_unavailable');
   assert.equal(store.has(keys.healthSyncStatus('u3')), false);
   failWrites = false;
   await send({ weightKg: 81 });
   const receipt = (await getState()).lastSync;
   await send({ test: true, provider: 'apple_health' });
   assert.deepEqual((await getState()).lastSync, receipt);
+});
+
+test('storage read and test-write failures return only an allowlisted diagnostic and never a successful receipt', async () => {
+  failReads = true;
+  await diagnostic(await send({ provider: 'apple_health', test: true }), 503, 'storage_unavailable');
+  failReads = false; failWrites = true;
+  await diagnostic(await send({ provider: 'apple_health', test: true }), 503, 'storage_unavailable');
+  assert.equal(store.size, 0);
+});
+
+test('a later failed measurement write does not stamp a receipt for the partially processed batch', async () => {
+  await send({ provider: 'apple_health', samples: [sample('weightKg', 82, '2026-08-31T06:00:00Z')] });
+  const previousReceipt = structuredClone(store.get(keys.healthSyncStatus('u3')));
+  beforeEval = async (evalKeys) => { if (evalKeys.includes(keys.body('u3'))) throw storageFailure(); };
+  await diagnostic(await send({ provider: 'apple_health', samples: [
+    sample('weightKg', 81, '2026-09-01T06:00:00Z'), sample('bodyFatPercent', 24, '2026-09-01T06:00:00Z'),
+  ] }), 503, 'storage_unavailable');
+  assert.ok(store.get(keys.weight('u3')).some((entry) => entry.date === '2026-09-01'));
+  assert.equal(store.has(keys.body('u3')), false);
+  assert.deepEqual(store.get(keys.healthSyncStatus('u3')), previousReceipt);
 });
 
 // Pause immediately before an atomic write, after its snapshot was read. This
@@ -297,6 +369,10 @@ test('repeated storage conflicts fail after a bounded number of attempts instead
   await assert.rejects(upsertWeightEntry('u3', { date: '2026-09-01', weightKg: 81 }), /changed repeatedly/);
   assert.equal(conflicts, 8);
   assert.equal(store.get(keys.weight('u3')).some((entry) => entry.date === '2026-09-01'), false);
+  conflicts = 0;
+  await diagnostic(await send({ provider: 'apple_health', samples: [sample('weightKg', 81, '2026-09-01T06:00:00Z')] }), 503, 'storage_unavailable');
+  assert.equal(conflicts, 8);
+  assert.equal(store.has(keys.healthSyncStatus('u3')), false);
 });
 
 test('same-origin connection mutations work through the browser-facing host and HTTPS proxy', async () => {

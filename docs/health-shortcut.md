@@ -17,6 +17,10 @@ Subsequent **Sinkronkan sekarang** runs use the same selected Shortcut name with
 
 If Safari downloads the file instead of opening Shortcuts, open the downloaded `.shortcut` from Files and add it there. A direct file import is used; an iCloud share link is not required.
 
+### Update an installed v1 Shortcut
+
+Version 2 corrects the encoded JSON types in the connection test and measurement request. A website refresh cannot update an already installed Shortcut. Download the current file from Slothly, install it in Shortcuts, and replace the earlier copy if iOS offers that choice. Keep **Nama Shortcut di iPhone** equal to the installed name, then run setup again from Slothly. The introductory Comment action says **Slothly Health Sync v2**. The destination, configuration file location, and requested Health read permissions are unchanged.
+
 ## What is read and saved
 
 - Each metric is queried independently, sorted by its original **Start Date**, latest first, limited to one sample. The Shortcut sends one request containing whichever metrics exist. It does not relabel old measurements with today's date.
@@ -60,6 +64,10 @@ A configuration test requires response `status: "tested"`. It checks the connect
 
 Each sample keeps its own original timestamp, including offset. Format Date uses the built-in **ISO 8601** format with **Include Time** enabled. Before sending, the Shortcut checks that the result contains hours, minutes, seconds, and either `Z` or an explicit `±HH:MM` timezone; fractional seconds are also accepted. An incomplete timestamp stops the run before any measurement request. The API validates the complete body before writes. A sync requires `status: "ok"`; only `received > 0` is reported as newly saved data. `received: 0` with ignored samples is reported as already present or older than the saved record. Missing success status or network/API failure never produces the success message. No Health samples means no ingest request and a clear no-data message.
 
+For an API rejection, the alert identifies **Uji koneksi** or **Pengiriman pengukuran** and one safe code: `connection_invalid`, `request_invalid`, or `storage_unavailable`. Missing or unknown codes become `response_invalid`. Only locally defined explanations are shown; raw responses, tokens, configuration, and measurement values are never interpolated into failure alerts. A transport error raised by Apple's URL action may instead appear as the system's own error.
+
+The underlying plist types follow actual exported Apple Shortcuts: `WFItemType` **0 = Text, 1 = Dictionary, 2 = Array, 3 = Number, 4 = Boolean**. Nested dictionary row values need two `WFDictionaryFieldValue` envelopes; Number rows hold `WFTextTokenString` values; Boolean rows use `WFNumberSubstitutableState` with `Value: 1` or `0`. In particular, the POST test must decode to JSON boolean `true`, and each sample value to a JSON number. Some prose schema references reverse Number/Dictionary codes; the exported XML fixtures linked below are the grounding source for these values.
+
 ## Build and validate
 
 The generator uses only the Python 3 standard library and deterministic UUIDs:
@@ -70,7 +78,7 @@ python scripts/health-shortcut-test.py
 python scripts/health-shortcut.py --check
 ```
 
-The fixture suite executes the generated plist's branches with synthetic Health values and API responses. It checks weight conversion, independent measurement dates, one combined request, either metric alone, no-data, bad destinations, rejected requests, and unchanged results. Structural validation checks action references, control-flow groups, text attachment offsets, and absence of Health-writing actions.
+The fixture suite executes the generated plist's branches with synthetic Health values and API responses. An independent strict wire decoder is grounded in minimal actual exported XML rows for Number, Boolean, and nested Dictionary, with source links and the original MIT notice in the test file. It rejects the earlier swapped Number/Dictionary codes, bare Boolean value, and missing nested Dictionary wrapper. It also checks resolved authorization headers, typed JSON values, weight conversion, independent measurement dates, one combined request, either metric alone, no-data, bad destinations, safe staged failures, and unchanged results. Structural validation checks action references, control-flow groups, text attachment offsets, and absence of Health-writing actions. The decoder is a format regression check, not Apple's runtime.
 
 To rebuild the installable artifact after a workflow change:
 
@@ -93,3 +101,4 @@ The manifest records the signed/unsigned SHA-256 hashes, generator hash (normali
 - [Apple: signed Shortcut command-line exports](https://support.apple.com/guide/shortcuts-mac/run-shortcuts-from-the-command-line-apd455c82f02/mac).
 - [Shortcuty signing API documentation](https://github.com/Shortcuty/Signing-Server-API-Documentation).
 - [Observed iOS Health action schemas, MacStories Shortcuts Playground](https://github.com/viticci/shortcuts-playground-plugin/blob/main/codex/skills/shortcuts-playground/HEALTHKIT.md), published under MIT; used as a schema reference, with no runtime dependency or copied program implementation.
+- Actual exported XML schema fixtures, MacStories Shortcuts Playground (MIT, copyright 2026 Federico Viticci / MacStories): [Number row](https://github.com/viticci/shortcuts-playground-plugin/blob/main/claude/skills/shortcuts-playground/golden-shortcuts/xml/2e0fb675e45948aaacee7e534f910492.xml), [Boolean row](https://github.com/viticci/shortcuts-playground-plugin/blob/main/claude/skills/shortcuts-playground/golden-shortcuts/xml/3dd4ee24e43f464f92adaa70a0311eaa.xml), [nested JSON Dictionary row](https://github.com/viticci/shortcuts-playground-plugin/blob/main/claude/skills/shortcuts-playground/golden-shortcuts/xml/ef669bcf8bad489d9ef4b88bfaf5772f.xml). Minimal retained schema rows and their license notice are included in `scripts/health-shortcut-test.py`.

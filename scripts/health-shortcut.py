@@ -65,6 +65,18 @@ def dictionary(items):
     return {"Value": {"WFDictionaryFieldValueItems": items}, "WFSerializationType": "WFDictionaryFieldValue"}
 
 
+def dictionary_item(items):
+    # A nested dictionary's WFValue has an extra field-value envelope in
+    # Apple's exported plists. WFItemType 1 is Dictionary; 3 is Number.
+    return {"WFItemType": 1, "WFValue": {
+        "Value": dictionary(items), "WFSerializationType": "WFDictionaryFieldValue"}}
+
+
+def boolean(value):
+    # Exported Dictionary boolean rows use a numeric substitutable state.
+    return {"Value": int(value), "WFSerializationType": "WFNumberSubstitutableState"}
+
+
 class Workflow:
     def __init__(self):
         self.actions = []
@@ -115,7 +127,22 @@ class Workflow:
         self.begin(label + "-valid", status, 4, WFConditionalActionString=expected_status)
         self.add("nothing", label + "-accepted")
         self.otherwise(label + "-valid")
-        self.stop(label + "-failed", "Data belum terkirim. Periksa koneksi atau sambungkan ulang di Slothly → Profil → Data kesehatan → Hubungkan Apple Health.")
+        code = self.key(label + "-error-code", "code", response)
+        self.set("FailureCode", "response_invalid", label + "-default-error-code")
+        self.set("FailureHelp", "Balasan server belum dapat dikenali. Periksa koneksi lalu coba lagi.", label + "-default-error-help")
+        errors = {
+            "connection_invalid": "Koneksi sudah tidak berlaku. Sambungkan ulang dari Slothly → Profil → Data kesehatan → Hubungkan Apple Health.",
+            "request_invalid": "Permintaan belum dapat dibaca. Pasang ulang Shortcut versi terbaru dari Slothly → Profil → Data kesehatan → Hubungkan Apple Health.",
+            "storage_unavailable": "Penyimpanan sedang tidak tersedia. Coba lagi beberapa saat.",
+        }
+        for error_code, help_text in errors.items():
+            error_label = label + "-" + error_code
+            self.begin(error_label, code, 4, WFConditionalActionString=error_code)
+            self.set("FailureCode", error_code, error_label + "-code")
+            self.set("FailureHelp", help_text, error_label + "-help")
+            self.end(error_label)
+        stage = "Uji koneksi" if label == "test-connection" else "Pengiriman pengukuran"
+        self.stop(label + "-failed", text(stage, " gagal (", variable("FailureCode"), "). ", variable("FailureHelp")))
         self.end(label + "-valid")
         return response
 
@@ -183,10 +210,11 @@ class Workflow:
     def send_samples(self, label, metrics):
         items = []
         for metric in metrics:
-            sample = dictionary([field("metric", 0, text(metric)),
-                                field("value", 1, text(variable(metric + "Value"))),
-                                field("measuredAt", 0, text(variable(metric + "Date")))])
-            items.append({"WFItemType": 3, "WFValue": sample})
+            items.append(dictionary_item([
+                field("metric", 0, text(metric)),
+                field("value", 3, text(variable(metric + "Value"))),
+                field("measuredAt", 0, text(variable(metric + "Date"))),
+            ]))
         response = self.post(label, dictionary([
             field("provider", 0, text("apple_health")),
             field("samples", 2, {"Value": items, "WFSerializationType": "WFArrayParameterState"}),
@@ -196,14 +224,14 @@ class Workflow:
 
 def build():
     w = Workflow()
-    w.add("comment", "intro", WFCommentActionText="Slothly Health Sync v1. Membaca berat dan persentase lemak terbaru beserta tanggal pengukuran aslinya. Tidak menulis data ke Apple Health. Konfigurasi disimpan di folder Shortcuts/Slothly/connection.json; folder ini dapat tersinkron lewat iCloud sesuai pengaturan perangkat. Jangan bagikan berkas konfigurasi tersebut.")
+    w.add("comment", "intro", WFCommentActionText="Slothly Health Sync v2. Membaca berat dan persentase lemak terbaru beserta tanggal pengukuran aslinya. Tidak menulis data ke Apple Health. Konfigurasi disimpan di folder Shortcuts/Slothly/connection.json; folder ini dapat tersinkron lewat iCloud sesuai pengaturan perangkat. Jangan bagikan berkas konfigurasi tersebut.")
     incoming = attachment({"Type": "ExtensionInput"})
     w.begin("received-config", incoming)
     # Get Text creates an explicit string to save, rather than persisting Shortcut Input attachments.
     config_text = w.add("gettext", "config-json", WFTextActionText=text(incoming))
     w.config("new-config", config_text)
     w.alert("confirm-destination", text("Hubungkan Apple Health ke:\n", variable("Endpoint"), "\n\nHanya berat dan persentase lemak terbaru yang dibaca. Konfigurasi disimpan di folder Shortcuts/Slothly; folder ini dapat tersinkron lewat iCloud. Lanjutkan hanya jika alamatnya sesuai app Slothly milikmu."), cancel=True)
-    w.post("test-connection", dictionary([field("provider", 0, text("apple_health")), field("test", 4, True)]), expected_status="tested")
+    w.post("test-connection", dictionary([field("provider", 0, text("apple_health")), field("test", 4, boolean(True))]), expected_status="tested")
     w.add("file.createfolder", "create-config-folder", WFFilePath="Slothly", WFFolder=SHORTCUTS_FOLDER)
     named = w.add("setitemname", "name-config-file", WFInput=config_text, WFName="connection.json", WFDontIncludeFileExtension=False)
     w.add("documentpicker.save", "save-config", WFInput=named, WFFolder=SHORTCUTS_FOLDER,
@@ -338,7 +366,7 @@ def main():
     if reported_input:
         assert reported_input == sha(unsigned), "Signing service signed different input"
     signed_path.write_bytes(signed)
-    manifest_path.write_text(json.dumps({"name": NAME, "version": 1, "actions": len(workflow["WFWorkflowActions"]),
+    manifest_path.write_text(json.dumps({"name": NAME, "version": 2, "actions": len(workflow["WFWorkflowActions"]),
         "installPath": "/shortcuts/slothly-health-sync.shortcut", "signingFormat": "AEA1", "signingMode": "anyone",
         "signingService": args.signing_server, "unsignedSha256": sha(unsigned), "signedSha256": sha(signed),
         "generatorSha256": generator_sha(),

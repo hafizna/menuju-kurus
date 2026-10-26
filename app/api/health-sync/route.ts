@@ -17,6 +17,15 @@ const ranges: Record<Metric, [number, number]> = {
 const json = (body: unknown, status = 200) => NextResponse.json(body, {
   status, headers: { "Cache-Control": "no-store" },
 });
+const failures = {
+  connection_invalid: { status: 401, error: "Koneksi belum valid. Sambungkan ulang dari Slothly." },
+  request_invalid: { status: 400, error: "Format permintaan belum sesuai. Perbarui Shortcut dari Slothly lalu coba lagi." },
+  storage_unavailable: { status: 503, error: "Data belum dapat disimpan. Coba lagi sebentar." },
+} as const;
+function failure(code: keyof typeof failures) {
+  const { status, error } = failures[code];
+  return json({ status: "error", code, error }, status);
+}
 
 function parseNumber(value: unknown): number | null {
   if (typeof value !== "number" && (typeof value !== "string" || !/^-?\d+(?:\.\d+)?$/.test(value.trim()))) return null;
@@ -35,16 +44,26 @@ function validTimestamp(value: unknown): value is string {
 // The browser never reads HealthKit. A user-authorized Shortcut sends samples
 // with original measurement timestamps to this bearer-authenticated endpoint.
 export async function POST(req: NextRequest) {
+  try {
+    return await receive(req);
+  } catch {
+    // Storage failures must stay readable by Shortcuts without exposing tokens,
+    // measurement values, Redis details, or an upstream exception message.
+    return failure("storage_unavailable");
+  }
+}
+
+async function receive(req: NextRequest) {
   const authorization = req.headers.get("authorization") ?? "";
   const token = /^Bearer\s+(\S+)$/i.exec(authorization)?.[1];
   const user = token ? await findHealthSyncUser(token) : null;
-  if (!user) return json({ error: "Unauthorized" }, 401);
+  if (!user) return failure("connection_invalid");
 
   const body = await req.json().catch(() => null);
-  if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "Invalid JSON body" }, 400);
-  if (body.provider !== undefined && body.provider !== "apple_health") return json({ error: "Unsupported provider" }, 400);
+  if (!body || typeof body !== "object" || Array.isArray(body)) return failure("request_invalid");
+  if (body.provider !== undefined && body.provider !== "apple_health") return failure("request_invalid");
   if (body.test !== undefined) {
-    if (body.test !== true || body.samples !== undefined || METRICS.some((metric) => body[metric] !== undefined)) return json({ error: "A connection test cannot contain measurements" }, 400);
+    if (body.test !== true || body.samples !== undefined || METRICS.some((metric) => body[metric] !== undefined)) return failure("request_invalid");
     await recordHealthTest(user.id);
     return json({ ok: true, status: "tested", tested: true });
   }
@@ -53,31 +72,31 @@ export async function POST(req: NextRequest) {
   const today = todayKey(settings.timezone);
   const samples: Sample[] = [];
   if (body.samples !== undefined) {
-    if (body.provider !== "apple_health" || !Array.isArray(body.samples) || !body.samples.length || body.samples.length > 200) return json({ error: "Send 1–200 Apple Health samples" }, 400);
+    if (body.provider !== "apple_health" || !Array.isArray(body.samples) || !body.samples.length || body.samples.length > 200) return failure("request_invalid");
     for (const sample of body.samples) {
       if (!sample || typeof sample !== "object" || Array.isArray(sample) ||
         !["weightKg", "bodyFatPercent"].includes(sample.metric) ||
-        typeof sample.value !== "number" || !Number.isFinite(sample.value) || !validTimestamp(sample.measuredAt)) return json({ error: "Each sample needs a supported metric, numeric value, and original measurement timestamp" }, 400);
+        typeof sample.value !== "number" || !Number.isFinite(sample.value) || !validTimestamp(sample.measuredAt)) return failure("request_invalid");
       const metric = sample.metric as Metric;
       const [min, max] = ranges[metric];
-      if (sample.value < min || sample.value > max) return json({ error: `Invalid ${metric}` }, 400);
+      if (sample.value < min || sample.value > max) return failure("request_invalid");
       const measuredAt = new Date(sample.measuredAt).toISOString();
       const date = dateKeyFor(new Date(measuredAt), settings.timezone);
-      if (!validMeasurementDate(date, today)) return json({ error: "Invalid measurement date" }, 400);
+      if (!validMeasurementDate(date, today)) return failure("request_invalid");
       samples.push({ metric, value: sample.value, measuredAt, date });
     }
   } else {
     // Keep installed, environment-token Shortcuts working while users migrate.
     const date = body.date === undefined ? today : body.date;
-    if (!validMeasurementDate(date, today)) return json({ error: "Invalid measurement date" }, 400);
+    if (!validMeasurementDate(date, today)) return failure("request_invalid");
     for (const metric of METRICS) {
       if (body[metric] === undefined || body[metric] === null || body[metric] === "") continue;
       const value = parseNumber(body[metric]);
       const [min, max] = ranges[metric];
-      if (value === null || value < min || value > max) return json({ error: `Invalid ${metric}` }, 400);
+      if (value === null || value < min || value > max) return failure("request_invalid");
       samples.push({ metric, value, date, measuredAt: new Date().toISOString() });
     }
-    if (!samples.length) return json({ error: "Provide at least one measurement" }, 400);
+    if (!samples.length) return failure("request_invalid");
   }
 
   // One reading per metric/day. Collapse a batch to its latest sample before
