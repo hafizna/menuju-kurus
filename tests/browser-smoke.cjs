@@ -892,6 +892,14 @@ let child, browser;
   };
   await expectNoHealthSecret(healthToken);
 
+  // Hand-built Shortcuts need the bare token for the Authorization header, not the JSON configuration.
+  await page.getByRole("heading", { name: "Buat Shortcut sendiri (±5 menit)", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Salin token saja", exact: true }).click();
+  await page.getByRole("button", { name: "Token disalin ✓", exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => window.__healthClipboard), healthToken, "the bare token was not copied");
+  await page.evaluate(() => { window.__healthClipboard = undefined; });
+  await expectNoHealthSecret(healthToken);
+
   const manualConfiguration = page.getByRole("textbox", { name: "Konfigurasi koneksi pribadi", exact: true });
   const openShortcutLink = page.getByRole("link", { name: "Buka Shortcut", exact: true });
   const shortcutNameInput = page.getByRole("textbox", { name: "Nama Shortcut di iPhone", exact: true });

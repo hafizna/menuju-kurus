@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import ManualShortcutGuide from "@/components/health/ManualShortcutGuide";
 
 type ConnectionState = {
   configured: boolean;
@@ -40,6 +41,8 @@ export default function HealthConnectionPage() {
   const [copied, setCopied] = useState(false);
   const [copying, setCopying] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
+  const [showToken, setShowToken] = useState(false);
   const [shortcutName, setShortcutName] = useState(defaultShortcutName);
   const [origin, setOrigin] = useState("");
   const [message, setMessage] = useState("");
@@ -89,6 +92,7 @@ export default function HealthConnectionPage() {
     mutationVersion.current++; mutating.current = true;
     copyAttempt.current++;
     setBusy(true); setError(""); setMessage(""); setToken(""); setCopied(false); setCopying(false); setShowConfig(false);
+    setTokenCopied(false); setShowToken(false);
     try {
       const response = await fetch("/api/health-connection", { method: "POST" });
       if (!response.ok) throw new Error("Koneksi belum dapat disiapkan. Coba lagi.");
@@ -110,7 +114,7 @@ export default function HealthConnectionPage() {
       if (!response.ok) throw new Error("Koneksi belum dapat diputus. Coba lagi.");
       const data: ConnectionState = await response.json();
       setState(data);
-      setToken(""); setCopied(false); setShowConfig(false);
+      setToken(""); setCopied(false); setShowConfig(false); setTokenCopied(false); setShowToken(false);
       setMessage("Koneksi diputus. Hasil pengukuran yang sudah masuk tetap tersimpan.");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Koneksi belum dapat diputus."); }
     finally { mutating.current = false; setBusy(false); }
@@ -135,6 +139,21 @@ export default function HealthConnectionPage() {
   function confirmManualCopy() {
     copyAttempt.current++; setCopying(false); setCopied(true);
     setMessage("Lanjutkan dengan Buka Shortcut untuk menyambungkan konfigurasi yang kamu salin.");
+  }
+
+  // For hand-built Shortcuts the header needs the bare token, not the JSON configuration.
+  async function copyTokenOnly() {
+    if (!token) return;
+    setError("");
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(token);
+      setTokenCopied(true); setShowToken(false);
+      setMessage("Token disalin. Tempel setelah “Bearer ” di header Authorization.");
+    } catch {
+      setTokenCopied(false); setShowToken(true);
+      setMessage("Browser belum menyalin token. Pilih teks token di bawah, lalu gunakan Salin dari menu iPhone.");
+    }
   }
 
   function changeShortcutName(value: string) {
@@ -182,7 +201,7 @@ export default function HealthConnectionPage() {
       <header>
         <p className="text-xs font-medium uppercase tracking-wide text-brand-700 dark:text-brand-300">Data kesehatan · iPhone</p>
         <h1 className="mt-1 text-2xl font-bold">Hubungkan Apple Health</h1>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Ambil berat badan, persentase lemak, VO₂ max, dan detak jantung istirahat dari Apple Health melalui Shortcut di iPhone. Pilih data yang ingin dibaca setiap kali menjalankannya.</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Ambil berat badan, persentase lemak, VO₂ max, dan detak jantung istirahat dari Apple Health melalui Shortcut di iPhone. Pilih data yang ingin dibaca setiap kali menjalankannya. Bila Shortcut unduhan gagal, buat Shortcut sendiri dengan panduan di bawah.</p>
       </header>
 
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
@@ -225,6 +244,20 @@ export default function HealthConnectionPage() {
         <input id="health-shortcut-name" value={shortcutName} maxLength={80} autoComplete="off" spellCheck={false} onChange={event => changeShortcutName(event.target.value)} onBlur={() => { if (!shortcutName.trim()) changeShortcutName(defaultShortcutName); }} className="mt-2 w-full rounded-xl border border-neutral-300 px-3 py-3 text-sm dark:border-neutral-700 dark:bg-neutral-800" />
         <p className="mt-2 text-xs leading-relaxed text-neutral-500">Samakan dengan nama yang terlihat di aplikasi Shortcuts. File unduhan biasanya terpasang dengan nama “slothly-health-sync”.</p>
       </section>
+
+      {token && (
+        <section className={`${card} space-y-3`} aria-label="Token untuk Shortcut buatan sendiri">
+          <h2 className="font-semibold">Token untuk Shortcut buatan sendiri</h2>
+          <p className="text-sm text-neutral-500">Salin token saja, tanpa tanda kurung atau kutip. Token hanya tampil sekali di halaman ini.</p>
+          <button type="button" onClick={() => void copyTokenOnly()} className={secondary}>{tokenCopied ? "Token disalin ✓" : "Salin token saja"}</button>
+          {showToken && (
+            <textarea readOnly aria-label="Token koneksi" value={token} onFocus={event => event.target.select()}
+              className="min-h-20 w-full rounded-xl border border-neutral-300 p-3 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-800" />
+          )}
+        </section>
+      )}
+
+      <ManualShortcutGuide endpoint={`${origin}/api/health-sync`} />
 
       {token && (
         <section className={`${card} space-y-5`} aria-label="Pemasangan Shortcut">

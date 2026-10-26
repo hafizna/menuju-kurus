@@ -16,11 +16,11 @@ Tampilan **Rumah Kukang** memakai ilustrasi kanopi dan maskot SVG orisinal, deng
 3. **Weight Intelligence.** Log berat, rata-rata 7/14 hari, weekly rate, grafik, target berat, dan ETA menuju target.
 4. **Health Score & Weekly Budget.** Menggabungkan kalori, protein, tren berat, aktivitas, dan konsistensi.
 5. **Personal Adaptive Coach & Recovery Mode.** Meranking fokus berikutnya dari status hari ini, budget mingguan, tren berat, pola 28 hari, dan konteks lapar/craving/makan di luar—tanpa puasa kompensasi atau olahraga sebagai hukuman.
-6. **Fitness Intelligence.** Goal profile `weight_loss`, `very_lean`, `athletic`, atau `muscle_gain`, disertai VO₂ max, resting heart rate, cardio minutes, strength days, goal score, dan recap AI opsional.
+6. **Fitness Intelligence.** Goal profile `weight_loss`, `very_lean`, `athletic`, atau `muscle_gain`, disertai VO₂ max, resting heart rate, cardio minutes, strength days, goal score, dan recap AI opsional. Dari riwayat Apple Health, tab Fitness juga membaca komposisi tubuh (massa lemak dan massa bebas lemak, estimasi), tren detak istirahat dan VO₂ max, serta kesegaran datanya; lihat [kebijakan](docs/body-response-data-policy.md#komposisi-tubuh-dan-tren-fitness).
 7. **Nutrition Intelligence / Satiety Intelligence.** Menjawab “apa keputusan makan terbaik saat ini?” berdasarkan sisa kalori, sisa protein, goal, craving, objective, dan bahan yang tersedia.
 8. **Restaurant Intelligence.** Cari menu Indonesia tanpa foto, lihat asumsi porsi dan ranking kontekstual, lalu simpan sebagai estimasi manual.
 9. **Habit Intelligence.** Pelajari menu berulang dan waktu makan dalam rolling 28 hari, lalu quick add dari rata-rata catatan pengguna sendiri.
-10. **AI recap manual.** Gemini (foto makanan) dan DeepSeek (recap teks) hanya dipanggil saat user menekan tombol, agar penggunaan tetap terkontrol.
+10. **AI recap manual.** Gemini (foto makanan dan, secara default, recap teks) hanya dipanggil saat user menekan tombol, agar penggunaan tetap terkontrol. Tanpa kunci AI sama sekali, recap memakai template gratis.
 11. **Hingga lima user terpisah.** Satu deployment dapat dipakai hingga lima orang, masing-masing dengan login sendiri (kode undangan dari admin + PIN 6 digit buatan sendiri), settings, Redis keys, dan Health Sync token terpisah.
 
 ## Navigasi
@@ -109,27 +109,29 @@ AI (Gemini maupun DeepSeek) tidak menjadi sumber logika utama. Engine lokal meng
 
 ## Dua provider AI, dua peran berbeda
 
-Gemini dan DeepSeek **tidak saling menggantikan** — dipakai untuk hal yang berbeda:
+Gemini adalah provider utama; DeepSeek hanya cadangan opsional (berbayar, tidak diperlukan):
 
-- **Gemini**: satu-satunya yang punya model vision, jadi khusus dipakai untuk analisa foto makanan (`lib/gemini.ts`). DeepSeek tidak punya model vision publik sampai saat ini, jadi tidak bisa menggantikan peran ini.
-- **DeepSeek**: dipakai untuk 3 panggilan teks-only yang sebelumnya pakai Gemini juga — weekly summary (`lib/weeklySummaryAi.ts`), fitness recap (`lib/fitnessSummaryAi.ts`), satiety recap (`lib/satietyAi.ts`). Cost per token jauh lebih murah dan cukup untuk tugas ringkasan/rekomendasi seperti ini.
+- **Gemini**: satu-satunya yang punya model vision, jadi dipakai untuk analisa foto makanan (`lib/gemini.ts`). Free tier Google AI Studio sudah cukup, tanpa kredit. Secara default Gemini juga menjalankan 3 panggilan teks-only: weekly summary (`lib/weeklySummaryAi.ts`), fitness recap (`lib/fitnessSummaryAi.ts`), dan satiety recap (`lib/satietyAi.ts`).
+- **DeepSeek**: cadangan opsional untuk 3 panggilan teks-only di atas (prepaid, tidak punya model vision). Dipakai hanya bila `GEMINI_API_KEY` kosong atau `TEXT_AI_PROVIDER=deepseek`.
 
 Konsekuensi teknis: DeepSeek tidak punya constraint `responseSchema` seketat Gemini (cuma jaminan "valid JSON", bukan jaminan bentuk field tertentu), jadi `lib/deepseekClient.ts` menambahkan instruksi bentuk JSON eksplisit di system prompt sebagai gantinya.
 
+Pemilihan provider recap teks ada di `lib/textAi.ts`: Gemini bila `GEMINI_API_KEY` terisi (free tier Google AI Studio, tanpa kredit; batasnya per proyek dan dilihat di konsol AI Studio), DeepSeek bila hanya itu yang terisi, dan `TEXT_AI_PROVIDER` bisa memaksa salah satunya. Prompt recap fitness dan mingguan menerima `signals` hasil hitung server (komposisi tubuh, tren detak istirahat dan VO₂ max) sehingga model menjelaskan angka yang sudah ada dan tidak menghitung sendiri. Pada free tier Google dapat memakai prompt untuk meningkatkan produknya; isi prompt memuat angka tubuh dan kebugaran tetapi tanpa nama atau identitas akun.
+
 Semua panggilan AI (baik Gemini maupun DeepSeek) tetap manual — hanya jalan saat tombol "Buat recap"/"Buat ringkasan" ditekan, bukan otomatis saat halaman dibuka.
 
-### DeepSeek opsional: fallback template tanpa biaya
+### Tanpa kunci AI: fallback template tanpa biaya
 
-`DEEPSEEK_API_KEY` boleh dikosongkan sepenuhnya — cocok untuk fase testing dengan
-user non-paying. Tanpa key, `lib/weeklySummaryAi.ts`, `lib/fitnessSummaryAi.ts`,
+Kunci AI untuk recap teks boleh kosong sepenuhnya — cocok untuk fase testing dengan
+user non-paying. Tanpa `GEMINI_API_KEY` dan `DEEPSEEK_API_KEY`, `lib/weeklySummaryAi.ts`, `lib/fitnessSummaryAi.ts`,
 dan `lib/satietyAi.ts` otomatis memakai fallback template deterministik:
 kalimat dirangkai dari angka/data yang sudah dihitung engine lokal (bukan
 dari model AI sama sekali), jadi tombol "Buat recap" tetap berfungsi dan
 nggak ada biaya sama sekali. UI menandai hasil ini sebagai "Ringkasan
 Otomatis"/"Recap Otomatis" (bukan "AI") supaya jelas bedanya. Begitu
-`DEEPSEEK_API_KEY` diisi, ketiga fitur otomatis pindah ke DeepSeek beneran
-tanpa perlu ubah kode. Foto makanan tidak terpengaruh sama sekali — itu
-selalu lewat Gemini, independen dari toggle ini.
+`GEMINI_API_KEY` (atau `DEEPSEEK_API_KEY`) tersedia, ketiga fitur otomatis pindah
+ke model beneran tanpa perlu ubah kode. Foto makanan selalu lewat Gemini dan
+membutuhkan `GEMINI_API_KEY`.
 
 ## Login: kode undangan + PIN
 
@@ -157,9 +159,10 @@ Mencabut akses = kosongkan `USERn_INVITE_CODE` lalu redeploy (sesi lama otomatis
 | `USER3_NAME` .. `USER5_NAME` | nama user ke-3/4/5, opsional |
 | `USER3_INVITE_CODE` .. `USER5_INVITE_CODE` | mengaktifkan slot user ke-3/4/5, opsional |
 | `USER3_HEALTH_SYNC_TOKEN` .. `USER5_HEALTH_SYNC_TOKEN` | token Apple Shortcuts user ke-3/4/5, opsional |
-| `GEMINI_API_KEY` | API key dari Google AI Studio — wajib untuk foto makanan |
+| `GEMINI_API_KEY` | API key dari Google AI Studio (free tier, tanpa kredit) — wajib untuk foto makanan, dan otomatis dipakai juga untuk recap teks |
 | `GEMINI_MODEL` | opsional, default `gemini-2.5-flash` |
-| `DEEPSEEK_API_KEY` | API key dari platform.deepseek.com (prepaid), opsional — tanpa ini, 3 fitur recap teks tetap jalan pakai template deterministik gratis (lihat bawah), bukan error |
+| `DEEPSEEK_API_KEY` | API key dari platform.deepseek.com (prepaid), opsional dan tidak diperlukan — dipakai untuk recap teks hanya bila `GEMINI_API_KEY` kosong atau `TEXT_AI_PROVIDER=deepseek` |
+| `TEXT_AI_PROVIDER` | opsional, `gemini` atau `deepseek`; memaksa provider recap teks bila kedua kunci ada. Default: Gemini lebih dulu |
 | `DEEPSEEK_MODEL` | opsional, default `deepseek-chat` |
 | `UPSTASH_REDIS_REST_URL` | URL Redis dari Upstash/Vercel |
 | `UPSTASH_REDIS_REST_TOKEN` | token Redis dari Upstash/Vercel |
@@ -218,6 +221,15 @@ penyalinan konfigurasi, pemeriksaan data terakhir diterima, dan pemutusan akses.
 Pemasangan pertama dilakukan di iPhone; persetujuan membaca Apple Health tetap
 diberikan pengguna di Shortcuts.
 
+**Cara yang disarankan bila Shortcut unduhan gagal:** buat Shortcut sendiri di iPhone
+dengan [panduan Shortcut buatan sendiri](docs/health-shortcut-manual.md), juga tersedia
+di halaman yang sama di app beserta tombol **Salin token saja**. Berat dari AFit lewat
+Apple Health sudah berhasil dikirim dengan cara ini. Server menerima bentuk datar
+`{"provider":"apple_health","measuredAt":"…","weightKg":93.4,"bodyFatPercent":28.1}`;
+dengan `provider`, `vo2Max` dan `restingHeartRate` tersimpan sebagai data Apple Health
+beserta riwayat harian untuk tren di tab Fitness. Tanpa `provider`, bentuk lama
+(profil) tetap berlaku.
+
 Shortcut **Slothly Health Sync v5** mengambil **berat badan, persentase lemak,
 VO₂ max, dan detak jantung istirahat terbaru** dengan tanggal pengukuran asli,
 lalu mengirimkannya ke Slothly. Setiap kali berjalan, pengguna memilih satu atau
@@ -232,7 +244,8 @@ Permintaan modern memakai `{provider:"apple_health",samples:[{metric,value,measu
 dengan empat nama metrik: `weightKg`, `bodyFatPercent`, `vo2Max`, dan
 `restingHeartRate`. VO₂ max dan detak jantung istirahat disimpan terpisah dari
 isian Profil bersama sumber dan waktu aslinya. Perjalanan → Fitness menampilkan
-pengukuran terbaru tiap metrik; ini belum berupa riwayat atau grafik VO₂ max.
+pengukuran terbaru tiap metrik beserta tren dibanding baseline bila riwayat harian
+cukup (tersimpan hanya dari permintaan ber-`provider`); grafik VO₂ max belum ada.
 Pengukuran lama tidak menimpa yang lebih baru. Isian Profil menjadi cadangan jika
 belum ada pengukuran impor. Langkah, tidur, dan energi aktivitas belum dibaca v5.
 

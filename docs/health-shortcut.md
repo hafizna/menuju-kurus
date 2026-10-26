@@ -1,5 +1,7 @@
 # Apple Health → Slothly
 
+> Jika Shortcut unduhan ini gagal membaca data di iPhone-mu, pakai [Shortcut buatan sendiri](health-shortcut-manual.md): lebih sedikit bagian yang bisa rusak, dan berat dari AFit sudah berhasil dikirim dengan cara itu.
+
 Slothly's web app cannot read HealthKit directly. The included **Slothly Health Sync v5** Apple Shortcut offers weight, body fat percentage, VO2 max, and resting heart rate on the iPhone. It reads only the types selected for that run, with permission, and sends each selected type's latest available measurement to the connected Slothly account. AFit, Apple Watch, or another source is responsible for putting its measurements into Apple Health first. Missing measurements are not calculated or replaced with zero.
 
 ## Connect on iPhone
