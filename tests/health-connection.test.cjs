@@ -15,6 +15,7 @@ const keys = {
   weight: (user) => `mk:${user}:weight`,
   healthConnection: (user) => `mk:${user}:healthConnection`,
   healthSyncStatus: (user) => `mk:${user}:healthSyncStatus`,
+  fitnessMeasurements: (user) => `mk:${user}:fitnessMeasurements`,
 };
 const redisPath = require.resolve('../lib/redis');
 require.cache[redisPath] = { id: redisPath, filename: redisPath, loaded: true, exports: {
@@ -35,6 +36,7 @@ require.cache[redisPath] = { id: redisPath, filename: redisPath, loaded: true, e
 } };
 const connection = require('../app/api/health-connection/route');
 const sync = require('../app/api/health-sync/route');
+const fitness = require('../app/api/fitness-intelligence/route');
 const { findHealthSyncUser } = require('../lib/healthConnection');
 const { middleware } = require('../middleware');
 
@@ -51,6 +53,7 @@ const sample = (metric, value, measuredAt) => ({ metric, value, measuredAt });
 
 beforeEach(() => {
   store.clear(); failWrites = false; failReads = false; beforeEval = null;
+  delete process.env.DEEPSEEK_API_KEY;
   process.env.SESSION_SECRET = 'synthetic-health-session-secret';
   for (const n of [1, 2, 3, 4, 5]) {
     process.env[`USER${n}_INVITE_CODE`] = `health-invite-${n}`;
@@ -225,6 +228,90 @@ test('legacy partial and zero snapshots work; malformed fields do not save valid
   assert.deepEqual([...store.entries()], previous);
 });
 
+test('individual fitness samples retain original provenance without changing profile defaults or another user', async () => {
+  for (const [metric, value] of [['vo2Max', 42.5], ['restingHeartRate', 63]]) {
+    store.clear();
+    const profile = { timezone: 'Asia/Jakarta', vo2Max: 35, restingHeartRate: 72, displayName: 'Unchanged profile', cardioMinutesWeekly: 90 };
+    store.set(keys.settings('u3'), structuredClone(profile));
+    const response = await send({ provider: 'apple_health', userId: 'u1', samples: [sample(metric, value, '2026-09-01T18:30:00Z')] });
+    const result = await response.json();
+    assert.equal(response.status, 200); assert.equal(result.received, 1); assert.equal(result.synced[metric], true);
+    assert.deepEqual(store.get(keys.fitnessMeasurements('u3')), {
+      [metric]: { value, date: '2026-09-02', recordedAt: '2026-09-01T18:30:00.000Z', source: 'apple_health' },
+    });
+    assert.deepEqual(store.get(keys.settings('u3')), profile);
+    assert.equal(store.has(keys.fitnessMeasurements('u1')), false);
+    const state = await getState();
+    assert.deepEqual(state.lastSync.fields, [metric]);
+    assert.deepEqual(state.lastSync.dates, ['2026-09-02']);
+    assert.equal(store.has(keys.weight('u3')), false); assert.equal(store.has(keys.body('u3')), false);
+  }
+});
+
+test('fitness samples require finite numeric values, supported ranges and complete original timestamps before any writes', async () => {
+  const good = sample('vo2Max', 42, '2026-09-01T06:00:00Z');
+  const bad = [
+    sample('vo2Max', '42', '2026-09-01T06:00:00Z'), sample('restingHeartRate', true, '2026-09-01T06:00:00Z'),
+    sample('vo2Max', 9.9, '2026-09-01T06:00:00Z'), sample('vo2Max', 90.1, '2026-09-01T06:00:00Z'),
+    sample('restingHeartRate', 29.9, '2026-09-01T06:00:00Z'), sample('restingHeartRate', 140.1, '2026-09-01T06:00:00Z'),
+    sample('vo2Max', null, '2026-09-01T06:00:00Z'), sample('restingHeartRate', 63, '2026-09-01'),
+    sample('restingHeartRate', 63, '2026-02-30T06:00:00Z'), sample('vo2Max', 42, new Date(Date.now() + 60_000).toISOString()),
+    sample('calories', 100, '2026-09-01T06:00:00Z'),
+  ];
+  for (const invalid of bad) {
+    await diagnostic(await send({ provider: 'apple_health', samples: [good, invalid] }), 400, 'request_invalid');
+    assert.equal(store.size, 0);
+  }
+  const edges = await send({ provider: 'apple_health', samples: [sample('vo2Max', 10, '2026-09-01T06:00:00Z'), sample('restingHeartRate', 140, '2026-09-01T06:00:00Z')] });
+  assert.equal(edges.status, 200); assert.equal((await edges.json()).received, 2);
+});
+
+test('latest fitness observations reject older dates and exact replays while preserving the independent metric', async () => {
+  await send({ provider: 'apple_health', samples: [
+    sample('vo2Max', 43, '2026-09-03T06:00:00Z'), sample('restingHeartRate', 62, '2026-09-02T06:00:00Z'),
+  ] });
+  const receipt = (await getState()).lastSync;
+  const stale = await (await send({ provider: 'apple_health', samples: [
+    sample('vo2Max', 40, '2026-09-01T06:00:00Z'), sample('restingHeartRate', 62, '2026-09-02T06:00:00Z'),
+  ] })).json();
+  assert.equal(stale.received, 0); assert.equal(stale.ignored, 2);
+  assert.deepEqual((await getState()).lastSync, receipt);
+  await send({ provider: 'apple_health', samples: [sample('vo2Max', 44, '2026-09-04T06:00:00Z')] });
+  const readings = store.get(keys.fitnessMeasurements('u3'));
+  assert.equal(readings.vo2Max.value, 44); assert.equal(readings.restingHeartRate.value, 62);
+  assert.equal(readings.restingHeartRate.date, '2026-09-02');
+});
+
+test('fitness display and recap use imported values with source dates and fall back only for unsynced profile metrics', async () => {
+  const profile = { timezone: 'Asia/Jakarta', fitnessGoal: 'athletic', vo2Max: null, restingHeartRate: 72, cardioMinutesWeekly: 90 };
+  store.set(keys.settings('u3'), structuredClone(profile));
+  await send({ provider: 'apple_health', samples: [sample('vo2Max', 43, '2026-09-01T18:30:00Z')] });
+  const result = await (await fitness.GET(request('/api/fitness-intelligence'))).json();
+  assert.equal(result.settings.vo2Max, null, 'Profile values stay independent from imported observations');
+  assert.equal(result.intelligence.vo2Max, 43); assert.equal(result.intelligence.restingHeartRate, 72);
+  assert.deepEqual(result.intelligence.vo2MaxReading, {
+    value: 43, date: '2026-09-02', recordedAt: '2026-09-01T18:30:00.000Z', source: 'apple_health',
+  });
+  assert.equal(result.intelligence.restingHeartRateReading, null);
+  assert.equal(result.intelligence.baselineReady, true); assert.equal(typeof result.intelligence.score, 'number');
+  const recap = await (await fitness.POST(request('/api/fitness-intelligence', 'POST', {}))).json();
+  assert.deepEqual(recap.intelligence, result.intelligence);
+  assert.equal(recap.ai.source, 'template'); assert.equal(recap.ai.summary, result.intelligence.recap);
+  assert.deepEqual(store.get(keys.settings('u3')), profile);
+  const other = await (await fitness.GET(request('/api/fitness-intelligence', 'GET', undefined, 'u1'))).json();
+  assert.equal(other.intelligence.vo2Max, null); assert.equal(other.intelligence.vo2MaxReading, null);
+});
+
+test('legacy flat fitness payloads remain profile updates without replacing timestamped observations', async () => {
+  await send({ provider: 'apple_health', samples: [sample('vo2Max', 43, '2026-09-01T06:00:00Z')] });
+  const response = await send({ vo2Max: '35.5', restingHeartRate: 68, cardioMinutesWeekly: 120 });
+  assert.equal(response.status, 200);
+  assert.equal(store.get(keys.settings('u3')).vo2Max, 35.5);
+  assert.equal(store.get(keys.settings('u3')).restingHeartRate, 68);
+  assert.equal(store.get(keys.settings('u3')).cardioMinutesWeekly, 120);
+  assert.equal(store.get(keys.fitnessMeasurements('u3')).vo2Max.value, 43);
+});
+
 test('failed storage cannot mark data as received, and later connection tests preserve real receipt', async () => {
   failWrites = true;
   await diagnostic(await send({ provider: 'apple_health', samples: [sample('weightKg', 81, '2026-09-01T06:00:00Z')] }), 503, 'storage_unavailable');
@@ -269,6 +356,32 @@ function holdWrite(predicate) {
   };
   return { entered, release };
 }
+
+test('fitness atomic retries keep the newer cross-day winner and concurrent independent metrics without touching profile edits', async () => {
+  for (const metric of ['vo2Max', 'restingHeartRate']) {
+    store.clear();
+    const gate = holdWrite((evalKeys, next) => evalKeys[0] === keys.fitnessMeasurements('u3') && next[0][metric]?.value === 40);
+    const older = send({ provider: 'apple_health', samples: [sample(metric, 40, '2026-09-01T05:00:00Z')] });
+    await gate.entered;
+    await send({ provider: 'apple_health', samples: [sample(metric, 50, '2026-09-02T06:00:00Z')] });
+    store.set(keys.settings('u3'), { displayName: 'Edited while importing', vo2Max: 31, restingHeartRate: 75 });
+    gate.release();
+    const result = await (await older).json();
+    assert.equal(result.received, 0); assert.equal(result.ignored, 1);
+    assert.equal(store.get(keys.fitnessMeasurements('u3'))[metric].value, 50);
+    assert.equal(store.get(keys.fitnessMeasurements('u3'))[metric].date, '2026-09-02');
+    assert.equal(store.get(keys.settings('u3')).displayName, 'Edited while importing');
+  }
+  store.clear();
+  const gate = holdWrite((evalKeys, next) => evalKeys[0] === keys.fitnessMeasurements('u3') && next[0].vo2Max?.value === 43);
+  const first = send({ provider: 'apple_health', samples: [sample('vo2Max', 43, '2026-09-01T06:00:00Z')] });
+  await gate.entered;
+  await send({ provider: 'apple_health', samples: [sample('restingHeartRate', 62, '2026-09-02T06:00:00Z')] });
+  gate.release();
+  assert.equal((await (await first).json()).received, 1);
+  const readings = store.get(keys.fitnessMeasurements('u3'));
+  assert.equal(readings.vo2Max.value, 43); assert.equal(readings.restingHeartRate.value, 62);
+});
 
 test('concurrent older weight and body-fat imports retry their timestamp guard instead of overwriting the newer winner', async () => {
   for (const [metric, older, newer, key] of [

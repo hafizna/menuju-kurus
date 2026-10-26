@@ -1,6 +1,6 @@
 # Apple Health → Slothly
 
-Slothly's web app cannot read HealthKit directly. The included **Slothly Health Sync** Apple Shortcut reads the latest weight and body fat percentage on the iPhone, with permission, and sends them to the connected Slothly account. AFit or any other source app is responsible for putting its measurements into Apple Health first.
+Slothly's web app cannot read HealthKit directly. The included **Slothly Health Sync v3** Apple Shortcut offers weight, body fat percentage, VO2 max, and resting heart rate on the iPhone. It reads only the types selected for that run, with permission, and sends each selected type's latest available measurement to the connected Slothly account. AFit, Apple Watch, or another source is responsible for putting its measurements into Apple Health first. Missing measurements are not calculated or replaced with zero.
 
 ## Connect on iPhone
 
@@ -8,7 +8,7 @@ Slothly's web app cannot read HealthKit directly. The included **Slothly Health 
 2. Download and open **Slothly Health Sync**. Add the signed shortcut to Apple's Shortcuts app. A file import may name it **slothly-health-sync** after the filename. In Slothly, set **Nama Shortcut di iPhone** to exactly the name shown in Shortcuts; the default matches that filename.
 3. In Slothly, create the connection and choose **Salin konfigurasi**.
 4. Choose **Buka Shortcut**. With the default installed name, this opens `shortcuts://run-shortcut?name=slothly-health-sync&input=clipboard`; the bearer token is transferred through the clipboard, not embedded in a URL. The URL follows the editable Shortcut name.
-5. Verify the destination shown by the Shortcut. Allow the connection request, saving its configuration, and read access to weight/body fat when iOS asks. The Shortcut tests the token before saving its configuration.
+5. Verify the destination shown by the Shortcut. Allow the connection request and saving its configuration. The Shortcut tests the token before saving its configuration. In **Pilih data yang ingin dibaca**, choose only the types you want to read; allow those Health read permissions when iOS asks. Weight, body fat, VO2 max, and resting heart rate are all optional. The choices appear again on each run and are not stored in the account configuration.
 6. Return to **Hubungkan Apple Health** and choose **Periksa status**. Check the last received measurement dates and data types against Apple Health, then open **Perjalanan** to compare the saved values.
 
 Subsequent **Sinkronkan sekarang** runs use the same selected Shortcut name without input. They reuse the saved configuration. The Shortcut does not read unrelated clipboard content in this mode.
@@ -17,20 +17,27 @@ Subsequent **Sinkronkan sekarang** runs use the same selected Shortcut name with
 
 If Safari downloads the file instead of opening Shortcuts, open the downloaded `.shortcut` from Files and add it there. A direct file import is used; an iCloud share link is not required.
 
-### Update an installed v1 Shortcut
+### Update an installed v1 or v2 Shortcut
 
-Version 2 corrects the encoded JSON types in the connection test and measurement request. A website refresh cannot update an already installed Shortcut. Download the current file from Slothly, install it in Shortcuts, and replace the earlier copy if iOS offers that choice. Keep **Nama Shortcut di iPhone** equal to the installed name, then run setup again from Slothly. The introductory Comment action says **Slothly Health Sync v2**. The destination, configuration file location, and requested Health read permissions are unchanged.
+Version 2 corrected the encoded JSON types in the connection test and measurement request. Version 3 adds optional VO2 max and resting heart rate, and lets the user omit types whose read permission is unavailable. A website refresh cannot update an already installed Shortcut. Download the current file from Slothly, install it in Shortcuts, and replace the earlier copy if iOS offers that choice. Keep **Nama Shortcut di iPhone** equal to the installed name. The introductory Comment action says **Slothly Health Sync v3**. The destination and configuration file location are unchanged: if the saved connection remains valid, the new Shortcut can reuse it without copying configuration again. Only reconnect in Slothly if the file is missing or the connection test fails.
+
+### A Health permission error is different from missing data
+
+If iOS says **Shortcuts does not have access to your Body Fat Percentage data**, configuration may already be saved, but the run has stopped at Apple's Health read action. This is not a waiting or server-sync state. In v3, run again and select **Berat badan** without **Lemak tubuh** to sync weight independently. The same applies to denied VO2 max or resting-heart-rate access: leave that type unselected.
+
+To restore access, use the system error's **Show** button to inspect the failed action and the Health permissions for Shortcuts on that iPhone. Depending on iOS, those controls are in Health's profile/Apps and Services or Settings → Privacy & Security → Health. Grant only the read types you intend to sync, then rerun the Shortcut and select them. The Shortcut does **not** catch or bypass iOS runtime permission errors. Selecting a denied type may still stop the whole run before the combined request is sent; deselect it first. Empty results for an allowed type are skipped, and other selected types can still be sent.
 
 ## What is read and saved
 
 - Each metric is queried independently, sorted by its original **Start Date**, latest first, limited to one sample. The Shortcut sends one request containing whichever metrics exist. It does not relabel old measurements with today's date.
 - Weight uses the sample's reported unit. `kg`, `lb`/`lbs`, `g`, and `st` are explicitly converted to kilograms. An unknown unit stops the run and asks the user to choose kg in Health; the Shortcut never guesses.
 - Body fat uses the sample's displayed percentage value and `%` unit. For example, `30.3 %` is sent as `30.3`, without multiplying it by 100. Unknown units stop the run. Server-side value validation remains authoritative.
-- Neither metric is written back to Apple Health. This version does not request steps, sleep, workouts, or full measurement history.
+- VO2 max is read from the **Cardio Fitness** Health picker type and sent as `vo2Max` in mL/kg/min. Explicit equivalent unit labels `ml/(kg*min)`, `mL/kg/min`, and `mL/(kg·min)` are recognized without changing the value. Resting heart rate is read from **Resting Heart Rate** and sent as `restingHeartRate` in BPM; `count/min`, `bpm`, and `beats/min` labels are recognized. Unsupported units stop before sending; there is no inferred conversion from an unknown unit.
+- None of the four metrics is written back to Apple Health. This version does not request steps, sleep, workouts, continuous heart-rate samples, or full measurement history. VO2 max and resting heart rate are separate fitness observations, not substituted for manual profile inputs.
 - The only persistent file created on the device is `Shortcuts/Slothly/connection.json`, holding `{endpoint,token}`. The Shortcuts folder can sync through iCloud according to the device's Files settings. This is not Keychain storage. Do not share the file. Revoke the connection in Slothly to invalidate its token; remove the file in Files if the configuration should also be removed from the device.
 - The transferred clipboard token is replaced with the neutral text `Slothly` after successful configuration. Health values are never put on the clipboard or saved in a configuration file.
 
-Running the Shortcut from its tile or Slothly is manual. Users can optionally create a **Time of Day → Run Shortcut → Slothly Health Sync** personal automation in Shortcuts after the first successful manual run. The available automatic-run options and whether an unlocked device is needed depend on iOS and its Health privacy rules; the app does not promise a permanent background connection.
+Running the Shortcut from its tile or Slothly is manual. Version 3 asks for metric selection on every run, so a Time of Day automation still needs that interaction. The app does not promise unattended execution or a permanent background connection.
 
 ## Wire contract
 
@@ -57,7 +64,9 @@ A configuration test requires response `status: "tested"`. It checks the connect
   "provider": "apple_health",
   "samples": [
     {"metric":"weightKg","value":90.2,"measuredAt":"2026-10-25T07:00:00+07:00"},
-    {"metric":"bodyFatPercent","value":30.3,"measuredAt":"2026-10-20T07:00:00+07:00"}
+    {"metric":"bodyFatPercent","value":30.3,"measuredAt":"2026-10-20T07:00:00+07:00"},
+    {"metric":"vo2Max","value":37.8,"measuredAt":"2026-10-19T09:15:00-04:00"},
+    {"metric":"restingHeartRate","value":63,"measuredAt":"2026-10-26T05:10:00+07:00"}
   ]
 }
 ```
@@ -78,7 +87,9 @@ python scripts/health-shortcut-test.py
 python scripts/health-shortcut.py --check
 ```
 
-The fixture suite executes the generated plist's branches with synthetic Health values and API responses. An independent strict wire decoder is grounded in minimal actual exported XML rows for Number, Boolean, and nested Dictionary, with source links and the original MIT notice in the test file. It rejects the earlier swapped Number/Dictionary codes, bare Boolean value, and missing nested Dictionary wrapper. It also checks resolved authorization headers, typed JSON values, weight conversion, independent measurement dates, one combined request, either metric alone, no-data, bad destinations, safe staged failures, and unchanged results. Structural validation checks action references, control-flow groups, text attachment offsets, and absence of Health-writing actions. The decoder is a format regression check, not Apple's runtime.
+The fixture suite executes the generated plist's branches with synthetic Health values and API responses. An independent strict wire decoder is grounded in minimal actual exported XML rows for Number, Boolean, and nested Dictionary, with source links and the original MIT notice in the test file. It rejects the earlier swapped Number/Dictionary codes, bare Boolean value, and missing nested Dictionary wrapper. It also checks all 15 nonempty metric subsets in one combined request, independent dates, units, selections, and no-data. A denied Body Fat permission is modeled as a runtime exception: leaving it unselected must prevent that action from being queried, while selecting it still raises the exception. The tests therefore do not claim to catch Apple's runtime error. Structural validation checks action references, control-flow groups, text attachment offsets, and absence of Health-writing actions. The decoder is a format regression check, not Apple's runtime.
+
+The multi-select **Choose from List** parameter `WFChooseFromListActionSelectMultiple: true` is grounded in the actual exported XML fixture linked below. The VO2 picker label **Cardio Fitness** is grounded in the current working workflow author's documentation, and **Resting Heart Rate** is corroborated by independent authors' generator sources. The SDK-derived reference's `shortcut_label_guess` is not treated as an observed export: in particular, its guessed **VO2 Max** label is not used. A physical iPhone must still verify that both fitness picker labels, returned units, and selected read permissions import and execute correctly on the user's iOS version.
 
 To rebuild the installable artifact after a workflow change:
 
@@ -91,7 +102,7 @@ python scripts/health-shortcut.py --check
 
 The manifest records the signed/unsigned SHA-256 hashes, generator hash (normalized LF), action count, and signing service. The checked-in unsigned plist lets maintainers inspect all actions before installation.
 
-**Verification limit:** a signed Apple archive, structural checks, synthetic branch tests, and API tests do not prove successful import or execution on a physical iPhone. Before describing this as device verified, import it on iPhone, grant only the two Health read permissions, compare both values/units/dates against Health, verify the server receipt, rerun to check duplicate handling, and test revoked permission and token. Keep that device check visible in release/testing notes until completed.
+**Verification limit:** a signed Apple archive, structural checks, synthetic branch tests, and API tests do not prove successful import or execution on a physical iPhone. Before describing v3 as device verified, import it on iPhone, select and grant only intended Health read types, compare values/units/dates against Health, verify the server receipt, rerun to check duplicate handling, and test selecting versus deselecting a denied permission and a revoked token. Keep that device check visible in release/testing notes until completed.
 
 ## Primary references
 
@@ -102,3 +113,6 @@ The manifest records the signed/unsigned SHA-256 hashes, generator hash (normali
 - [Shortcuty signing API documentation](https://github.com/Shortcuty/Signing-Server-API-Documentation).
 - [Observed iOS Health action schemas, MacStories Shortcuts Playground](https://github.com/viticci/shortcuts-playground-plugin/blob/main/codex/skills/shortcuts-playground/HEALTHKIT.md), published under MIT; used as a schema reference, with no runtime dependency or copied program implementation.
 - Actual exported XML schema fixtures, MacStories Shortcuts Playground (MIT, copyright 2026 Federico Viticci / MacStories): [Number row](https://github.com/viticci/shortcuts-playground-plugin/blob/main/claude/skills/shortcuts-playground/golden-shortcuts/xml/2e0fb675e45948aaacee7e534f910492.xml), [Boolean row](https://github.com/viticci/shortcuts-playground-plugin/blob/main/claude/skills/shortcuts-playground/golden-shortcuts/xml/3dd4ee24e43f464f92adaa70a0311eaa.xml), [nested JSON Dictionary row](https://github.com/viticci/shortcuts-playground-plugin/blob/main/claude/skills/shortcuts-playground/golden-shortcuts/xml/ef669bcf8bad489d9ef4b88bfaf5772f.xml). Minimal retained schema rows and their license notice are included in `scripts/health-shortcut-test.py`.
+- [Actual exported multi-select Choose from List action](https://github.com/viticci/shortcuts-playground-plugin/blob/main/codex/skills/shortcuts-playground/golden-shortcuts/xml/71f0cacb0f604b399b76c5dcb7286e7c.xml), same MIT corpus.
+- [Working iOS workflow author's current Cardio Fitness picker label](https://gist.github.com/gurdiga/3be6a79e88c507485d68775dbfdf0641#file-sleep_cycles_2-md).
+- [Independent Health Shortcut author's Resting Heart Rate query](https://github.com/danielhopkins/apple-tools/blob/95d8c9f8d0e1b2ca43e2fa02b1bd1e865489a392/plugins/health/build-shortcut.py).

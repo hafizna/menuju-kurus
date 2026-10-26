@@ -30,6 +30,7 @@ const keys = {
   weeklySummary: (user) => `mk:${user}:weeklySummary`,
   healthConnection: (user) => `mk:${user}:healthConnection`,
   healthSyncStatus: (user) => `mk:${user}:healthSyncStatus`,
+  fitnessMeasurements: (user) => `mk:${user}:fitnessMeasurements`,
 };
 // Use real handlers and middleware with an in-memory storage adapter. This
 // exercises key isolation and behavior, not external Upstash connectivity.

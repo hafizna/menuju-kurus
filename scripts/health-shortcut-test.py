@@ -6,6 +6,7 @@ An actual iPhone import/run is still required to verify OS permissions and units
 """
 import copy
 import importlib.util
+import itertools
 import json
 from pathlib import Path
 import plistlib
@@ -112,12 +113,15 @@ class Stopped(Exception):
 
 
 class ShortcutFixture:
-    def __init__(self, samples=None, config=None, saved=None, reject=None, received=None, error_code=None):
+    def __init__(self, samples=None, config=None, saved=None, reject=None, received=None, error_code=None, selected=None, denied=None):
         self.samples = samples or {}
         self.config = json.dumps(config) if config else None
         self.saved = json.dumps(saved) if saved else None
         self.reject, self.received = reject, received
         self.error_code = error_code
+        self.selected = selected if selected is not None else [item[1] for item in builder.METRICS]
+        self.denied = set(denied or [])
+        self.reads = []
         self.variables, self.outputs, self.requests, self.alerts = {}, {}, [], []
         self.files = {}
 
@@ -186,6 +190,17 @@ class ShortcutFixture:
                     pass
                 elif ident == "gettext":
                     result = self.resolve(p["WFTextActionText"])
+                elif ident == "text.split":
+                    assert p["WFTextSeparator"] == "New Lines"
+                    result = self.resolve(p["WFInput"]).split("\n")
+                elif ident == "choosefromlist":
+                    assert p["WFChooseFromListActionSelectMultiple"] is True
+                    choices = self.resolve(p["WFInput"])
+                    assert all(value in choices for value in self.selected)
+                    result = self.selected
+                elif ident == "text.combine":
+                    assert p["WFTextSeparator"] == "New Lines"
+                    result = "\n".join(self.resolve(p["WFInput"]))
                 elif ident == "detect.dictionary":
                     result = json.loads(self.resolve(p["WFInput"]))
                 elif ident == "setvariable":
@@ -208,6 +223,11 @@ class ShortcutFixture:
                     self.files["connection.json"] = self.resolve(p["WFInput"])
                 elif ident == "filter.health.quantity":
                     health_type = p["WFContentItemFilter"]["Value"]["WFActionParameterFilterTemplates"][0]["Values"]["Enumeration"]["Value"]
+                    self.reads.append(health_type)
+                    if health_type in self.denied:
+                        # Apple's action can raise before returning an empty
+                        # sample. The Shortcut does not catch this exception.
+                        raise PermissionError("Read permission denied: " + health_type)
                     result = self.samples.get(health_type)
                 elif ident == "properties.health.quantity":
                     result = self.resolve(p["WFInput"])[p["WFContentItemPropertyName"]]
@@ -236,6 +256,8 @@ class ShortcutFixture:
 CONFIG = {"endpoint": "https://slothly.example/api/health-sync", "token": "synthetic-fixture-only"}
 WEIGHT = {"Value": 198.416035, "Unit": "lb", "Start Date": "2026-10-25T07:05:10+07:00"}
 BODY_FAT = {"Value": 30.3, "Unit": "%", "Start Date": "2026-10-20T06:01:00+07:00"}
+VO2_MAX = {"Value": 37.8, "Unit": "ml/(kg*min)", "Start Date": "2026-10-19T09:15:00-04:00"}
+RESTING_HEART_RATE = {"Value": 63, "Unit": "count/min", "Start Date": "2026-10-26T05:10:00+07:00"}
 
 
 class ExportedWireFormatTests(unittest.TestCase):
@@ -271,6 +293,57 @@ class ExportedWireFormatTests(unittest.TestCase):
 
 
 class CompiledFlowTests(unittest.TestCase):
+    def test_all_fifteen_available_subsets_are_one_numeric_request(self):
+        fixtures = {"Body Mass": WEIGHT, "Body Fat Percentage": BODY_FAT,
+            "Cardio Fitness": VO2_MAX, "Resting Heart Rate": RESTING_HEART_RATE}
+        for count in range(1, 5):
+            for available in itertools.combinations(builder.METRICS, count):
+                samples = {item[2]: fixtures[item[2]] for item in available}
+                result = ShortcutFixture(samples, saved=CONFIG).run()
+                self.assertEqual(len(result.requests), 1)
+                self.assertEqual([sample["metric"] for sample in result.requests[0]["samples"]], [item[3] for item in available])
+                for item, sample in zip(available, result.requests[0]["samples"]):
+                    self.assertIs(type(sample["value"]), float)
+                    self.assertEqual(sample["measuredAt"], fixtures[item[2]]["Start Date"])
+                    if item[3] != "weightKg":
+                        self.assertEqual(sample["value"], fixtures[item[2]]["Value"])
+
+    def test_deselected_denied_body_fat_is_never_queried(self):
+        result = ShortcutFixture({"Body Mass": WEIGHT, "Body Fat Percentage": BODY_FAT},
+            saved=CONFIG, selected=["Berat badan"], denied=["Body Fat Percentage"]).run()
+        self.assertEqual(result.reads, ["Body Mass"])
+        self.assertEqual(result.requests[0]["samples"][0]["metric"], "weightKg")
+
+    def test_selecting_a_denied_type_is_not_falsely_reported_as_caught(self):
+        fixture = ShortcutFixture(saved=CONFIG, selected=["Lemak tubuh"], denied=["Body Fat Percentage"])
+        with self.assertRaises(PermissionError):
+            fixture.run()
+        self.assertEqual(fixture.requests, [])
+
+    def test_no_selection_reads_nothing_and_sends_no_ingest(self):
+        fixture = ShortcutFixture(saved=CONFIG, selected=[]).run()
+        self.assertEqual(fixture.reads, [])
+        self.assertEqual(fixture.requests, [])
+        self.assertIn("Tidak ada jenis data", fixture.alerts[-1])
+
+    def test_only_selected_fitness_metrics_are_read_and_sent(self):
+        result = ShortcutFixture({"Cardio Fitness": VO2_MAX, "Resting Heart Rate": RESTING_HEART_RATE},
+            saved=CONFIG, selected=["VO2 max", "Denyut istirahat"], denied=["Body Mass", "Body Fat Percentage"]).run()
+        self.assertEqual(result.reads, ["Cardio Fitness", "Resting Heart Rate"])
+        self.assertEqual([sample["metric"] for sample in result.requests[0]["samples"]], ["vo2Max", "restingHeartRate"])
+
+    def test_fitness_units_must_be_explicit_and_dimensionally_correct(self):
+        for health_type, sample, title, units in [
+            ("Cardio Fitness", VO2_MAX, "VO2 max", ["mL/kg/min", "mL/(kg·min)", "ml/(kg*min)"]),
+            ("Resting Heart Rate", RESTING_HEART_RATE, "Denyut istirahat", ["bpm", "count/min", "beats/min"]),
+        ]:
+            for unit in units:
+                result = ShortcutFixture({health_type: {**sample, "Unit": unit}}, saved=CONFIG, selected=[title]).run()
+                self.assertEqual(result.requests[0]["samples"][0]["value"], sample["Value"])
+            result = ShortcutFixture({health_type: {**sample, "Unit": "unknown"}}, saved=CONFIG, selected=[title]).run()
+            self.assertEqual(result.requests, [])
+            self.assertIn("Satuan", result.alerts[-1])
+
     def test_both_metrics_one_request_original_independent_dates(self):
         result = ShortcutFixture({"Body Mass": WEIGHT, "Body Fat Percentage": BODY_FAT}, saved=CONFIG).run()
         self.assertEqual(len(result.requests), 1)

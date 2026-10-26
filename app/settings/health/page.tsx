@@ -13,7 +13,7 @@ type ConnectionState = {
 
 const defaultShortcutName = "slothly-health-sync";
 const shortcutNameKey = "mk_health_shortcut_name";
-const shortcutDownload = "/shortcuts/slothly-health-sync.shortcut?v=2";
+const shortcutDownload = "/shortcuts/slothly-health-sync.shortcut?v=3";
 const fieldLabels: Record<string, string> = {
   weightKg: "Berat badan", bodyFatPercent: "Persentase lemak", calories: "Energi aktif",
   vo2Max: "VO₂ max", restingHeartRate: "Detak jantung istirahat", cardioMinutesWeekly: "Durasi kardio",
@@ -173,7 +173,8 @@ export default function HealthConnectionPage() {
 
   const connected = state?.configured;
   const currentReceipt = state?.lastSync && (!state.createdAt || Date.parse(state.lastSync.receivedAt) >= Date.parse(state.createdAt));
-  const title = !connected ? "Belum terhubung" : currentReceipt ? "Data sudah diterima" : "Menunggu data pertama";
+  const verified = Boolean(state?.lastTestAt || currentReceipt);
+  const title = !connected ? "Belum terhubung" : currentReceipt ? "Data sudah diterima" : verified ? "Koneksi diuji, data belum masuk" : "Selesaikan pemasangan";
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-4 pb-8">
@@ -181,15 +182,15 @@ export default function HealthConnectionPage() {
       <header>
         <p className="text-xs font-medium uppercase tracking-wide text-brand-700 dark:text-brand-300">Data kesehatan · iPhone</p>
         <h1 className="mt-1 text-2xl font-bold">Hubungkan Apple Health</h1>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Ambil berat badan dan persentase lemak dari Apple Health melalui Shortcut di iPhone. Kamu memilih izin saat Shortcut dijalankan.</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Ambil berat badan, persentase lemak, VO₂ max, dan detak jantung istirahat dari Apple Health melalui Shortcut di iPhone. Pilih data yang ingin dibaca setiap kali menjalankannya.</p>
       </header>
 
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
       {message && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800 dark:bg-brand-950 dark:text-brand-200">{message}</p>}
 
       <section className="rounded-2xl border border-brand-200 bg-brand-50 p-4 dark:border-brand-800 dark:bg-brand-950/40" aria-label="Pembaruan Shortcut">
-        <h2 className="text-sm font-semibold">Gunakan Shortcut versi 2</h2>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Versi ini memperbaiki pengiriman konfigurasi dan pengukuran. Jika sudah memasang versi sebelumnya, hapus Shortcut lama di aplikasi Shortcuts, lalu pasang unduhan terbaru.</p>
+        <h2 className="text-sm font-semibold">Gunakan Shortcut versi 3</h2>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Versi ini menambahkan VO₂ max, detak jantung istirahat, dan pilihan data yang dibaca. Ganti Shortcut lama dengan unduhan terbaru. Konfigurasi yang sudah berhasil disimpan dapat dipakai kembali.</p>
         <a href={shortcutDownload} className={`${secondary} mt-3`}>Unduh Shortcut terbaru</a>
       </section>
 
@@ -198,7 +199,7 @@ export default function HealthConnectionPage() {
           <div>
             <h2 className="font-semibold">{loading && !state ? "Memuat status…" : title}</h2>
             {state && !connected && <p className="mt-1 text-sm text-neutral-500">Pasang Shortcut di iPhone terlebih dahulu, lalu siapkan koneksinya di sini.</p>}
-            {connected && !currentReceipt && <p className="mt-1 text-sm text-neutral-500">Status berubah setelah pengukuran benar-benar masuk.</p>}
+            {connected && !currentReceipt && <p className="mt-1 text-sm text-neutral-500">{verified ? "Jalankan Shortcut, pilih data yang diizinkan, lalu periksa status setelah selesai. Menunggu di halaman ini saja tidak mengirim data." : "Koneksi di akun sudah disiapkan. Salin konfigurasi dan buka Shortcut dari Slothly satu kali sampai berhasil; setelah itu tidak perlu menyalin setiap sinkronisasi."}</p>}
           </div>
           <button type="button" onClick={() => void load()} disabled={loading || busy} className="min-h-11 text-sm font-medium text-brand-700 disabled:opacity-50 dark:text-brand-300">{loading ? "Memeriksa…" : "Periksa status"}</button>
         </div>
@@ -213,7 +214,7 @@ export default function HealthConnectionPage() {
         {!connected && <div className="mt-4 flex flex-wrap gap-2"><a href={shortcutDownload} className={secondary}>Pasang Shortcut</a><button type="button" onClick={() => void createConnection()} disabled={loading || busy} className={primary}>{busy ? "Menyiapkan…" : "Siapkan koneksi"}</button></div>}
         {connected && !token && (
           <div className="mt-4 flex flex-wrap gap-2">
-            <a href={runShortcut} className={primary}>Sinkronkan sekarang</a>
+            {verified ? <a href={runShortcut} className={primary}>Sinkronkan sekarang</a> : <button type="button" onClick={() => void createConnection()} disabled={loading || busy} className={primary}>{busy ? "Menyiapkan…" : "Lengkapi pemasangan"}</button>}
             <a href={shortcutDownload} className={secondary}>Pasang Shortcut</a>
           </div>
         )}
@@ -253,7 +254,7 @@ export default function HealthConnectionPage() {
           </div>
           <div>
             <h3 className="text-sm font-medium">3. Buka Shortcut dan beri izin</h3>
-            <p className="mt-1 text-sm text-neutral-500">Izinkan membaca clipboard untuk memasang konfigurasi, lalu pilih akses berat badan dan persentase lemak di Apple Health. Setelah selesai, kembali ke halaman ini.</p>
+            <p className="mt-1 text-sm text-neutral-500">Buka dari tombol ini agar konfigurasi ikut terbawa. Izinkan membaca clipboard, lalu pilih metrik yang ingin disinkronkan dan beri izin Health untuk metrik tersebut. Setelah selesai, kembali ke halaman ini.</p>
             {copied ? <a href={connectShortcut} className={`${primary} mt-3`}>Buka Shortcut</a> : <button type="button" disabled className={`${primary} mt-3`}>Salin konfigurasi lebih dulu</button>}
           </div>
           <p className="border-t border-neutral-200 pt-3 text-xs leading-relaxed text-neutral-500 dark:border-neutral-800">Jika kamu meninggalkan halaman sebelum menyalin konfigurasi, pilih Sambungkan ulang untuk membuat konfigurasi baru.</p>
@@ -261,9 +262,16 @@ export default function HealthConnectionPage() {
       )}
 
       <section className={card}>
+        <h2 className="font-semibold">Pilih data yang tersedia</h2>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Shortcut hanya membaca metrik yang kamu pilih. Jika tidak ingin memberi izin persentase lemak, jangan pilih metrik itu; berat badan tetap bisa dikirim sendiri.</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-500">Jika muncul pesan tidak punya akses, buka Health → foto profil → Apps / Aplikasi → Shortcuts, lalu aktifkan izin membaca metrik yang dipilih dan jalankan lagi. Izin yang ditolak masih dapat menghentikan Shortcut.</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-500">VO₂ max perlu sudah tersedia di Health → Jantung → Kebugaran Kardio. Data yang belum ada dilewati. VO₂ max dan detak jantung istirahat tampil di Perjalanan → Fitness bersama tanggal pengukuran aslinya.</p>
+      </section>
+
+      <section className={card}>
         <h2 className="font-semibold">Setelah tersambung</h2>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Jalankan “{shortcutName}” setelah menimbang, atau tambahkan ke Automasi di aplikasi Shortcuts. Slothly menyimpan tanggal pengukuran asli. Berat dan persentase lemak boleh masuk terpisah.</p>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-500">Belum ada data? Pastikan berat badan atau persentase lemak sudah terlihat di Apple Health dan izin membaca untuk Shortcut sudah diberikan.</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Jalankan “{shortcutName}” setelah menimbang atau beraktivitas. Pilih satu atau beberapa metrik; konfigurasi yang berhasil disimpan dipakai kembali. Tanggal yang ditampilkan mengikuti pengukuran asli, termasuk jika datanya sudah lama.</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-500">Versi ini meminta pilihan metrik setiap kali berjalan. Jika memakai Automasi Shortcuts, kamu tetap perlu memilih data saat diminta. Langkah, tidur, dan energi aktivitas belum disinkronkan.</p>
       </section>
 
       {connected && (

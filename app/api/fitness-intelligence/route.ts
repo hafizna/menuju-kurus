@@ -6,14 +6,16 @@ import { getWeightEntries, computeWeightTrend } from "@/lib/weight";
 import { computeFitnessIntelligence } from "@/lib/fitnessIntelligence";
 import { generateFitnessSummary } from "@/lib/fitnessSummaryAi";
 import { getUserId } from "@/lib/session";
+import { getFitnessMeasurements } from "@/lib/fitnessMeasurements";
 
 export const maxDuration = 30;
 
 async function buildIntelligence(userId: string) {
   const settings = await getSettings(userId);
-  const [entries, checkIns] = await Promise.all([
+  const [entries, checkIns, fitnessMeasurements] = await Promise.all([
     getWeightEntries(userId),
     getBodyCheckIns(userId),
+    getFitnessMeasurements(userId),
   ]);
   const bodyFat = latestReading(
     mergeBodySnapshots(entries, checkIns),
@@ -33,6 +35,7 @@ async function buildIntelligence(userId: string) {
             source: bodyFat.reading.source,
           }
         : null,
+      fitnessMeasurements,
     ),
   };
 }
