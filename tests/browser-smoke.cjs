@@ -849,6 +849,10 @@ let child, browser;
   assert.equal(shortcutDownload.status, 200, "Shortcuts cannot download the generic artifact without a browser session");
   const shortcutBytes = Buffer.from(await shortcutDownload.arrayBuffer());
   assert.equal(shortcutBytes.subarray(0, 4).toString("ascii"), "AEA1", "Shortcut download is not a signed Apple archive");
+  const readCheckDownload = await fetch(`${base}/shortcuts/slothly-health-read-check.shortcut?v=1`);
+  assert.equal(readCheckDownload.status, 200, "Health read check cannot be downloaded without a browser session");
+  assert.match(readCheckDownload.headers.get("content-disposition"), /slothly-health-read-check\.shortcut/, "Health read check download lost its installable filename");
+  assert.equal(Buffer.from(await readCheckDownload.arrayBuffer()).subarray(0, 4).toString("ascii"), "AEA1", "Health read check is not a signed Apple archive");
 
   await page.goto(`${base}/settings`);
   await page.getByRole("link", { name: "Hubungkan Apple Health →", exact: true }).click();
@@ -857,6 +861,10 @@ let child, browser;
   await page.getByRole("heading", { name: "Gunakan Shortcut versi 5", exact: true }).waitFor();
   assert.equal(await page.getByRole("link", { name: "Unduh Shortcut terbaru", exact: true }).getAttribute("href"), "/shortcuts/slothly-health-sync.shortcut?v=5", "download link still serves the cached query version");
   await page.getByRole("heading", { name: "Belum terhubung", exact: true }).waitFor();
+  const readCheckHelp = page.locator("details").filter({ has: page.locator("summary").filter({ hasText: "Data ada di Health, tetapi belum terbaca?" }) });
+  await readCheckHelp.locator("summary").click();
+  assert.equal(await readCheckHelp.getByRole("link", { name: "Unduh pemeriksaan Health", exact: true }).getAttribute("href"), "/shortcuts/slothly-health-read-check.shortcut?v=1");
+  await readCheckHelp.locator("summary").click();
   await page.evaluate(() => {
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,

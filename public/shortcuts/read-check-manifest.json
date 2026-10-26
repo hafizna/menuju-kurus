@@ -1,0 +1,13 @@
+{
+  "name": "Slothly Health Read Check",
+  "version": 1,
+  "actions": 11,
+  "installPath": "/shortcuts/slothly-health-read-check.shortcut",
+  "signingFormat": "AEA1",
+  "signingMode": "anyone",
+  "signingService": "https://sign.shortcuty.app/api/v1/sign",
+  "unsignedSha256": "fe66e4adcf2aa5700c03577eddbc26cf2fd3d72f4b7ef83b09f855a0ef62180f",
+  "signedSha256": "ccdf512589187e08339dbd7553cade2e13698869b9bcf9142f8bdfc249486a5b",
+  "generatorSha256": "94a7ff1ee6e1f03e7bb10f21638d2f5b4b41888e4318b2371b676b40554c22c6",
+  "deviceVerification": "Pending physical iPhone Weight read count/date validation"
+}

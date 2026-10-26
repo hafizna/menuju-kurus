@@ -251,6 +251,13 @@ Server menyimpan hash token. Mengganti atau memutus koneksi menghentikan akses
 token lama, termasuk token environment sebelumnya. Status uji koneksi dipisahkan
 dari penerimaan pengukuran nyata. Lihat [detail Shortcut](docs/health-shortcut.md).
 
+Jika data sudah terlihat di Health dan izin baca aktif tetapi sinkronisasi tetap
+tidak menemukan pengukuran, tersedia [pemeriksaan pembacaan Health](docs/health-read-check.md)
+yang terpisah. Shortcut ini membaca satu sampel Weight terbaru, menampilkan
+jumlah dan tanggalnya secara lokal, tanpa konfigurasi akun atau pengiriman data.
+Hasilnya membedakan pembacaan dasar di iPhone dari alur pemilihan/sinkronisasi;
+jumlah nol atau error native tidak otomatis membuktikan izin ditolak.
+
 ### Kompatibilitas Shortcut lama
 
 `/api/health-sync` menerima kombinasi field apa pun berikut — semuanya opsional,

@@ -8,6 +8,12 @@ const nextConfig = {
         { key: "Content-Type", value: "application/octet-stream" },
         { key: "Content-Disposition", value: 'attachment; filename="slothly-health-sync.shortcut"' },
       ],
+    }, {
+      source: "/shortcuts/slothly-health-read-check.shortcut",
+      headers: [
+        { key: "Content-Type", value: "application/octet-stream" },
+        { key: "Content-Disposition", value: 'attachment; filename="slothly-health-read-check.shortcut"' },
+      ],
     }];
   },
 };
