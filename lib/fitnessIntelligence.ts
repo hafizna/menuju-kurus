@@ -2,6 +2,7 @@ import type { FitnessGoal, UserSettings, WeightEntry } from "./types";
 import type { WeightTrend } from "./weight";
 import { lastNDateKeys } from "./dates";
 import type { FitnessMeasurement, FitnessMeasurements } from "./fitnessMeasurements";
+import { describeFitnessTrends, type CompositionTrend, type FitnessTrends, type SeriesTrend } from "./fitnessTrends";
 
 export interface FitnessIntelligence {
   goal: FitnessGoal;
@@ -21,6 +22,12 @@ export interface FitnessIntelligence {
   restingHeartRateReading?: FitnessMeasurement | null;
   cardioMinutes: number;
   strengthDays: number;
+  // Trend context built from imported history. Null when no history was supplied.
+  composition: CompositionTrend | null;
+  restingHeartRateTrend: SeriesTrend | null;
+  vo2MaxTrend: SeriesTrend | null;
+  // Deterministic observations (screen and AI both read these; neither recomputes them).
+  signals: string[];
   priorities: string[];
   recap: string;
 }
@@ -46,6 +53,7 @@ export function computeFitnessIntelligence(
     source: "manual" | "shortcuts";
   } | null,
   fitnessMeasurements: FitnessMeasurements = {},
+  trends: FitnessTrends | null = null,
 ): FitnessIntelligence {
   // Imported observations keep their provenance separately from editable
   // profile defaults. Use the same effective values throughout the score,
@@ -178,6 +186,11 @@ export function computeFitnessIntelligence(
     if (settings.cardioMinutesWeekly >= 60) score += 5;
   }
 
+  // Observations from imported history come first: they reflect what the data
+  // shows now, while the goal rules above are standing advice.
+  const described = trends ? describeFitnessTrends(trends, settings.fitnessGoal) : { signals: [], priorities: [] };
+  priorities.unshift(...described.priorities);
+
   const finalScore = baselineReady ? clamp(score) : null;
   const scoreLabel =
     finalScore === null
@@ -213,6 +226,10 @@ export function computeFitnessIntelligence(
     restingHeartRateReading: fitnessMeasurements.restingHeartRate ?? null,
     cardioMinutes: settings.cardioMinutesWeekly,
     strengthDays: settings.strengthDaysWeekly,
+    composition: trends?.composition ?? null,
+    restingHeartRateTrend: trends?.restingHeartRate ?? null,
+    vo2MaxTrend: trends?.vo2Max ?? null,
+    signals: described.signals,
     priorities: priorities.slice(0, 3),
     recap,
   };

@@ -5,16 +5,26 @@ import { generateWeeklySummary } from "@/lib/weeklySummaryAi";
 import { weeklySummaryContext, weeklySummaryIsStale, type StoredWeeklySummary } from "@/lib/weeklySummary";
 import { getUserId } from "@/lib/session";
 import { redis, keys } from "@/lib/redis";
+import { getBodyCheckIns } from "@/lib/bodyStore";
+import { mergeBodySnapshots } from "@/lib/body";
+import { getFitnessHistory } from "@/lib/fitnessHistory";
+import { buildFitnessTrends, describeFitnessTrends } from "@/lib/fitnessTrends";
+import { todayKey } from "@/lib/dates";
 
 export const maxDuration = 30;
 const summaryKey = (userId: string) => keys.weeklySummary(userId) + ":intake-v3";
 
 async function currentContext(userId: string) {
   const settings = await getSettings(userId);
-  const [logs, weights] = await Promise.all([
+  const [logs, weights, checkIns, history] = await Promise.all([
     getLastNDayLogs(userId, 7, settings.timezone), getWeightEntries(userId),
+    getBodyCheckIns(userId), getFitnessHistory(userId),
   ]);
-  return weeklySummaryContext(logs, weights, settings, computeWeightTrend(weights, settings.timezone));
+  const trends = buildFitnessTrends({
+    snapshots: mergeBodySnapshots(weights, checkIns), history, today: todayKey(settings.timezone),
+  });
+  const { signals } = describeFitnessTrends(trends, settings.fitnessGoal);
+  return weeklySummaryContext(logs, weights, settings, computeWeightTrend(weights, settings.timezone), signals);
 }
 
 export async function GET(req: NextRequest) {

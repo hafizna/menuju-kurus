@@ -10,7 +10,9 @@ export interface StoredWeeklySummary extends WeeklySummary {
   fingerprint: string;
 }
 
-export function weeklySummaryContext(logs: DayLog[], weights: WeightEntry[], settings: UserSettings, trend: WeightTrend) {
+// signals: deterministic observations from imported history (see lib/fitnessTrends.ts).
+// They are part of the input, so a change in them also marks a saved summary stale.
+export function weeklySummaryContext(logs: DayLog[], weights: WeightEntry[], settings: UserSettings, trend: WeightTrend, signals: string[] = []) {
   const review = computeWeeklyReview(logs, weights, settings, trend);
   const input: WeeklySummaryInput = {
     weightTrend: trend.weeklyRate, weeklyCalories: review.avgCalories,
@@ -20,6 +22,7 @@ export function weeklySummaryContext(logs: DayLog[], weights: WeightEntry[], set
     aboveRangeDays: review.aboveRangeDays, incompleteDays: review.incompleteDays,
     fitnessGoal: settings.fitnessGoal, proteinTargetG: settings.proteinTargetG,
     periodStart: review.periodStart, periodEnd: review.periodEnd,
+    ...(signals.length ? { signals } : {}),
   };
   // Numeric observations invalidate a narrative even when rounded means match.
   const observations = logs.map((log) => ({

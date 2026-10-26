@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { FitnessIntelligence } from "@/lib/fitnessIntelligence";
+import type { CompositionTrend, SeriesTrend } from "@/lib/fitnessTrends";
 import { IconSparkle } from "@/components/icons";
 
 interface AiSummary {
@@ -49,6 +50,8 @@ export default function FitnessTab() {
   if (loading || !data)
     return <div className="p-6 text-center text-neutral-400">Memuat...</div>;
 
+  // The composition card already shows its own sentence, so list the others.
+  const otherSignals = data.signals.filter((item) => item !== data.composition?.statement);
   const statusText =
     data.scoreLabel === "baseline"
       ? "Membangun baseline"
@@ -119,6 +122,7 @@ export default function FitnessTab() {
           note={data.vo2MaxReading
             ? `Apple Health · ${measurementDate(data.vo2MaxReading.recordedAt)} · estimasi`
             : data.vo2Max === null ? "estimasi kebugaran kardio" : "Isian Profil · estimasi"}
+          extra={trendLine(data.vo2MaxTrend, "mL/kg/min")}
         />
         <Metric
           label="Resting HR"
@@ -130,6 +134,7 @@ export default function FitnessTab() {
           note={data.restingHeartRateReading
             ? `Apple Health · ${measurementDate(data.restingHeartRateReading.recordedAt)}`
             : data.restingHeartRate === null ? undefined : "Isian Profil"}
+          extra={trendLine(data.restingHeartRateTrend, "bpm")}
         />
         <Metric
           label="Kardio"
@@ -142,6 +147,24 @@ export default function FitnessTab() {
           note="minggu ini"
         />
       </section>
+
+      {data.composition && data.composition.recent.pairs + data.composition.baseline.pairs > 0 && (
+        <CompositionCard composition={data.composition} />
+      )}
+
+      {otherSignals.length > 0 && (
+        <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="mb-2 text-sm font-medium">Dari datamu</div>
+          <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
+            {otherSignals.map((item, index) => (
+              <li key={index} className="flex gap-2">
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-400" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-2 text-sm font-medium">Prioritas berikutnya</div>
@@ -210,17 +233,88 @@ function Metric({
   label,
   value,
   note,
+  extra,
 }: {
   label: string;
   value: string;
   note?: string;
+  extra?: string;
 }) {
   return (
     <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
       <div className="text-xs text-neutral-500">{label}</div>
       <div className="mt-1 text-lg font-bold">{value}</div>
       {note && <div className="text-xs text-neutral-400">{note}</div>}
+      {extra && <div className="mt-1 text-xs text-neutral-400">{extra}</div>}
     </div>
+  );
+}
+
+function trendLine(trend: SeriesTrend | null, unit: string) {
+  if (!trend?.latest) return undefined;
+  if (trend.stale && trend.ageDays !== null) return `Data lama: ${trend.ageDays} hari lalu`;
+  if (trend.ready && trend.recent.average !== null && trend.baseline.average !== null) {
+    return `Rata-rata terbaru ${trend.recent.average} ${unit}, sebelumnya ${trend.baseline.average}`;
+  }
+  return undefined;
+}
+
+const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
+
+function CompositionCard({ composition }: { composition: CompositionTrend }) {
+  const { recent, baseline, change } = composition;
+  const rows = change
+    ? [
+        { label: "Berat", unit: "kg", before: baseline.weightKg, after: recent.weightKg, delta: change.weightKg },
+        { label: "Body fat", unit: "%", before: baseline.bodyFatPercent, after: recent.bodyFatPercent, delta: change.bodyFatPoints },
+        { label: "Massa lemak", unit: "kg", before: baseline.fatMassKg, after: recent.fatMassKg, delta: change.fatMassKg },
+        { label: "Massa bebas lemak", unit: "kg", before: baseline.fatFreeMassKg, after: recent.fatFreeMassKg, delta: change.fatFreeMassKg },
+      ]
+    : [];
+  return (
+    <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <div>
+        <div className="text-sm font-semibold">Komposisi tubuh (estimasi)</div>
+        <div className="text-xs text-neutral-400">
+          Rata-rata 14 hari terakhir dibanding 14 hari sebelumnya, hanya dari hari yang punya berat dan body fat.
+        </div>
+      </div>
+      {change ? (
+        <>
+          <table className="w-full text-sm">
+            <caption className="sr-only">Perubahan komposisi tubuh antara dua periode 14 hari</caption>
+            <thead className="text-xs text-neutral-400">
+              <tr>
+                <th scope="col" className="py-1 text-left font-normal">Ukuran</th>
+                <th scope="col" className="py-1 text-right font-normal">Sebelumnya</th>
+                <th scope="col" className="py-1 text-right font-normal">Terbaru</th>
+                <th scope="col" className="py-1 text-right font-normal">Selisih</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.label} className="border-t border-neutral-100 dark:border-neutral-800">
+                  <th scope="row" className="py-1.5 text-left font-normal">{row.label}</th>
+                  <td className="py-1.5 text-right">{row.before} {row.unit}</td>
+                  <td className="py-1.5 text-right">{row.after} {row.unit}</td>
+                  <td className="py-1.5 text-right font-medium">{signed(row.delta)} {row.unit === "%" ? "poin" : row.unit}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {composition.statement && <p className="text-sm text-neutral-600 dark:text-neutral-300">{composition.statement}</p>}
+          <p className="text-xs text-neutral-400">
+            Sampel {recent.pairs} dan {baseline.pairs} hari{composition.confidence === "low" ? "; masih sedikit, anggap sebagai gambaran awal" : ""}.
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-neutral-500">{composition.needs}</p>
+      )}
+      <p className="text-xs text-neutral-400">
+        Massa bebas lemak mencakup air, glikogen, organ, dan tulang, bukan otot saja. Body fat dari timbangan impedansi
+        bergeser karena cairan dan waktu timbang; pakai tren, bukan satu angka.
+      </p>
+    </section>
   );
 }
 

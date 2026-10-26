@@ -179,6 +179,7 @@ const keys = {
   healthConnection: (user) => `mk:${user}:healthConnection`,
   healthSyncStatus: (user) => `mk:${user}:healthSyncStatus`,
   fitnessMeasurements: (user) => `mk:${user}:fitnessMeasurements`,
+  fitnessHistory: (user) => `mk:${user}:fitnessHistory`,
 };
 const redisPath = require.resolve('../lib/redis');
 require.cache[redisPath] = { id: redisPath, filename: redisPath, loaded: true, exports: {

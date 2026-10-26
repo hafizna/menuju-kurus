@@ -1,5 +1,5 @@
 import type { SatietyStrategy, SatietyStrategyInput } from "./satiety";
-import { generateDeepseekJson } from "./deepseekClient";
+import { generateTextJson, SATIETY_RESPONSE_SCHEMA, textAiProvider } from "./textAi";
 
 interface SatietyAiResult {
   summary: string;
@@ -9,7 +9,7 @@ interface SatietyAiResult {
 
 const JSON_SHAPE_HINT = `{"summary": "string", "suggestions": ["string", "string", "string"]}`;
 
-// Zero-cost fallback for when DEEPSEEK_API_KEY isn't configured. The
+// Zero-cost fallback for when no text AI key (Gemini or DeepSeek) is configured. The
 // underlying engine (lib/satiety.ts) already computes a deterministic
 // `message` and ranked food list with a `why` for each — this just turns
 // the top 3 into readable lines instead of calling any model.
@@ -30,7 +30,7 @@ function templateSatietySummary(strategy: SatietyStrategy): SatietyAiResult {
 }
 
 export async function generateSatietySummary(input: SatietyStrategyInput, strategy: SatietyStrategy): Promise<SatietyAiResult> {
-  if (!process.env.DEEPSEEK_API_KEY) {
+  if (!textAiProvider()) {
     return templateSatietySummary(strategy);
   }
 
@@ -60,11 +60,12 @@ Fullness Score adalah estimasi heuristik, bukan fakta klinis.
 Jangan menyarankan puasa kompensasi, muntah, olahraga sebagai hukuman, atau target ekstrem.
 Tulis satu ringkasan singkat dan tepat 3 saran praktis. Bila pantry kosong, sebut contoh sebagai opsi, bukan bahan yang pasti tersedia.`;
 
-  const parsed = await generateDeepseekJson<Omit<SatietyAiResult, "source">>({
+  const parsed = await generateTextJson<Omit<SatietyAiResult, "source">>({
     systemPrompt: system,
     userContent: `Data:\n${JSON.stringify(payload, null, 2)}`,
     jsonShapeHint: JSON_SHAPE_HINT,
-    emptyResponseMessage: "DeepSeek returned no satiety summary",
+    responseSchema: SATIETY_RESPONSE_SCHEMA,
+    emptyResponseMessage: "The AI provider returned no satiety summary",
   });
 
   return {

@@ -6,6 +6,9 @@ interface GenerateJsonOptions {
   parts: GeminiPart[];
   responseSchema: Record<string, unknown>;
   emptyResponseMessage: string;
+  // Optional: text-only callers keep their rules in a system instruction.
+  systemInstruction?: string;
+  temperature?: number;
 }
 
 const DEFAULT_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"];
@@ -40,10 +43,14 @@ export async function generateGeminiJson<T>(options: GenerateJsonOptions): Promi
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          ...(options.systemInstruction
+            ? { system_instruction: { parts: [{ text: options.systemInstruction }] } }
+            : {}),
           contents: [{ parts: options.parts }],
           generationConfig: {
             responseMimeType: "application/json",
             responseSchema: options.responseSchema,
+            ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
           },
         }),
       }

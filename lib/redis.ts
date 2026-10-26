@@ -11,4 +11,5 @@ export const keys = {
   healthConnection: (userId: string) => `mk:${userId}:healthConnection`,
   healthSyncStatus: (userId: string) => `mk:${userId}:healthSyncStatus`,
   fitnessMeasurements: (userId: string) => `mk:${userId}:fitnessMeasurements`,
+  fitnessHistory: (userId: string) => `mk:${userId}:fitnessHistory`,
 };
