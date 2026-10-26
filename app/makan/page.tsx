@@ -89,21 +89,23 @@ interface QuickItem {
   name: string;
   kcal: number;
   protein: number;
+  // Added sugar in grams; 0 for items without any (whole fruit does not count).
+  sugar: number;
   portion: string;
 }
 
 // Typical Indonesian portions. One tap logs it for "now"; Batalkan removes it.
 const QUICK_ITEMS: QuickItem[] = [
-  { name: "Teh manis", kcal: 110, protein: 0, portion: "1 gelas" },
-  { name: "Es teh manis", kcal: 140, protein: 0, portion: "1 gelas besar" },
-  { name: "Kopi susu", kcal: 180, protein: 3, portion: "1 gelas" },
-  { name: "Minuman kemasan", kcal: 170, protein: 0, portion: "1 botol kecil" },
-  { name: "Gorengan", kcal: 130, protein: 2, portion: "1 buah" },
-  { name: "Kerupuk", kcal: 70, protein: 1, portion: "2-3 keping" },
-  { name: "Roti + selai", kcal: 160, protein: 4, portion: "1 lembar" },
-  { name: "Biskuit", kcal: 120, protein: 2, portion: "3-4 keping" },
-  { name: "Tambah nasi", kcal: 130, protein: 3, portion: "1 centong" },
-  { name: "Buah", kcal: 70, protein: 1, portion: "1 porsi" },
+  { name: "Teh manis", kcal: 110, protein: 0, sugar: 25, portion: "1 gelas" },
+  { name: "Es teh manis", kcal: 140, protein: 0, sugar: 30, portion: "1 gelas besar" },
+  { name: "Kopi susu", kcal: 180, protein: 3, sugar: 20, portion: "1 gelas" },
+  { name: "Minuman kemasan", kcal: 170, protein: 0, sugar: 30, portion: "1 botol kecil" },
+  { name: "Gorengan", kcal: 130, protein: 2, sugar: 0, portion: "1 buah" },
+  { name: "Kerupuk", kcal: 70, protein: 1, sugar: 0, portion: "2-3 keping" },
+  { name: "Roti + selai", kcal: 160, protein: 4, sugar: 8, portion: "1 lembar" },
+  { name: "Biskuit", kcal: 120, protein: 2, sugar: 8, portion: "3-4 keping" },
+  { name: "Tambah nasi", kcal: 130, protein: 3, sugar: 0, portion: "1 centong" },
+  { name: "Buah", kcal: 70, protein: 1, sugar: 0, portion: "1 porsi" },
 ];
 
 const CONFIDENCE_LABEL = { low: "rendah", medium: "sedang", high: "tinggi" } as const;
@@ -243,6 +245,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
         foodName: item.name,
         calories: item.kcal,
         protein_g: item.protein,
+        sugar_g: item.sugar,
         portionNote: `${item.portion} (perkiraan umum)`,
         source: "manual",
       });
@@ -285,6 +288,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
         protein_g: meal.protein_g,
         carbs_g: meal.carbs_g,
         fat_g: meal.fat_g,
+        sugar_g: meal.sugar_g,
         portionNote: result.portionNote,
         source: "photo",
       });
@@ -475,6 +479,7 @@ function CatatTab({ onSaved }: { onSaved: () => void }) {
           {meal && (
             <p className="text-xs text-neutral-500">
               Perkiraan kasar, bisa sekitar {meal.low}–{meal.high} kcal. Koreksi di bawah kalau porsimu beda.
+              {meal.sugar_g > 0 && ` Gula tambahan sekitar ${meal.sugar_g} g.`}
             </p>
           )}
 
@@ -598,6 +603,7 @@ function ManualForm({ onSaved }: { onSaved: (label: string) => void }) {
   const [name, setName] = useState("");
   const [kcal, setKcal] = useState("");
   const [protein, setProtein] = useState("");
+  const [sugar, setSugar] = useState("");
   const [mealTime, setMealTime] = useState(nowHHMM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -622,6 +628,8 @@ function ManualForm({ onSaved }: { onSaved: (label: string) => void }) {
         foodName: name.trim(),
         calories,
         protein_g: Number(protein) || 0,
+        // Blank stays unknown; only a typed number (including 0) is recorded.
+        sugar_g: sugar === "" ? undefined : Number(sugar),
         source: "manual",
       });
       onSaved(`${name.trim()} · ${Math.round(calories)} kcal`);
@@ -639,6 +647,7 @@ function ManualForm({ onSaved }: { onSaved: (label: string) => void }) {
       <div className="grid grid-cols-2 gap-2">
         <input value={kcal} onChange={(e) => setKcal(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="kalori (kcal)" className={input} />
         <input value={protein} onChange={(e) => setProtein(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="protein (g)" className={input} />
+        <input value={sugar} onChange={(e) => setSugar(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="gula tambahan (g), boleh kosong" className={`${input} col-span-2`} />
       </div>
       <MealTimeField value={mealTime} onChange={setMealTime} />
       {error && <p role="alert" className="text-sm text-red-500">{error}</p>}

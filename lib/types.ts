@@ -16,6 +16,8 @@ export interface MealEntry {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  // Added/free sugar in grams. Absent means "unknown", never zero.
+  sugar_g?: number;
   portionNote?: string;
   source: "photo" | "manual";
 }

@@ -158,6 +158,36 @@ test('meal time can be backdated within a day but never future, stale or malform
   assert.equal((await logRoute.POST(request('/api/log', 'POST', { type: 'meal', calories: 100 }))).status, 200);
 });
 
+test('meal sugar is optional: unknown stays absent, real values are kept, junk is capped', async () => {
+  const date = todayKey(DEFAULT_SETTINGS.timezone);
+  const post = async (extra) => (await (await logRoute.POST(request('/api/log', 'POST', { type: 'meal', calories: 100, foodName: 'x', ...extra }))).json()).entry;
+  const unknown = await post({});
+  assert.equal('sugar_g' in unknown, false);
+  assert.equal((await post({ sugar_g: 'abc' })).sugar_g, undefined);
+  assert.equal((await post({ sugar_g: 0 })).sugar_g, 0);
+  assert.equal((await post({ sugar_g: 25.4 })).sugar_g, 25);
+  assert.equal((await post({ sugar_g: 5000 })).sugar_g, 300);
+  assert.equal(store.get(keys.day('u3', date)).meals.length, 5);
+});
+
+test('Home reports today sugar and a weekly average built only from days with known sugar', async () => {
+  const dates = lastNDateKeys(7, DEFAULT_SETTINGS.timezone);
+  const today = dates[dates.length - 1];
+  const seed = (date, sugars, foodLogComplete = false) =>
+    store.set(keys.day('u3', date), { date, foodLogComplete, burns: [], meals: sugars.map((sugar_g, i) => ({ id: date + i, time: date + 'T05:00:00.000Z', foodName: 'x', calories: 100, protein_g: 0, carbs_g: 0, fat_g: 0, source: 'manual', ...(sugar_g === undefined ? {} : { sugar_g }) })) });
+  seed(dates[0], [60]);
+  seed(dates[1], [20]);
+  seed(dates[2], [40, undefined]); // partial: skipped, not counted as 40
+  seed(dates[3], []);              // empty: skipped
+  seed(today, [80]);               // today is open, so it is left out of the average
+  let data = await (await todayRoute.GET(request('/api/today'))).json();
+  assert.deepEqual(data.sugarToday, { grams: 80, knownMeals: 1, totalMeals: 1, complete: true });
+  assert.deepEqual(data.sugarWeek, { avgG: 40, daysWithData: 2, daysOver: 1 });
+  seed(today, [80], true);
+  data = await (await todayRoute.GET(request('/api/today'))).json();
+  assert.deepEqual(data.sugarWeek, { avgG: 53, daysWithData: 3, daysOver: 2 });
+});
+
 test('app icons and manifest are excluded from the login gate, real pages are not', () => {
   const { config } = require('../middleware');
   const gated = new RegExp('^' + config.matcher[0] + '$');

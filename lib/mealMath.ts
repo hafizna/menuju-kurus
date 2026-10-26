@@ -27,13 +27,14 @@ export function hasOil(analysis: Pick<FoodAnalysis, "components">): boolean {
 export function adjustMeal(analysis: FoodAnalysis, adjust: MealAdjust) {
   const components: FoodComponent[] = analysis.components.length
     ? analysis.components
-    : [{ name: analysis.foodName, role: "other", grams: 0, calories: analysis.calories, protein_g: analysis.protein_g, carbs_g: analysis.carbs_g, fat_g: analysis.fat_g }];
+    : [{ name: analysis.foodName, role: "other", grams: 0, calories: analysis.calories, protein_g: analysis.protein_g, carbs_g: analysis.carbs_g, fat_g: analysis.fat_g, sugar_g: analysis.sugar_g }];
   const staple = stapleOf(analysis);
 
   let calories = 0;
   let protein = 0;
   let carbs = 0;
   let fat = 0;
+  let sugar = 0;
   for (const c of components) {
     let scale = 1;
     if (staple && c === staple) scale = Math.max(0, (c.grams + adjust.stapleDeltaG) / c.grams);
@@ -42,6 +43,7 @@ export function adjustMeal(analysis: FoodAnalysis, adjust: MealAdjust) {
     protein += c.protein_g * scale;
     carbs += c.carbs_g * scale;
     fat += c.fat_g * scale;
+    sugar += c.sugar_g * scale;
   }
 
   const k = adjust.eaten;
@@ -51,6 +53,7 @@ export function adjustMeal(analysis: FoodAnalysis, adjust: MealAdjust) {
     protein_g: Math.round(protein * k),
     carbs_g: Math.round(carbs * k),
     fat_g: Math.round(fat * k),
+    sugar_g: Math.round(sugar * k),
     low: Math.round(analysis.kcalLow * ratio * k),
     high: Math.round(analysis.kcalHigh * ratio * k),
     stapleGrams: staple ? Math.max(0, staple.grams + adjust.stapleDeltaG) : 0,

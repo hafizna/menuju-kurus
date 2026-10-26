@@ -25,6 +25,24 @@ test('analysis totals equal the components, extra staples are demoted, empty one
   assert.ok(a.kcalLow <= a.calories && a.calories <= a.kcalHigh);
 });
 
+test('sugar is summed from components, capped, and scales with the portion eaten', () => {
+  const withSugar = {
+    foodName: 'Kopi susu + kecap', portionNote: '1 gelas', confidence: 'medium',
+    components: [
+      { name: 'Kopi susu', role: 'other', grams: 250, calories: 180, protein_g: 3, carbs_g: 25, fat_g: 6, sugar_g: 20 },
+      { name: 'Kecap manis', role: 'oil_sauce', grams: 20, calories: 40, protein_g: 0, carbs_g: 10, fat_g: 0, sugar_g: 9999 },
+      { name: 'Roti', role: 'staple', grams: 50, calories: 130, protein_g: 4, carbs_g: 25, fat_g: 1, sugar_g: 'banyak' },
+    ],
+  };
+  const a = normalizeFoodAnalysis(withSugar);
+  assert.equal(a.sugar_g, 20 + 300 + 0);
+  assert.equal(adjustMeal(a, NO_ADJUST).sugar_g, a.sugar_g);
+  assert.equal(adjustMeal(a, { ...NO_ADJUST, eaten: 0.5 }).sugar_g, Math.round(a.sugar_g / 2));
+  // No components: the model's own total is used, also capped.
+  assert.equal(normalizeFoodAnalysis({ foodName: 'Sirup', calories: 90, sugar_g: 800 }).sugar_g, 300);
+  assert.equal(adjustMeal(normalizeFoodAnalysis({ foodName: 'Sirup', calories: 90, sugar_g: 22 }), NO_ADJUST).sugar_g, 22);
+});
+
 test('a missing or contradictory range falls back to a band skewed upward', () => {
   for (const bad of [{ kcalLow: undefined, kcalHigh: undefined }, { kcalLow: 900, kcalHigh: 1000 }, { kcalLow: 0, kcalHigh: 0 }]) {
     const a = normalizeFoodAnalysis({ ...raw, ...bad });
@@ -60,7 +78,7 @@ test('concrete corrections change only what they refer to', () => {
 test('the photo prompt carries the local portion references and the output contract', () => {
   const prompt = buildFoodPrompt();
   assert.ok(prompt.includes(LOCAL_PORTION_REFERENCE));
-  for (const needle of ['nasi putih 1 centong', 'terong balado', 'oil_sauce', 'kcalLow', 'ONE staple']) {
+  for (const needle of ['nasi putih 1 centong', 'terong balado', 'oil_sauce', 'kcalLow', 'ONE staple', 'sugar_g', 'ADDED or free sugar']) {
     assert.ok(prompt.includes(needle), needle + ' missing from prompt');
   }
 });

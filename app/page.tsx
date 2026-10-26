@@ -21,6 +21,7 @@ import {
   IconRuler,
   IconCalendarCheck,
   IconChartBar,
+  IconCup,
 } from "@/components/icons";
 import DailyCoach from "@/components/DailyCoach";
 import Mascot, { type MascotMood } from "@/components/Mascot";
@@ -29,6 +30,7 @@ import FeatureCard from "@/components/ui/FeatureCard";
 import SkyBackdrop, { skyBackground } from "@/components/SkyBackdrop";
 import { skyForHour } from "@/lib/skyTheme";
 import RecoveryMode from "@/components/RecoveryMode";
+import { SUGAR_REFERENCE_G, type DaySugar, type WeekSugar } from "@/lib/sugar";
 
 interface TodayResponse {
   date: string;
@@ -42,6 +44,8 @@ interface TodayResponse {
   bodyResponse?: BodyResponseReport;
   weightTrend: WeightTrend;
   proteinToday: number;
+  sugarToday: DaySugar;
+  sugarWeek: WeekSugar;
   healthScore: HealthScore;
   habits: HabitStrategy;
 }
@@ -195,6 +199,8 @@ export default function DashboardPage() {
     weeklyBudget,
     weightTrend,
     proteinToday,
+    sugarToday,
+    sugarWeek,
     healthScore,
     settings,
     habits,
@@ -214,6 +220,7 @@ export default function DashboardPage() {
     weeklyBudget,
     weightTrend,
     proteinToday,
+    sugarWeek,
     settings,
     habits,
     moment: coachMoment,
@@ -404,6 +411,17 @@ export default function DashboardPage() {
               caption={`${weeklyBudget.completedDays}/${weeklyBudget.totalDays} hari lengkap${weeklyBudget.isComplete ? "" : " · sementara"}`}
             />
           )}
+          {!fresh && (
+            <FeatureCard
+              href="/makan"
+              icon={<IconCup className="h-5 w-5" />}
+              tone="amber"
+              label="Gula tambahan"
+              value={sugarToday.knownMeals > 0 ? `${sugarToday.grams} g` : "Belum ada"}
+              caption={sugarCaption(sugarToday, sugarWeek)}
+              chip={sugarToday.grams > SUGAR_REFERENCE_G ? "Di atas patokan" : undefined}
+            />
+          )}
           <FeatureCard
             href="/makan/restaurant"
             icon={<IconSearch className="h-5 w-5" />}
@@ -411,7 +429,7 @@ export default function DashboardPage() {
             label="Makan di luar"
             value="Menu restoran"
             caption="Pilih yang pas buat sisa kalorimu"
-            wide={fresh}
+            wide
           />
           {!fresh && (
             <FeatureCard
@@ -583,4 +601,15 @@ function daysSince(date: string | undefined, today: string): number | null {
 
 function due(days: number | null, everyDays: number): string | undefined {
   return days === null || days >= everyDays ? "Waktunya" : undefined;
+}
+
+// One line: where today stands against the reference, or what is missing.
+// Unknown sugar is never shown as 0 g.
+function sugarCaption(today: DaySugar, week: WeekSugar): string {
+  if (today.knownMeals === 0) {
+    return today.totalMeals > 0 ? "Catatan hari ini belum ada data gula" : "Catat minuman manis, nanti kelihatan di sini";
+  }
+  const partial = !today.complete ? "Sebagian tercatat · " : "";
+  const avg = week.avgG !== null ? `Rata-rata ${week.avgG} g/hari · ` : "";
+  return `${partial}${avg}patokan sampai ${SUGAR_REFERENCE_G} g`;
 }

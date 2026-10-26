@@ -16,6 +16,7 @@ import { getUserById } from "@/lib/users";
 import { getWeightEntries, computeWeightTrend } from "@/lib/weight";
 import { computeHealthScore } from "@/lib/healthScore";
 import { buildHabitStrategy } from "@/lib/habits";
+import { daySugar, weekSugar } from "@/lib/sugar";
 
 export async function GET(req: NextRequest) {
   const userId = getUserId(req);
@@ -47,6 +48,10 @@ export async function GET(req: NextRequest) {
     last7Logs,
   });
   const habits = buildHabitStrategy(last28Logs, settings);
+  const sugarToday = daySugar(log.meals);
+  // Today only counts once it is closed; a half-finished day would pull the
+  // average down. Days where any meal has unknown sugar are skipped too.
+  const sugarWeek = weekSugar(last7Logs.filter((day) => day.date !== date || day.foodLogComplete));
 
   return NextResponse.json({
     date,
@@ -59,6 +64,8 @@ export async function GET(req: NextRequest) {
     weeklyBudget,
     weightTrend,
     proteinToday,
+    sugarToday,
+    sugarWeek,
     healthScore,
     habits,
     bodyResponse: buildBodyResponse(

@@ -3,6 +3,7 @@ import { getDayLog, saveDayLog, getSettings } from "@/lib/day";
 import { todayKey } from "@/lib/dates";
 import { BurnEntry, MealEntry } from "@/lib/types";
 import { getUserId } from "@/lib/session";
+import { parseSugarInput } from "@/lib/sugar";
 
 export async function POST(req: NextRequest) {
   const userId = getUserId(req);
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
       protein_g: Math.max(0, Math.round(Number(body.protein_g) || 0)),
       carbs_g: Math.max(0, Math.round(Number(body.carbs_g) || 0)),
       fat_g: Math.max(0, Math.round(Number(body.fat_g) || 0)),
+      sugar_g: parseSugarInput(body.sugar_g),
       portionNote: typeof body.portionNote === "string" ? body.portionNote : undefined,
       source: body.source === "photo" ? "photo" : "manual",
     };

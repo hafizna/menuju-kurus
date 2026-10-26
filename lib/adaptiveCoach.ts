@@ -4,6 +4,7 @@ import type { DayLog, UserSettings } from "./types";
 import type { DaySummary, WeeklyBudget } from "./day";
 import type { WeightTrend } from "./weight";
 import type { HabitMeal, HabitStrategy } from "./habits";
+import { SUGAR_REFERENCE_G, type WeekSugar } from "./sugar";
 
 export type CoachMoment =
   | "neutral"
@@ -20,6 +21,7 @@ export interface AdaptiveCoachInput {
   weeklyBudget: WeeklyBudget;
   weightTrend: WeightTrend;
   proteinToday: number;
+  sugarWeek?: WeekSugar;
   settings: UserSettings;
   habits: HabitStrategy;
   moment: CoachMoment;
@@ -445,6 +447,25 @@ export function buildAdaptiveCoach(
       priority: 96,
       href: "/plan",
       actionLabel: "Pilih rencana",
+    });
+  }
+
+  const sugarWeek = input.sugarWeek;
+  if (
+    sugarWeek &&
+    sugarWeek.avgG !== null &&
+    sugarWeek.daysWithData >= 3 &&
+    sugarWeek.avgG > SUGAR_REFERENCE_G
+  ) {
+    recommendations.push({
+      id: "sugar",
+      title: "Minuman manis lagi lumayan sering",
+      detail:
+        "Bukan larangan. Kalau mau, coba kurangi gulanya sedikit atau ganti satu gelas manis per hari dengan air putih atau teh tawar.",
+      evidence: `rata-rata ${sugarWeek.avgG} g gula tambahan per hari (${sugarWeek.daysWithData} hari tercatat) · patokan sampai ${SUGAR_REFERENCE_G} g`,
+      priority: 70,
+      href: "/makan",
+      actionLabel: "Lihat catatan",
     });
   }
 

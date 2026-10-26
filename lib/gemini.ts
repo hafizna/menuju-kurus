@@ -10,6 +10,7 @@ export interface FoodComponent {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  sugar_g: number;
 }
 
 export interface FoodAnalysis {
@@ -18,6 +19,7 @@ export interface FoodAnalysis {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  sugar_g: number;
   portionNote: string;
   confidence: "low" | "medium" | "high";
   components: FoodComponent[];
@@ -45,8 +47,9 @@ const RESPONSE_SCHEMA = {
           protein_g: { type: "NUMBER" },
           carbs_g: { type: "NUMBER" },
           fat_g: { type: "NUMBER" },
+          sugar_g: { type: "NUMBER" },
         },
-        required: ["name", "role", "grams", "calories", "protein_g", "carbs_g", "fat_g"],
+        required: ["name", "role", "grams", "calories", "protein_g", "carbs_g", "fat_g", "sugar_g"],
       },
     },
   },
@@ -65,7 +68,8 @@ export const LOCAL_PORTION_REFERENCE = `- nasi putih 1 centong (about 100 g): 13
 - sayur bening/sop 1 small bowl: 40-70; tumis kangkung/sayur tumis 1 portion: 70-100
 - gorengan (bakwan, tahu isi, pisang goreng) 1 piece: 120-150
 - lauk berkuah santan (gulai, opor, rendang) 1 portion: 250-350
-- teh manis 1 glass: 110; kopi susu 1 glass: 180`;
+- teh manis 1 glass: 110 kcal, 25 g added sugar; kopi susu 1 glass: 180 kcal, 20 g added sugar
+- kecap manis 1 tbsp: 8 g added sugar; sirup/minuman kemasan 1 small bottle: 25-35 g added sugar`;
 
 export function buildFoodPrompt(): string {
   return `You are a nutrition estimation assistant for Indonesian users. Look at the photo of
@@ -80,7 +84,7 @@ Reference values for typical portions (kcal, approximate; scale to the portion i
 ${LOCAL_PORTION_REFERENCE}
 
 Break the meal into components (max 8). For each give name (Indonesian), role, grams (edible weight,
-best guess), calories and macros:
+best guess), calories, macros and sugar_g:
 - role "staple": the main carbohydrate base (nasi, mie, lontong, roti). Use at most ONE staple component.
 - role "oil_sauce": oil, santan, balado/sambal, dressing or sauce that adds noticeable calories on top
   of the ingredients. Only include it when it is visibly significant.
@@ -88,6 +92,9 @@ best guess), calories and macros:
 Also give foodName (short dish name), portionNote (one short phrase), confidence
 ("low" | "medium" | "high" by how clearly you could identify the food), and kcalLow / kcalHigh: the
 realistic range of total kcal for this portion (the true value should usually fall inside).
+sugar_g means ADDED or free sugar in grams (table sugar, gula aren, kental manis, sirup, kecap manis,
+sweetened drinks, fruit juice, sweet sauces, desserts). Do not count sugar that is naturally inside
+whole fruit, vegetables, plain milk or rice; use 0 when there is no added sugar.
 Respond only with the requested JSON fields.`;
 }
 
@@ -99,6 +106,7 @@ interface RawComponent {
   protein_g?: unknown;
   carbs_g?: unknown;
   fat_g?: unknown;
+  sugar_g?: unknown;
 }
 interface RawAnalysis {
   foodName?: unknown;
@@ -111,6 +119,7 @@ interface RawAnalysis {
   protein_g?: unknown;
   carbs_g?: unknown;
   fat_g?: unknown;
+  sugar_g?: unknown;
 }
 
 const whole = (value: unknown): number => Math.max(0, Math.round(Number(value) || 0));
@@ -135,11 +144,12 @@ export function normalizeFoodAnalysis(parsed: RawAnalysis): FoodAnalysis {
         protein_g: whole(c?.protein_g),
         carbs_g: whole(c?.carbs_g),
         fat_g: whole(c?.fat_g),
+        sugar_g: Math.min(300, whole(c?.sugar_g)),
       };
     })
     .filter((c) => c.calories > 0);
 
-  const sum = (key: "calories" | "protein_g" | "carbs_g" | "fat_g") => components.reduce((total, c) => total + c[key], 0);
+  const sum = (key: "calories" | "protein_g" | "carbs_g" | "fat_g" | "sugar_g") => components.reduce((total, c) => total + c[key], 0);
   const calories = components.length ? sum("calories") : whole(parsed.calories);
 
   let kcalLow = whole(parsed.kcalLow);
@@ -161,6 +171,7 @@ export function normalizeFoodAnalysis(parsed: RawAnalysis): FoodAnalysis {
     protein_g: components.length ? sum("protein_g") : whole(parsed.protein_g),
     carbs_g: components.length ? sum("carbs_g") : whole(parsed.carbs_g),
     fat_g: components.length ? sum("fat_g") : whole(parsed.fat_g),
+    sugar_g: components.length ? sum("sugar_g") : Math.min(300, whole(parsed.sugar_g)),
     portionNote: String(parsed.portionNote ?? ""),
     confidence,
     components,

@@ -10,6 +10,7 @@ Slothly diposisikan sebagai **personal nutrition decision assistant**: logika lo
 
 1. **Foto makanan → estimasi kalori dan makro.** Foto diproses in-memory, dikirim ke Gemini, lalu dibuang. Hanya hasil teks yang disimpan.
 2. **Daily calorie tracking.** Catat makanan dan kalori keluar secara manual atau lewat Apple Shortcuts untuk Active Energy.
+   Gula tambahan (gula, kental manis, sirup, minuman manis; bukan gula alami buah atau susu) ikut dicatat sebagai sinyal kebiasaan: dari foto per komponen, dari tombol cepat, atau diisi manual. Datanya opsional dan yang belum diketahui tidak pernah dihitung 0 g. Home menampilkan total hari ini dan rata-rata 7 hari terakhir dari hari yang gulanya tercatat lengkap, dengan patokan sampai 50 g, bukan batas keras.
 3. **Weight Intelligence.** Log berat, rata-rata 7/14 hari, weekly rate, grafik, target berat, dan ETA menuju target.
 4. **Health Score & Weekly Budget.** Menggabungkan kalori, protein, tren berat, aktivitas, dan konsistensi.
 5. **Personal Adaptive Coach & Recovery Mode.** Meranking fokus berikutnya dari status hari ini, budget mingguan, tren berat, pola 28 hari, dan konteks lapar/craving/makan di luar—tanpa puasa kompensasi atau olahraga sebagai hukuman.
