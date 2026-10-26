@@ -11,9 +11,8 @@ type ConnectionState = {
   lastSync: { receivedAt: string; provider: string; dates: string[]; fields: string[] } | null;
 };
 
-const shortcutName = "Slothly Health Sync";
-const runShortcut = `shortcuts://run-shortcut?name=${encodeURIComponent(shortcutName)}`;
-const connectShortcut = `${runShortcut}&input=clipboard`;
+const defaultShortcutName = "slothly-health-sync";
+const shortcutNameKey = "mk_health_shortcut_name";
 const fieldLabels: Record<string, string> = {
   weightKg: "Berat badan", bodyFatPercent: "Persentase lemak", calories: "Energi aktif",
   vo2Max: "VO₂ max", restingHeartRate: "Detak jantung istirahat", cardioMinutesWeekly: "Durasi kardio",
@@ -38,12 +37,16 @@ export default function HealthConnectionPage() {
   const [error, setError] = useState("");
   const [token, setToken] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const [shortcutName, setShortcutName] = useState(defaultShortcutName);
   const [origin, setOrigin] = useState("");
   const [message, setMessage] = useState("");
   const alive = useRef(true);
   const mutationVersion = useRef(0);
   const mutating = useRef(false);
+  const copyAttempt = useRef(0);
+  const configField = useRef<HTMLTextAreaElement>(null);
 
   const load = useCallback(async (silent = false) => {
     if (mutating.current) return;
@@ -62,6 +65,10 @@ export default function HealthConnectionPage() {
   useEffect(() => {
     alive.current = true;
     setOrigin(window.location.origin);
+    try {
+      const savedName = localStorage.getItem(shortcutNameKey)?.trim();
+      if (savedName) setShortcutName(savedName.slice(0, 80));
+    } catch { /* Device storage is optional; the installed filename is the default. */ }
     void load();
     const refresh = () => { if (document.visibilityState === "visible") void load(true); };
     window.addEventListener("focus", refresh);
@@ -69,6 +76,7 @@ export default function HealthConnectionPage() {
     const interval = window.setInterval(refresh, 15_000);
     return () => {
       alive.current = false;
+      copyAttempt.current++;
       window.clearInterval(interval);
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", refresh);
@@ -78,7 +86,8 @@ export default function HealthConnectionPage() {
   async function createConnection() {
     if (busy) return;
     mutationVersion.current++; mutating.current = true;
-    setBusy(true); setError(""); setMessage(""); setToken(""); setCopied(false); setShowConfig(false);
+    copyAttempt.current++;
+    setBusy(true); setError(""); setMessage(""); setToken(""); setCopied(false); setCopying(false); setShowConfig(false);
     try {
       const response = await fetch("/api/health-connection", { method: "POST" });
       if (!response.ok) throw new Error("Koneksi belum dapat disiapkan. Coba lagi.");
@@ -93,6 +102,7 @@ export default function HealthConnectionPage() {
   async function disconnect() {
     if (busy) return;
     mutationVersion.current++; mutating.current = true;
+    copyAttempt.current++; setCopying(false);
     setBusy(true); setError(""); setMessage("");
     try {
       const response = await fetch("/api/health-connection", { method: "DELETE" });
@@ -106,14 +116,57 @@ export default function HealthConnectionPage() {
   }
 
   const configuration = token && origin ? JSON.stringify({ endpoint: `${origin}/api/health-sync`, token }) : "";
-  async function copyConfiguration() {
-    setError("");
+  const runShortcut = `shortcuts://run-shortcut?name=${encodeURIComponent(shortcutName.trim() || defaultShortcutName)}`;
+  const connectShortcut = `${runShortcut}&input=clipboard`;
+
+  function showManualCopy() {
+    copyAttempt.current++;
+    setCopying(false); setShowConfig(true);
+    setMessage("Pilih teks konfigurasi, gunakan Salin dari menu iPhone, lalu tekan Sudah saya salin.");
+  }
+
+  function selectConfiguration() {
+    const field = configField.current;
+    if (!field) return;
+    field.focus(); field.select(); field.setSelectionRange(0, field.value.length);
+  }
+
+  function confirmManualCopy() {
+    copyAttempt.current++; setCopying(false); setCopied(true);
+    setMessage("Lanjutkan dengan Buka Shortcut untuk menyambungkan konfigurasi yang kamu salin.");
+  }
+
+  function changeShortcutName(value: string) {
+    setShortcutName(value);
     try {
-      await navigator.clipboard.writeText(configuration);
-      setCopied(true); setMessage("Konfigurasi disalin. Buka Shortcut untuk menyambungkannya.");
+      localStorage.setItem(shortcutNameKey, value.trim() || defaultShortcutName);
+    } catch { /* The name still works for this visit if device storage is blocked. */ }
+  }
+
+  async function copyConfiguration() {
+    if (!configuration || copying) return;
+    const version = mutationVersion.current;
+    const attempt = ++copyAttempt.current;
+    const current = () => alive.current && version === mutationVersion.current && attempt === copyAttempt.current;
+    let timeout: number | undefined;
+    setError(""); setCopied(false); setCopying(true);
+    setMessage("Menyalin konfigurasi… Pilihan Salin manual tetap dapat digunakan.");
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      // Call during the tap itself: WebKit requires transient user activation.
+      const write = navigator.clipboard.writeText(configuration);
+      await Promise.race([write, new Promise<never>((_, reject) => {
+        timeout = window.setTimeout(() => reject(new Error("Clipboard timed out")), 1500);
+      })]);
+      if (current()) { setCopied(true); setMessage("Konfigurasi disalin. Buka Shortcut untuk menyambungkannya."); }
     } catch {
-      setShowConfig(true);
-      setMessage("Pilih dan salin konfigurasi di bawah, lalu buka Shortcut.");
+      if (current()) {
+        setShowConfig(true);
+        setMessage("Browser belum menyalin konfigurasi. Gunakan Salin manual di langkah 2.");
+      }
+    } finally {
+      if (timeout !== undefined) window.clearTimeout(timeout);
+      if (current()) setCopying(false);
     }
   }
 
@@ -159,19 +212,37 @@ export default function HealthConnectionPage() {
         )}
       </section>
 
+      <section className={card}>
+        <label htmlFor="health-shortcut-name" className="block text-sm font-medium">Nama Shortcut di iPhone</label>
+        <input id="health-shortcut-name" value={shortcutName} maxLength={80} autoComplete="off" spellCheck={false} onChange={event => changeShortcutName(event.target.value)} onBlur={() => { if (!shortcutName.trim()) changeShortcutName(defaultShortcutName); }} className="mt-2 w-full rounded-xl border border-neutral-300 px-3 py-3 text-sm dark:border-neutral-700 dark:bg-neutral-800" />
+        <p className="mt-2 text-xs leading-relaxed text-neutral-500">Samakan dengan nama yang terlihat di aplikasi Shortcuts. File unduhan biasanya terpasang dengan nama “slothly-health-sync”.</p>
+      </section>
+
       {token && (
         <section className={`${card} space-y-5`} aria-label="Pemasangan Shortcut">
           <h2 className="font-semibold">Sambungkan sekali di iPhone</h2>
           <div>
             <h3 className="text-sm font-medium">1. Pasang Shortcut</h3>
-            <p className="mt-1 text-sm text-neutral-500">Unduh, buka file di iPhone, lalu pilih Tambah Shortcut. Nama Shortcut harus tetap “{shortcutName}”.</p>
+            <p className="mt-1 text-sm text-neutral-500">Unduh, buka file di iPhone, lalu pilih Tambah Shortcut. Samakan kolom nama di atas dengan nama Shortcut yang terpasang.</p>
             <a href="/shortcuts/slothly-health-sync.shortcut" className={`${secondary} mt-3`}>Pasang Shortcut</a>
           </div>
           <div>
             <h3 className="text-sm font-medium">2. Salin konfigurasi pribadimu</h3>
             <p className="mt-1 text-sm text-neutral-500">Konfigurasi ini mengizinkan Shortcut mengirim data ke akunmu. Simpan untuk dirimu sendiri.</p>
-            <button type="button" onClick={() => void copyConfiguration()} className={`${secondary} mt-3`}>{copied ? "Disalin ✓" : "Salin konfigurasi"}</button>
-            {showConfig && <textarea aria-label="Konfigurasi koneksi pribadi" readOnly value={configuration} onCopy={() => setCopied(true)} onFocus={event => event.target.select()} className="mt-3 min-h-28 w-full rounded-xl border border-neutral-300 p-3 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-800" />}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={() => void copyConfiguration()} disabled={copying || busy} className={secondary}>{copying ? "Menyalin…" : copied ? "Disalin ✓" : "Salin konfigurasi"}</button>
+              <button type="button" onClick={showManualCopy} className={secondary}>Salin manual</button>
+            </div>
+            {showConfig && (
+              <div className="mt-3 space-y-3 rounded-xl bg-neutral-50 p-3 dark:bg-neutral-950">
+                <p className="text-sm leading-relaxed">Tekan Pilih teks, lalu gunakan Salin dari menu iPhone. Setelah selesai, tekan Sudah saya salin.</p>
+                <textarea ref={configField} aria-label="Konfigurasi koneksi pribadi" readOnly value={configuration} onCopy={confirmManualCopy} onFocus={event => event.target.select()} className="min-h-28 w-full rounded-xl border border-neutral-300 p-3 font-mono text-xs dark:border-neutral-700 dark:bg-neutral-800" />
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={selectConfiguration} className={secondary}>Pilih teks</button>
+                  <button type="button" onClick={confirmManualCopy} className={secondary}>Sudah saya salin</button>
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <h3 className="text-sm font-medium">3. Buka Shortcut dan beri izin</h3>

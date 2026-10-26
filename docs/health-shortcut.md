@@ -5,13 +5,15 @@ Slothly's web app cannot read HealthKit directly. The included **Slothly Health 
 ## Connect on iPhone
 
 1. Open **Profil → Data kesehatan → Hubungkan Apple Health** in Slothly.
-2. Download and open **Slothly Health Sync**. Add the signed shortcut to Apple's Shortcuts app, keeping its name unchanged.
+2. Download and open **Slothly Health Sync**. Add the signed shortcut to Apple's Shortcuts app. A file import may name it **slothly-health-sync** after the filename. In Slothly, set **Nama Shortcut di iPhone** to exactly the name shown in Shortcuts; the default matches that filename.
 3. In Slothly, create the connection and choose **Salin konfigurasi**.
-4. Choose **Buka Shortcut**. This opens `shortcuts://run-shortcut?name=Slothly%20Health%20Sync&input=clipboard`; the bearer token is transferred through the clipboard, not embedded in a URL.
+4. Choose **Buka Shortcut**. With the default installed name, this opens `shortcuts://run-shortcut?name=slothly-health-sync&input=clipboard`; the bearer token is transferred through the clipboard, not embedded in a URL. The URL follows the editable Shortcut name.
 5. Verify the destination shown by the Shortcut. Allow the connection request, saving its configuration, and read access to weight/body fat when iOS asks. The Shortcut tests the token before saving its configuration.
 6. Return to **Hubungkan Apple Health** and choose **Periksa status**. Check the last received measurement dates and data types against Apple Health, then open **Perjalanan** to compare the saved values.
 
-Subsequent **Sinkronkan sekarang** runs use `shortcuts://run-shortcut?name=Slothly%20Health%20Sync` without input. They reuse the saved configuration. The Shortcut does not read unrelated clipboard content in this mode.
+Subsequent **Sinkronkan sekarang** runs use the same selected Shortcut name without input. They reuse the saved configuration. The Shortcut does not read unrelated clipboard content in this mode.
+
+**If copying is blocked:** **Salin manual** is always available during setup. Automatic clipboard writes time out after 1.5 seconds and show the same manual path instead of leaving setup locked. Choose **Pilih teks**, use the iPhone selection menu's **Salin**, then **Sudah saya salin**. This explicit confirmation also works when the browser does not emit a copy event. Only clipboard setup is confirmed here; a real server receipt is still needed to show a completed Health sync. Configuration remains in page memory, and the chosen Shortcut name is the only new value stored in browser storage.
 
 If Safari downloads the file instead of opening Shortcuts, open the downloaded `.shortcut` from Files and add it there. A direct file import is used; an iCloud share link is not required.
 
