@@ -212,6 +212,17 @@ npm run build
 
 ## Apple Health Sync
 
+Alur pemasangan utama sekarang menyediakan **Slothly Berat** dan **Slothly Watch**,
+masing-masing dengan unduhan signed dan pertanyaan konfigurasi pribadi saat
+pemasangan. Berat membaca berat/body fat hari ini; Watch membaca VO₂ max,
+detak istirahat, dan jumlah kalori aktif hari ini. Tersedia panduan automasi
+Watch pukul 21.30 serta Berat saat aplikasi timbangan ditutup. Berat mensyaratkan
+timbangan digital dengan aplikasi yang menulis ke Apple Health; pengguna memilih
+aplikasi timbangan sendiri, dengan AFit sebagai contoh. Lihat
+[panduan dua Shortcut](docs/native-health-shortcuts.md) untuk pemasangan,
+keamanan konfigurasi, dan batas verifikasi iPhone. Uraian v5 di bawah menjelaskan
+Shortcut gabungan sebelumnya yang masih didukung.
+
 Di Slothly, buka **Profil → Data kesehatan → Hubungkan Apple Health**. Halaman
 ini menyediakan pembuatan koneksi pribadi, unduhan Shortcut bertanda tangan,
 penyalinan konfigurasi, pemeriksaan data terakhir diterima, dan pemutusan akses.
