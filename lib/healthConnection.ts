@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { redis, keys } from "./redis";
 import { getUserById, findUserByHealthSyncToken } from "./users";
+import { updateJsonRecord } from "./atomicStore";
 
 interface Credential {
   tokenHash: string | null;
@@ -72,15 +73,20 @@ export async function findHealthSyncUser(token: string) {
 }
 
 export async function recordHealthTest(userId: string) {
-  const status = await redis.get<HealthSyncStatus>(keys.healthSyncStatus(userId));
-  await redis.set(keys.healthSyncStatus(userId), {
-    lastTestAt: new Date().toISOString(), lastSync: status?.lastSync ?? null,
-  } satisfies HealthSyncStatus);
+  const testedAt = new Date().toISOString();
+  await updateJsonRecord<HealthSyncStatus, void>(keys.healthSyncStatus(userId), (status) => ({
+    next: {
+      lastTestAt: status?.lastTestAt && status.lastTestAt > testedAt ? status.lastTestAt : testedAt,
+      lastSync: status?.lastSync ?? null,
+    }, result: undefined,
+  }));
 }
 
 export async function recordHealthSync(userId: string, receipt: HealthSyncReceipt) {
-  const status = await redis.get<HealthSyncStatus>(keys.healthSyncStatus(userId));
-  await redis.set(keys.healthSyncStatus(userId), {
-    lastTestAt: status?.lastTestAt ?? null, lastSync: receipt,
-  } satisfies HealthSyncStatus);
+  await updateJsonRecord<HealthSyncStatus, void>(keys.healthSyncStatus(userId), (status) => ({
+    next: {
+      lastTestAt: status?.lastTestAt ?? null,
+      lastSync: status?.lastSync && status.lastSync.receivedAt > receipt.receivedAt ? status.lastSync : receipt,
+    }, result: undefined,
+  }));
 }

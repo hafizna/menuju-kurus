@@ -298,3 +298,35 @@ test('repeated storage conflicts fail after a bounded number of attempts instead
   assert.equal(conflicts, 8);
   assert.equal(store.get(keys.weight('u3')).some((entry) => entry.date === '2026-09-01'), false);
 });
+
+test('same-origin connection mutations work through the browser-facing host and HTTPS proxy', async () => {
+  for (const method of ['POST', 'DELETE']) {
+    const response = await connection[method](request('/api/health-connection', method, {}, 'u3', {
+      host: 'slothly.example', 'x-forwarded-proto': 'https', origin: 'https://slothly.example',
+    }));
+    assert.equal(response.status, 200);
+    assert.equal((await connection[method](request('/api/health-connection', method, {}, 'u3', {
+      host: 'slothly.example', 'x-forwarded-proto': 'https', origin: 'https://elsewhere.example',
+    }))).status, 403);
+    assert.equal((await connection[method](request('/api/health-connection', method, {}, 'u3', {
+      host: 'slothly.example', 'x-forwarded-proto': 'https', origin: 'http://slothly.example',
+    }))).status, 403);
+  }
+});
+
+test('a concurrent connection test and receipt preserve both status fields in either completion order', async () => {
+  const { recordHealthTest, recordHealthSync } = require('../lib/healthConnection');
+  const receipt = { receivedAt: '2026-09-01T07:00:00.000Z', provider: 'apple_health', dates: ['2026-09-01'], fields: ['weightKg'] };
+  for (const testFirst of [true, false]) {
+    store.delete(keys.healthSyncStatus('u3'));
+    const gate = holdWrite((evalKeys, next) => evalKeys[0] === keys.healthSyncStatus('u3') &&
+      (testFirst ? next[0].lastTestAt !== null : next[0].lastSync !== null));
+    const first = testFirst ? recordHealthTest('u3') : recordHealthSync('u3', receipt);
+    await gate.entered;
+    if (testFirst) await recordHealthSync('u3', receipt); else await recordHealthTest('u3');
+    gate.release(); await first;
+    const status = store.get(keys.healthSyncStatus('u3'));
+    assert.deepEqual(status.lastSync, receipt);
+    assert.ok(status.lastTestAt);
+  }
+});

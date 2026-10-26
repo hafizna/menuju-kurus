@@ -865,7 +865,9 @@ let child, browser;
     response.url() === `${base}/api/health-connection` && response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Siapkan koneksi", exact: true }).click();
-  const healthCreated = await (await createHealthResponse).json();
+  const createdHealthResponse = await createHealthResponse;
+  assert.equal(createdHealthResponse.status(), 200, "Health connection creation failed");
+  const healthCreated = await createdHealthResponse.json();
   const healthToken = healthCreated.token;
   assert.ok(typeof healthToken === "string" && healthToken.length > 40, "Health setup did not issue a private credential");
   await page.getByRole("heading", { name: "Menunggu data pertama", exact: true }).waitFor();
@@ -940,10 +942,18 @@ let child, browser;
   await page.getByRole("button", { name: "Periksa status", exact: true }).click();
   await page.getByRole("heading", { name: "Data sudah diterima", exact: true }).waitFor();
   await page.getByText("Persentase lemak, Berat badan", { exact: true }).waitFor();
-  const healthStatus = await (await context.request.get(`${base}/api/health-connection`)).json();
+  const healthStatus = await page.evaluate(async () => {
+    const response = await fetch("/api/health-connection");
+    if (!response.ok) throw new Error("Could not read authenticated Health status");
+    return response.json();
+  });
   assert.deepEqual(healthStatus.lastSync.dates, [importedWeightDate, importedFatDate].sort());
   assert.equal(healthStatus.token, undefined, "status API returned a reusable credential");
-  const importedBody = await (await context.request.get(`${base}/api/body`)).json();
+  const importedBody = await page.evaluate(async () => {
+    const response = await fetch("/api/body");
+    if (!response.ok) throw new Error("Could not read authenticated body history");
+    return response.json();
+  });
   assert.equal(importedBody.snapshots.find((entry) => entry.date === importedWeightDate).weightKg.value, 90.2, "Health weight missing from shared body history");
   assert.equal(importedBody.snapshots.find((entry) => entry.date === importedFatDate).bodyFatPercent.value, 30.3, "Health body fat missing from shared body history");
   await page.reload();
