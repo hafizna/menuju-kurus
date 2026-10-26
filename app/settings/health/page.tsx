@@ -275,6 +275,13 @@ export default function HealthConnectionPage() {
         <p className="mt-2 text-sm leading-relaxed text-neutral-500">Versi ini meminta pilihan metrik setiap kali berjalan. Jika memakai Automasi Shortcuts, kamu tetap perlu memilih data saat diminta. Langkah, tidur, dan energi aktivitas belum disinkronkan.</p>
       </section>
 
+      <details className={card}>
+        <summary className="cursor-pointer text-sm font-medium">Data ada di Health, tetapi belum terbaca?</summary>
+        <p className="mt-3 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Jalankan pemeriksaan berat badan yang terpisah dari Shortcut sinkronisasi. Pemeriksaan ini menampilkan jumlah sampel yang terbaca dan tanggal sampel terbaru, tanpa menampilkan nilai berat.</p>
+        <a href="/shortcuts/slothly-health-read-check.shortcut?v=1" className={`${secondary} mt-3`}>Unduh pemeriksaan Health</a>
+        <p className="mt-3 text-xs leading-relaxed text-neutral-500">Tidak memerlukan konfigurasi akun, tidak menulis data Health, dan tidak mengirim hasil ke Slothly. Jumlah 1 berarti pembacaan dasar menemukan sampel; jumlah 0 belum menjelaskan penyebabnya. Jika iOS menghentikan tindakan dengan pesan error, catat pesan itu.</p>
+      </details>
+
       {connected && (
         <details className={card}>
           <summary className="cursor-pointer text-sm font-medium">Kelola koneksi</summary>
