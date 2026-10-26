@@ -870,7 +870,7 @@ let child, browser;
   const healthCreated = await createdHealthResponse.json();
   let healthToken = healthCreated.token;
   assert.ok(typeof healthToken === "string" && healthToken.length > 40, "Health setup did not issue a private credential");
-  await page.getByRole("heading", { name: "Menunggu data pertama", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Selesaikan pemasangan", exact: true }).waitFor();
   const expectNoHealthSecret = async (...tokens) => {
     const exposed = await page.evaluate((secrets) => {
       const rendered = document.body.textContent || "";
@@ -892,6 +892,16 @@ let child, browser;
   assert.equal(initialManualConfiguration.token, healthToken, "manual configuration did not contain the current connection");
   assert.equal(initialManualConfiguration.endpoint, `${base}/api/health-sync`);
   assert.equal(await openShortcutLink.count(), 0, "showing a configuration falsely marked it copied");
+
+  // An issued token is not proof that the iPhone saved its configuration.
+  // After leaving setup, offer a visible recovery action instead of waiting.
+  await page.reload();
+  await page.getByRole("heading", { name: "Selesaikan pemasangan", exact: true }).waitFor();
+  assert.equal(await page.getByRole("link", { name: "Sinkronkan sekarang", exact: true }).count(), 0, "untested connection skipped required setup");
+  const resumeSetup = page.waitForResponse((response) => response.url() === `${base}/api/health-connection` && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Lengkapi pemasangan", exact: true }).click();
+  healthToken = (await (await resumeSetup).json()).token;
+  await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).waitFor();
 
   const reconnectForClipboardTest = async () => {
     const management = page.locator("details").filter({ has: page.locator("summary").filter({ hasText: "Kelola koneksi" }) });
@@ -979,7 +989,7 @@ let child, browser;
   assert.equal((await testHealthResponse.json()).tested, true);
   await page.getByRole("button", { name: "Periksa status", exact: true }).click();
   await page.getByText(/^Koneksi diuji:/).waitFor();
-  assert.equal(await page.getByRole("heading", { name: "Menunggu data pertama", exact: true }).isVisible(), true, "connection test falsely claimed a measurement arrived");
+  assert.equal(await page.getByRole("heading", { name: "Koneksi diuji, data belum masuk", exact: true }).isVisible(), true, "connection test falsely claimed a measurement arrived");
   assert.equal(store.get("mk:u3:weight"), beforeHealthTestWeights, "connection test changed weight history");
   assert.equal(store.get("mk:u3:body"), beforeHealthTestBody, "connection test changed body history");
 
@@ -1030,6 +1040,28 @@ let child, browser;
   });
   assert.equal(importedBody.snapshots.find((entry) => entry.date === importedWeightDate).weightKg.value, 90.2, "Health weight missing from shared body history");
   assert.equal(importedBody.snapshots.find((entry) => entry.date === importedFatDate).bodyFatPercent.value, 30.3, "Health body fat missing from shared body history");
+
+  const beforeFitnessImportSettings = store.get("mk:u3:settings");
+  const importedFitnessResponse = await fetch(`${base}/api/health-sync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${healthToken}` },
+    body: JSON.stringify({ provider: "apple_health", samples: [
+      { metric: "vo2Max", value: 44.2, measuredAt: `${offset(45)}T02:30:00.000Z` },
+      { metric: "restingHeartRate", value: 58, measuredAt: `${offset(3)}T04:00:00.000Z` },
+    ] }),
+  });
+  assert.equal(importedFitnessResponse.status, 200);
+  assert.equal((await importedFitnessResponse.json()).received, 2);
+  assert.equal(store.get("mk:u3:settings"), beforeFitnessImportSettings, "fitness import overwrote editable profile settings");
+  await page.goto(`${base}/progress?tab=fitness`);
+  await page.getByText("44.2 mL/kg/min", { exact: true }).waitFor();
+  await page.getByText("58 bpm", { exact: true }).waitFor();
+  assert.equal(await page.getByText(/^Apple Health ·/).count(), 2, "imported fitness readings omitted source and original dates");
+  await page.setViewportSize({ width: 320, height: 720 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "fitness units overflow at 320px");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: path.join(projectRoot, ".next/validation/health-fitness-mobile.png"), fullPage: true });
+  await page.goto(`${base}/settings/health`);
   await page.reload();
   await page.getByRole("heading", { name: "Data sudah diterima", exact: true }).waitFor();
   assert.equal(await shortcutNameInput.inputValue(), customShortcutName, "the installed Shortcut name was forgotten on reload");

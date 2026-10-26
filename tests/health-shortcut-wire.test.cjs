@@ -33,6 +33,17 @@ const variables = {
   weightKgDate: '2026-09-01T18:30:00Z',
   bodyFatPercentValue: 30.3,
   bodyFatPercentDate: '2026-09-01T06:00:00Z',
+  vo2MaxValue: 37.8,
+  vo2MaxDate: '2026-08-25T23:45:00-04:00',
+  restingHeartRateValue: 63,
+  restingHeartRateDate: '2026-09-03T01:10:00+07:00',
+};
+const metricOrder = ['weightKg', 'bodyFatPercent', 'vo2Max', 'restingHeartRate'];
+const expectedReadings = {
+  weightKg: { date: '2026-09-02', recordedAt: '2026-09-01T18:30:00.000Z' },
+  bodyFatPercent: { date: '2026-09-01', recordedAt: '2026-09-01T06:00:00.000Z' },
+  vo2Max: { date: '2026-08-26', recordedAt: '2026-08-26T03:45:00.000Z' },
+  restingHeartRate: { date: '2026-09-03', recordedAt: '2026-09-02T18:10:00.000Z' },
 };
 
 function decodeText(state) {
@@ -105,6 +116,7 @@ const requests = postActions.map((parameters) => ({
 // The requests still traverse credential lookup, input validation, timestamp
 // conversion, atomic writes, and health-sync receipt recording in production code.
 const store = new Map();
+const writtenKeys = new Set();
 const keys = {
   day: (user, date) => `mk:${user}:day:${date}`,
   settings: (user) => `mk:${user}:settings`,
@@ -112,18 +124,20 @@ const keys = {
   weight: (user) => `mk:${user}:weight`,
   healthConnection: (user) => `mk:${user}:healthConnection`,
   healthSyncStatus: (user) => `mk:${user}:healthSyncStatus`,
+  fitnessMeasurements: (user) => `mk:${user}:fitnessMeasurements`,
 };
 const redisPath = require.resolve('../lib/redis');
 require.cache[redisPath] = { id: redisPath, filename: redisPath, loaded: true, exports: {
   keys,
   redis: {
     async get(key) { return structuredClone(store.get(key) ?? null); },
-    async set(key, value) { store.set(key, structuredClone(value)); return 'OK'; },
+    async set(key, value) { writtenKeys.add(key); store.set(key, structuredClone(value)); return 'OK'; },
     async eval(script, evalKeys, args) {
       for (let index = 0; index < evalKeys.length; index++) {
         if (!isDeepStrictEqual(store.get(evalKeys[index]) ?? null, JSON.parse(args[index]))) return 0;
       }
       for (let index = 0; index < evalKeys.length; index++) {
+        writtenKeys.add(evalKeys[index]);
         store.set(evalKeys[index], JSON.parse(args[evalKeys.length + index]));
       }
       return 1;
@@ -131,15 +145,19 @@ require.cache[redisPath] = { id: redisPath, filename: redisPath, loaded: true, e
   },
 } };
 const sync = require('../app/api/health-sync/route');
+const profile = { timezone: 'Asia/Jakarta', heightCm: 172, vo2Max: 41, restingHeartRate: 70, dailyCalorieGoal: 2000 };
+const otherFitness = { vo2Max: { value: 48, date: '2026-08-10', recordedAt: '2026-08-10T00:00:00.000Z', source: 'apple_health' } };
 
 beforeEach(() => {
   store.clear();
+  writtenKeys.clear();
   process.env.USER3_INVITE_CODE = 'synthetic-shortcut-wire-invite';
   store.set(keys.healthConnection('u3'), {
     tokenHash: createHash('sha256').update(token).digest('hex'),
     createdAt: '2026-08-01T00:00:00.000Z', revokedAt: null,
   });
-  store.set(keys.settings('u3'), { timezone: 'Asia/Jakarta' });
+  store.set(keys.settings('u3'), structuredClone(profile));
+  store.set(keys.fitnessMeasurements('u4'), structuredClone(otherFitness));
 });
 
 async function send(request) {
@@ -155,8 +173,53 @@ async function send(request) {
   }));
 }
 
+test('shipped Shortcut asks for optional types before reading Health and guards every query by its own selection', () => {
+  const actions = workflow.WFWorkflowActions;
+  const byId = new Map(actions.map((action) => [action.WFWorkflowActionParameters.UUID, action]));
+  const choices = actions.filter((action) => action.WFWorkflowActionIdentifier === 'is.workflow.actions.choosefromlist');
+  assert.equal(choices.length, 1);
+  const choice = choices[0].WFWorkflowActionParameters;
+  assert.equal(choice.WFChooseFromListActionSelectMultiple, true, 'The user must be able to select only the permitted Health types');
+  const combined = actions.find((action) => action.WFWorkflowActionIdentifier === 'is.workflow.actions.text.combine' &&
+    action.WFWorkflowActionParameters.WFInput?.Value?.OutputUUID === choice.UUID);
+  assert.ok(combined, 'The permission selection must flow from Choose from List');
+  const healthLabels = {
+    'Body Mass': 'Berat badan',
+    'Body Fat Percentage': 'Lemak tubuh',
+    'Cardio Fitness': 'VO2 max',
+    'Resting Heart Rate': 'Denyut istirahat',
+  };
+  const guards = [];
+  const found = [];
+  for (const action of actions) {
+    const parameters = action.WFWorkflowActionParameters;
+    if (action.WFWorkflowActionIdentifier === 'is.workflow.actions.conditional') {
+      if (parameters.WFControlFlowMode === 0) guards.push({ ...parameters, positiveBranch: true });
+      else if (parameters.WFControlFlowMode === 1) guards.at(-1).positiveBranch = false;
+      else if (parameters.WFControlFlowMode === 2) guards.pop();
+    }
+    if (action.WFWorkflowActionIdentifier !== 'is.workflow.actions.filter.health.quantity') continue;
+    assert.ok(actions.indexOf(choices[0]) < actions.indexOf(action), 'Selection must precede every Health query');
+    const type = parameters.WFContentItemFilter.Value.WFActionParameterFilterTemplates[0].Values.Enumeration.Value;
+    assert.ok(Object.hasOwn(healthLabels, type), 'Only supported, explicitly named Health types may be queried');
+    found.push(type);
+    assert.ok(guards.some((guard) => {
+      if (!guard.positiveBranch || guard.WFCondition !== 100) return false;
+      const input = guard.WFInput?.Variable?.Value;
+      const match = input?.Type === 'ActionOutput' ? byId.get(input.OutputUUID) : undefined;
+      if (match?.WFWorkflowActionIdentifier !== 'is.workflow.actions.text.match') return false;
+      const matchParameters = match.WFWorkflowActionParameters;
+      if (matchParameters.WFMatchTextPattern !== `(?m)^${healthLabels[type]}$`) return false;
+      const references = Object.values(matchParameters.text?.Value?.attachmentsByRange ?? {});
+      return references.length === 1 && references[0].Type === 'ActionOutput' &&
+        references[0].OutputUUID === combined.WFWorkflowActionParameters.UUID;
+    }), 'A skipped or denied Health type must not be queried by an unguarded action');
+  }
+  assert.deepEqual(found.sort(), Object.keys(healthLabels).sort(), 'Each supported Health type must have exactly one guarded query');
+});
+
 test('compiled Shortcut connection test sends a true JSON Boolean and only records a successful test', async () => {
-  assert.equal(requests.length, 4, 'Shipped Shortcut must contain connection, both-metric, weight-only, and fat-only POSTs');
+  assert.equal(requests.length, 16, 'Shipped Shortcut must contain a connection test and every nonempty subset of the four optional metrics');
   const candidates = requests.filter((request) => Object.hasOwn(request.body, 'test'));
   assert.equal(candidates.length, 1);
   const request = candidates[0];
@@ -172,9 +235,14 @@ test('compiled Shortcut connection test sends a true JSON Boolean and only recor
   assert.equal(state.lastSync, null, 'Testing a connection must not claim Health data was received');
   assert.equal(store.has(keys.weight('u3')), false);
   assert.equal(store.has(keys.body('u3')), false);
+  assert.equal(store.has(keys.fitnessMeasurements('u3')), false);
+  assert.deepEqual(store.get(keys.settings('u3')), profile);
 });
 
-for (const metrics of [['weightKg', 'bodyFatPercent'], ['weightKg'], ['bodyFatPercent']]) {
+// Exercise every shipped typed HTTP branch. A denied or unavailable optional
+// Health type must not force an empty placeholder or a made-up metric value.
+for (let mask = 1; mask < 16; mask++) {
+  const metrics = metricOrder.filter((metric, index) => mask & (1 << index));
   test(`compiled Shortcut ${metrics.join(' + ')} payload is accepted with numeric values and independent original dates`, async () => {
     const candidates = requests.filter((request) => Array.isArray(request.body.samples) &&
       isDeepStrictEqual(request.body.samples.map((sample) => sample.metric), metrics));
@@ -206,12 +274,23 @@ for (const metrics of [['weightKg', 'bodyFatPercent'], ['weightKg'], ['bodyFatPe
       assert.equal(fat?.value, 30.3);
       assert.equal(fat?.recordedAt, '2026-09-01T06:00:00.000Z', 'Body fat retains its own timestamp instead of taking the weight timestamp');
     } else assert.ok(!checkIns?.some((entry) => entry.bodyFatPercent));
+    const fitness = store.get(keys.fitnessMeasurements('u3'));
+    for (const metric of ['vo2Max', 'restingHeartRate']) {
+      if (metrics.includes(metric)) {
+        assert.deepEqual(fitness?.[metric], {
+          value: variables[`${metric}Value`],
+          ...expectedReadings[metric],
+          source: 'apple_health',
+        }, `${metric} must keep its own original observation and explicit source`);
+      } else assert.equal(fitness?.[metric], undefined, 'An omitted Health type must not become a fabricated reading');
+    }
+    assert.deepEqual(store.get(keys.settings('u3')), profile, 'Importing fitness observations must preserve the manual profile and its fallback metrics');
     const receipt = store.get(keys.healthSyncStatus('u3')).lastSync;
     assert.equal(receipt.provider, 'apple_health');
     assert.deepEqual(receipt.fields, [...metrics].sort());
-    assert.deepEqual(receipt.dates, metrics.length === 2 ? ['2026-09-01', '2026-09-02'] :
-      metrics[0] === 'weightKg' ? ['2026-09-02'] : ['2026-09-01']);
-    assert.ok([...store.keys()].every((key) => key.startsWith('mk:u3:')), 'Compiled request must write only to its credential owner');
+    assert.deepEqual(receipt.dates, [...new Set(metrics.map((metric) => expectedReadings[metric].date))].sort());
+    assert.deepEqual(store.get(keys.fitnessMeasurements('u4')), otherFitness, 'An independent account must retain its existing observations');
+    assert.ok([...writtenKeys].every((key) => key.startsWith('mk:u3:')), 'Compiled request must write only to its credential owner');
     assert.ok(!JSON.stringify([...store.values()]).includes(token), 'No raw connection credential may be persisted');
   });
 }

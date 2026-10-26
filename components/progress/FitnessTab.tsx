@@ -115,8 +115,10 @@ export default function FitnessTab() {
         />
         <Metric
           label="VO₂ max"
-          value={data.vo2Max === null ? "Belum ada" : String(data.vo2Max)}
-          note="estimasi cardio fitness"
+          value={data.vo2Max === null ? "Belum ada" : `${data.vo2Max} mL/kg/min`}
+          note={data.vo2MaxReading
+            ? `Apple Health · ${measurementDate(data.vo2MaxReading.recordedAt)} · estimasi`
+            : data.vo2Max === null ? "estimasi kebugaran kardio" : "Isian Profil · estimasi"}
         />
         <Metric
           label="Resting HR"
@@ -125,6 +127,9 @@ export default function FitnessTab() {
               ? "Belum ada"
               : `${data.restingHeartRate} bpm`
           }
+          note={data.restingHeartRateReading
+            ? `Apple Health · ${measurementDate(data.restingHeartRateReading.recordedAt)}`
+            : data.restingHeartRate === null ? undefined : "Isian Profil"}
         />
         <Metric
           label="Kardio"
@@ -217,4 +222,8 @@ function Metric({
       {note && <div className="text-xs text-neutral-400">{note}</div>}
     </div>
   );
+}
+
+function measurementDate(value: string) {
+  return new Date(value).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
 }

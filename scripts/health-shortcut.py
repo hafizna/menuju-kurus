@@ -23,6 +23,14 @@ SHORTCUTS_FOLDER = {
     "displayName": "Shortcuts",
 }
 NAMESPACE = uuid.UUID("2aa370a4-78b5-4955-a96e-7124339b8b0c")
+METRICS = [
+    ("weight", "Berat badan", "Body Mass", "weightKg"),
+    ("body-fat", "Lemak tubuh", "Body Fat Percentage", "bodyFatPercent"),
+    # Cardio Fitness is the current Shortcuts picker label; the SDK identifier
+    # HKQuantityTypeIdentifierVO2Max is not the picker label (see docs).
+    ("vo2-max", "VO2 max", "Cardio Fitness", "vo2Max"),
+    ("resting-heart-rate", "Denyut istirahat", "Resting Heart Rate", "restingHeartRate"),
+]
 
 
 def uid(label):
@@ -196,11 +204,25 @@ class Workflow:
             self.stop(label + "-unit-unsupported", text("Satuan berat belum didukung: ", unit, ". Ubah satuan berat di Apple Health ke kg lalu coba lagi."))
             self.end(label + "-unit-known")
             normalized = variable("WeightKg")
-        else:
+        elif metric == "bodyFatPercent":
             matched = self.add("text.match", label + "-percent-unit", text=text(unit), WFMatchTextPattern=r"^(%|percent|percentage)$", WFMatchTextCaseSensitive=False)
             self.begin(label + "-percent-known", matched, 101)
             self.stop(label + "-percent-unsupported", text("Satuan persentase lemak belum dikenali: ", unit, ". Data ini belum dikirim."))
             self.end(label + "-percent-known")
+            normalized = value
+        elif metric == "vo2Max":
+            matched = self.add("text.match", label + "-vo2-unit", text=text(unit),
+                WFMatchTextPattern=r"(?i)^(ml/\(kg\*min\)|ml/kg/min|ml/\(kg[.·]min\))$", WFMatchTextCaseSensitive=False)
+            self.begin(label + "-vo2-unit-known", matched, 101)
+            self.stop(label + "-vo2-unit-unsupported", text("Satuan VO2 max belum dikenali: ", unit, ". Data belum dikirim. Gunakan mL/kg/min di Apple Health."))
+            self.end(label + "-vo2-unit-known")
+            normalized = value
+        else:
+            matched = self.add("text.match", label + "-bpm-unit", text=text(unit),
+                WFMatchTextPattern=r"(?i)^(count/min|bpm|beats/min|beats/minute)$", WFMatchTextCaseSensitive=False)
+            self.begin(label + "-bpm-unit-known", matched, 101)
+            self.stop(label + "-bpm-unit-unsupported", text("Satuan denyut istirahat belum dikenali: ", unit, ". Data belum dikirim. Gunakan BPM di Apple Health."))
+            self.end(label + "-bpm-unit-known")
             normalized = value
         self.set(metric + "Value", normalized, label + "-save-value")
         self.set(metric + "Date", date_iso, label + "-save-date")
@@ -221,16 +243,54 @@ class Workflow:
         ]))
         self.set("SyncResponse", response, label + "-save-response")
 
+    def selected_samples(self):
+        # Choose from List's actual exported multi-select parameter avoids a
+        # mandatory read of a denied Health type. Selection precedes ALL reads.
+        choices = self.add("gettext", "metric-choices", WFTextActionText="\n".join(item[1] for item in METRICS))
+        choices_list = self.add("text.split", "metric-choices-list", WFInput=choices, WFTextSeparator="New Lines")
+        chosen = self.add("choosefromlist", "choose-metrics", WFInput=choices_list,
+            WFChooseFromListActionPrompt="Pilih data yang ingin dibaca. Jangan pilih jenis yang izin bacanya belum diberikan.",
+            WFChooseFromListActionSelectMultiple=True)
+        self.begin("selected-any", chosen, 101)
+        self.stop("no-selection", "Tidak ada jenis data yang dipilih. Tidak ada data kesehatan yang dibaca atau dikirim.")
+        self.end("selected-any")
+        selected = self.add("text.combine", "selected-metric-lines", WFInput=chosen, WFTextSeparator="New Lines")
+        for label, title, health_type, metric in METRICS:
+            matched = self.add("text.match", label + "-selected", text=text(selected),
+                WFMatchTextPattern="(?m)^" + title + "$", WFMatchTextCaseSensitive=True)
+            self.begin(label + "-read-selected", matched)
+            self.sample(label, health_type, metric)
+            self.end(label + "-read-selected")
+
+    def send_available_samples(self, index=0, selected=None):
+        # Keep the typed JSON array static for each subset. This uses the
+        # already verified exported Dictionary/Array shape, with no guessed
+        # serialization for a dynamically appended list of dictionary values.
+        selected = selected or []
+        if index == len(METRICS):
+            if selected:
+                self.send_samples("send-" + "-".join(selected), selected)
+            else:
+                self.stop("no-samples", "Tidak ada pengukuran dari jenis data yang dipilih. Periksa datanya di Apple Health dan izin baca Shortcuts. Belum ada pengukuran yang dikirim ke Slothly.")
+            return
+        metric = METRICS[index][3]
+        label = "available-" + "-".join(selected + [metric])
+        self.begin(label, variable(metric + "Available"))
+        self.send_available_samples(index + 1, selected + [metric])
+        self.otherwise(label)
+        self.send_available_samples(index + 1, selected)
+        self.end(label)
+
 
 def build():
     w = Workflow()
-    w.add("comment", "intro", WFCommentActionText="Slothly Health Sync v2. Membaca berat dan persentase lemak terbaru beserta tanggal pengukuran aslinya. Tidak menulis data ke Apple Health. Konfigurasi disimpan di folder Shortcuts/Slothly/connection.json; folder ini dapat tersinkron lewat iCloud sesuai pengaturan perangkat. Jangan bagikan berkas konfigurasi tersebut.")
+    w.add("comment", "intro", WFCommentActionText="Slothly Health Sync v3. Pilih berat, persentase lemak, VO2 max, atau denyut istirahat sebelum membaca data terbaru beserta tanggal pengukuran aslinya. Jangan pilih jenis data yang izin bacanya ditolak; error izin iOS dapat menghentikan Shortcut. Tidak menulis data ke Apple Health. Konfigurasi disimpan di folder Shortcuts/Slothly/connection.json; folder ini dapat tersinkron lewat iCloud sesuai pengaturan perangkat. Jangan bagikan berkas konfigurasi tersebut.")
     incoming = attachment({"Type": "ExtensionInput"})
     w.begin("received-config", incoming)
     # Get Text creates an explicit string to save, rather than persisting Shortcut Input attachments.
     config_text = w.add("gettext", "config-json", WFTextActionText=text(incoming))
     w.config("new-config", config_text)
-    w.alert("confirm-destination", text("Hubungkan Apple Health ke:\n", variable("Endpoint"), "\n\nHanya berat dan persentase lemak terbaru yang dibaca. Konfigurasi disimpan di folder Shortcuts/Slothly; folder ini dapat tersinkron lewat iCloud. Lanjutkan hanya jika alamatnya sesuai app Slothly milikmu."), cancel=True)
+    w.alert("confirm-destination", text("Hubungkan Apple Health ke:\n", variable("Endpoint"), "\n\nSetelah tersambung, pilih data yang boleh dibaca: berat, persentase lemak, VO2 max, atau denyut istirahat. Konfigurasi disimpan di folder Shortcuts/Slothly; folder ini dapat tersinkron lewat iCloud. Lanjutkan hanya jika alamatnya sesuai app Slothly milikmu."), cancel=True)
     w.post("test-connection", dictionary([field("provider", 0, text("apple_health")), field("test", 4, boolean(True))]), expected_status="tested")
     w.add("file.createfolder", "create-config-folder", WFFilePath="Slothly", WFFolder=SHORTCUTS_FOLDER)
     named = w.add("setitemname", "name-config-file", WFInput=config_text, WFName="connection.json", WFDontIncludeFileExtension=False)
@@ -247,21 +307,8 @@ def build():
     w.end("saved-config-exists")
     w.config("saved-config", saved)
     w.end("received-config")
-    w.sample("weight", "Body Mass", "weightKg")
-    w.sample("body-fat", "Body Fat Percentage", "bodyFatPercent")
-    w.begin("has-weight", variable("weightKgAvailable"))
-    w.begin("has-both", variable("bodyFatPercentAvailable"))
-    w.send_samples("send-both", ["weightKg", "bodyFatPercent"])
-    w.otherwise("has-both")
-    w.send_samples("send-weight", ["weightKg"])
-    w.end("has-both")
-    w.otherwise("has-weight")
-    w.begin("has-fat-only", variable("bodyFatPercentAvailable"))
-    w.send_samples("send-fat", ["bodyFatPercent"])
-    w.otherwise("has-fat-only")
-    w.stop("no-samples", "Tidak ada berat atau persentase lemak yang dapat dibaca. Periksa datanya di Apple Health dan izin baca Shortcuts. Belum ada pengukuran yang dikirim ke Slothly.")
-    w.end("has-fat-only")
-    w.end("has-weight")
+    w.selected_samples()
+    w.send_available_samples()
     received = w.key("received-count", "received", variable("SyncResponse"))
     ignored = w.key("ignored-count", "ignored", variable("SyncResponse"))
     w.begin("imported-new-data", received, 2, WFNumberValue="0")
@@ -315,7 +362,7 @@ def validate(workflow):
         assert params["UUID"] not in seen, "Duplicate action UUID"
         seen.add(params["UUID"])
     assert not stack, "Unclosed conditional"
-    assert sum(a["WFWorkflowActionIdentifier"].endswith(".filter.health.quantity") for a in actions) == 2
+    assert sum(a["WFWorkflowActionIdentifier"].endswith(".filter.health.quantity") for a in actions) == 4
 
 
 def sha(data):
@@ -366,7 +413,7 @@ def main():
     if reported_input:
         assert reported_input == sha(unsigned), "Signing service signed different input"
     signed_path.write_bytes(signed)
-    manifest_path.write_text(json.dumps({"name": NAME, "version": 2, "actions": len(workflow["WFWorkflowActions"]),
+    manifest_path.write_text(json.dumps({"name": NAME, "version": 3, "actions": len(workflow["WFWorkflowActions"]),
         "installPath": "/shortcuts/slothly-health-sync.shortcut", "signingFormat": "AEA1", "signingMode": "anyone",
         "signingService": args.signing_server, "unsignedSha256": sha(unsigned), "signedSha256": sha(signed),
         "generatorSha256": generator_sha(),

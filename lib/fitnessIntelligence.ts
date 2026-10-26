@@ -1,6 +1,7 @@
 import type { FitnessGoal, UserSettings, WeightEntry } from "./types";
 import type { WeightTrend } from "./weight";
 import { lastNDateKeys } from "./dates";
+import type { FitnessMeasurement, FitnessMeasurements } from "./fitnessMeasurements";
 
 export interface FitnessIntelligence {
   goal: FitnessGoal;
@@ -16,6 +17,8 @@ export interface FitnessIntelligence {
   weightTrendKgWeek: number | null;
   vo2Max: number | null;
   restingHeartRate: number | null;
+  vo2MaxReading?: FitnessMeasurement | null;
+  restingHeartRateReading?: FitnessMeasurement | null;
   cardioMinutes: number;
   strengthDays: number;
   priorities: string[];
@@ -42,7 +45,16 @@ export function computeFitnessIntelligence(
     date: string;
     source: "manual" | "shortcuts";
   } | null,
+  fitnessMeasurements: FitnessMeasurements = {},
 ): FitnessIntelligence {
+  // Imported observations keep their provenance separately from editable
+  // profile defaults. Use the same effective values throughout the score,
+  // baseline, returned metrics, and generated recap.
+  settings = {
+    ...settings,
+    vo2Max: fitnessMeasurements.vo2Max?.value ?? settings.vo2Max,
+    restingHeartRate: fitnessMeasurements.restingHeartRate?.value ?? settings.restingHeartRate,
+  };
   const legacyBodyFat = weightEntries
     .filter((entry) => typeof entry.bodyFat === "number")
     .slice()
@@ -197,6 +209,8 @@ export function computeFitnessIntelligence(
     weightTrendKgWeek: trend.weeklyRate,
     vo2Max: settings.vo2Max,
     restingHeartRate: settings.restingHeartRate,
+    vo2MaxReading: fitnessMeasurements.vo2Max ?? null,
+    restingHeartRateReading: fitnessMeasurements.restingHeartRate ?? null,
     cardioMinutes: settings.cardioMinutesWeekly,
     strengthDays: settings.strengthDaysWeekly,
     priorities: priorities.slice(0, 3),

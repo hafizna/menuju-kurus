@@ -5,6 +5,7 @@ import { getDayLog, saveDayLog, getSettings, saveSettings } from "@/lib/day";
 import { dateKeyFor, todayKey } from "@/lib/dates";
 import { findHealthSyncUser, recordHealthSync, recordHealthTest } from "@/lib/healthConnection";
 import { getWeightEntries, upsertWeightEntryResult } from "@/lib/weight";
+import { upsertFitnessMeasurement } from "@/lib/fitnessMeasurements";
 
 const METRICS = ["calories", "weightKg", "bodyFatPercent", "vo2Max", "restingHeartRate", "cardioMinutesWeekly"] as const;
 type Metric = (typeof METRICS)[number];
@@ -75,7 +76,7 @@ async function receive(req: NextRequest) {
     if (body.provider !== "apple_health" || !Array.isArray(body.samples) || !body.samples.length || body.samples.length > 200) return failure("request_invalid");
     for (const sample of body.samples) {
       if (!sample || typeof sample !== "object" || Array.isArray(sample) ||
-        !["weightKg", "bodyFatPercent"].includes(sample.metric) ||
+        !["weightKg", "bodyFatPercent", "vo2Max", "restingHeartRate"].includes(sample.metric) ||
         typeof sample.value !== "number" || !Number.isFinite(sample.value) || !validTimestamp(sample.measuredAt)) return failure("request_invalid");
       const metric = sample.metric as Metric;
       const [min, max] = ranges[metric];
@@ -121,6 +122,11 @@ async function receive(req: NextRequest) {
       if (previousTime && Date.parse(previousTime) > Date.parse(sample.measuredAt)) { ignored++; continue; }
       const result = await upsertBodyCheckInResult(user.id, sample.date, { bodyFatPercent: sample.value }, "shortcuts", heightCm, sample.measuredAt);
       if (!result.appliedFields.includes("bodyFatPercent")) { ignored++; continue; }
+    } else if (body.samples !== undefined && (sample.metric === "vo2Max" || sample.metric === "restingHeartRate")) {
+      const applied = await upsertFitnessMeasurement(user.id, sample.metric, {
+        value: sample.value, date: sample.date, recordedAt: sample.measuredAt, source: "apple_health",
+      });
+      if (!applied) { ignored++; continue; }
     } else if (sample.metric === "calories") {
       const log = await getDayLog(user.id, sample.date);
       const existing = log.burns.find((burn) => burn.source === "shortcuts");
