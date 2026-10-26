@@ -13,6 +13,7 @@ type ConnectionState = {
 
 const defaultShortcutName = "slothly-health-sync";
 const shortcutNameKey = "mk_health_shortcut_name";
+const shortcutDownload = "/shortcuts/slothly-health-sync.shortcut?v=2";
 const fieldLabels: Record<string, string> = {
   weightKg: "Berat badan", bodyFatPercent: "Persentase lemak", calories: "Energi aktif",
   vo2Max: "VO₂ max", restingHeartRate: "Detak jantung istirahat", cardioMinutesWeekly: "Durasi kardio",
@@ -186,6 +187,12 @@ export default function HealthConnectionPage() {
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
       {message && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800 dark:bg-brand-950 dark:text-brand-200">{message}</p>}
 
+      <section className="rounded-2xl border border-brand-200 bg-brand-50 p-4 dark:border-brand-800 dark:bg-brand-950/40" aria-label="Pembaruan Shortcut">
+        <h2 className="text-sm font-semibold">Gunakan Shortcut versi 2</h2>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Versi ini memperbaiki pengiriman konfigurasi dan pengukuran. Jika sudah memasang versi sebelumnya, hapus Shortcut lama di aplikasi Shortcuts, lalu pasang unduhan terbaru.</p>
+        <a href={shortcutDownload} className={`${secondary} mt-3`}>Unduh Shortcut terbaru</a>
+      </section>
+
       <section className={card} aria-label="Status sinkronisasi">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -203,11 +210,11 @@ export default function HealthConnectionPage() {
             <div><dt className="text-neutral-500">Data yang masuk</dt><dd>{state.lastSync.fields.map(field => fieldLabels[field] ?? field).join(", ")}</dd></div>
           </dl>
         )}
-        {!connected && <div className="mt-4 flex flex-wrap gap-2"><a href="/shortcuts/slothly-health-sync.shortcut" className={secondary}>Pasang Shortcut</a><button type="button" onClick={() => void createConnection()} disabled={loading || busy} className={primary}>{busy ? "Menyiapkan…" : "Siapkan koneksi"}</button></div>}
+        {!connected && <div className="mt-4 flex flex-wrap gap-2"><a href={shortcutDownload} className={secondary}>Pasang Shortcut</a><button type="button" onClick={() => void createConnection()} disabled={loading || busy} className={primary}>{busy ? "Menyiapkan…" : "Siapkan koneksi"}</button></div>}
         {connected && !token && (
           <div className="mt-4 flex flex-wrap gap-2">
             <a href={runShortcut} className={primary}>Sinkronkan sekarang</a>
-            <a href="/shortcuts/slothly-health-sync.shortcut" className={secondary}>Pasang Shortcut</a>
+            <a href={shortcutDownload} className={secondary}>Pasang Shortcut</a>
           </div>
         )}
       </section>
@@ -224,7 +231,7 @@ export default function HealthConnectionPage() {
           <div>
             <h3 className="text-sm font-medium">1. Pasang Shortcut</h3>
             <p className="mt-1 text-sm text-neutral-500">Unduh, buka file di iPhone, lalu pilih Tambah Shortcut. Samakan kolom nama di atas dengan nama Shortcut yang terpasang.</p>
-            <a href="/shortcuts/slothly-health-sync.shortcut" className={`${secondary} mt-3`}>Pasang Shortcut</a>
+            <a href={shortcutDownload} className={`${secondary} mt-3`}>Pasang Shortcut</a>
           </div>
           <div>
             <h3 className="text-sm font-medium">2. Salin konfigurasi pribadimu</h3>

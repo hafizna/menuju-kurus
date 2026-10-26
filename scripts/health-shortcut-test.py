@@ -4,9 +4,11 @@
 This checks the generated plist, not Apple's private action implementations.
 An actual iPhone import/run is still required to verify OS permissions and units.
 """
+import copy
 import importlib.util
 import json
 from pathlib import Path
+import plistlib
 import re
 import sys
 import unittest
@@ -18,16 +20,104 @@ builder = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(builder)
 
 
+# Minimal, independently recorded wire-format fixtures from actual exported
+# Apple Shortcuts in Federico Viticci / MacStories' MIT-licensed corpus:
+# https://github.com/viticci/shortcuts-playground-plugin/tree/main/claude/skills/shortcuts-playground/golden-shortcuts/xml
+# 2e0fb675e45948aaacee7e534f910492.xml: January Number row (type 3).
+# 3dd4ee24e43f464f92adaa70a0311eaa.xml: All Day Boolean row (type 4).
+# ef669bcf8bad489d9ef4b88bfaf5772f.xml: time_entry nested JSON Dictionary row
+# (type 1, double wrapper). Only relevant rows are retained below.
+# Do not derive these fixtures or the decoder's type codes from the generator.
+#
+# MIT License
+# Copyright (c) 2026 Federico Viticci / MacStories
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+EXPORTED_TYPED_FIELDS = plistlib.loads(b'''<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>Value</key><dict><key>WFDictionaryFieldValueItems</key><array>
+    <dict><key>WFItemType</key><integer>3</integer>
+      <key>WFKey</key><dict><key>Value</key><dict><key>string</key><string>January</string></dict><key>WFSerializationType</key><string>WFTextTokenString</string></dict>
+      <key>WFValue</key><dict><key>Value</key><dict><key>string</key><string>31</string></dict><key>WFSerializationType</key><string>WFTextTokenString</string></dict>
+    </dict>
+    <dict><key>WFItemType</key><integer>4</integer>
+      <key>WFKey</key><dict><key>Value</key><dict><key>string</key><string>All Day</string></dict><key>WFSerializationType</key><string>WFTextTokenString</string></dict>
+      <key>WFValue</key><dict><key>Value</key><integer>1</integer><key>WFSerializationType</key><string>WFNumberSubstitutableState</string></dict>
+    </dict>
+    <dict><key>WFItemType</key><integer>1</integer>
+      <key>WFKey</key><dict><key>Value</key><dict><key>string</key><string>time_entry</string></dict><key>WFSerializationType</key><string>WFTextTokenString</string></dict>
+      <key>WFValue</key><dict><key>Value</key><dict>
+        <key>Value</key><dict><key>WFDictionaryFieldValueItems</key><array>
+          <dict><key>WFItemType</key><integer>0</integer>
+            <key>WFKey</key><dict><key>Value</key><dict><key>string</key><string>created_with</string></dict><key>WFSerializationType</key><string>WFTextTokenString</string></dict>
+            <key>WFValue</key><dict><key>Value</key><dict><key>string</key><string>Workflow</string></dict><key>WFSerializationType</key><string>WFTextTokenString</string></dict>
+          </dict>
+        </array></dict><key>WFSerializationType</key><string>WFDictionaryFieldValue</string>
+      </dict><key>WFSerializationType</key><string>WFDictionaryFieldValue</string></dict>
+    </dict>
+  </array></dict><key>WFSerializationType</key><string>WFDictionaryFieldValue</string>
+</dict></plist>''')
+
+
+def decode_dictionary(value, resolve_text):
+    """Strict wire decoder grounded in exported XML, independent of build helpers."""
+    assert isinstance(value, dict) and value.get("WFSerializationType") == "WFDictionaryFieldValue", "Expected dictionary envelope"
+    state = value.get("Value")
+    assert isinstance(state, dict) and isinstance(state.get("WFDictionaryFieldValueItems"), list), "Expected dictionary field rows"
+    result = {}
+    for item in state["WFDictionaryFieldValueItems"]:
+        key = item.get("WFKey")
+        assert isinstance(key, dict) and key.get("WFSerializationType") == "WFTextTokenString", "Expected text key"
+        result[resolve_text(key)] = decode_item(item, resolve_text)
+    return result
+
+
+def decode_item(item, resolve_text):
+    kind, value = item.get("WFItemType"), item.get("WFValue")
+    assert isinstance(value, dict), "Typed WFValue must have a serialization envelope"
+    serialization = value.get("WFSerializationType")
+    if kind in (0, 3):
+        assert serialization == "WFTextTokenString", "Text/Number row requires text-token state"
+        resolved = resolve_text(value)
+        return float(resolved) if kind == 3 else resolved
+    if kind == 1:
+        assert serialization == "WFDictionaryFieldValue", "Dictionary row requires dictionary state"
+        # Nested dictionary rows have TWO WFDictionaryFieldValue envelopes.
+        return decode_dictionary(value.get("Value"), resolve_text)
+    if kind == 2:
+        assert serialization == "WFArrayParameterState" and isinstance(value.get("Value"), list), "Array row requires array state"
+        return [decode_item(child, resolve_text) for child in value["Value"]]
+    if kind == 4:
+        assert serialization == "WFNumberSubstitutableState", "Boolean row requires substitutable state"
+        assert type(value.get("Value")) is int and value["Value"] in (0, 1), "Boolean state must be 0 or 1"
+        return bool(value["Value"])
+    raise AssertionError(f"Unknown dictionary row type {kind}")
+
+
 class Stopped(Exception):
     pass
 
 
 class ShortcutFixture:
-    def __init__(self, samples=None, config=None, saved=None, reject=None, received=None):
+    def __init__(self, samples=None, config=None, saved=None, reject=None, received=None, error_code=None):
         self.samples = samples or {}
         self.config = json.dumps(config) if config else None
         self.saved = json.dumps(saved) if saved else None
         self.reject, self.received = reject, received
+        self.error_code = error_code
         self.variables, self.outputs, self.requests, self.alerts = {}, {}, [], []
         self.files = {}
 
@@ -55,13 +145,7 @@ class ShortcutFixture:
                 string = string[:index] + ("" if result is None else str(result)) + string[index + 1:]
             return string
         if kind == "WFDictionaryFieldValue":
-            result = {}
-            for item in value["Value"]["WFDictionaryFieldValueItems"]:
-                key, item_value = self.resolve(item["WFKey"]), self.resolve(item["WFValue"])
-                result[key] = float(item_value) if item["WFItemType"] == 1 else item_value
-            return result
-        if kind == "WFArrayParameterState":
-            return [self.resolve(v["WFValue"]) for v in value["Value"]]
+            return decode_dictionary(value, self.resolve)
         return value
 
     def condition(self, p):
@@ -135,7 +219,7 @@ class ShortcutFixture:
                     body = self.resolve(p["WFJSONValues"])
                     self.requests.append(body)
                     if self.reject == ("test" if body.get("test") else "ingest"):
-                        result = {"error": "synthetic failure"}
+                        result = {"status": "error", "code": self.error_code, "error": "sensitive synthetic detail " + CONFIG["token"]}
                     elif body.get("test"):
                         result = {"ok": True, "status": "tested", "tested": True}
                     else:
@@ -154,6 +238,38 @@ WEIGHT = {"Value": 198.416035, "Unit": "lb", "Start Date": "2026-10-25T07:05:10+
 BODY_FAT = {"Value": 30.3, "Unit": "%", "Start Date": "2026-10-20T06:01:00+07:00"}
 
 
+class ExportedWireFormatTests(unittest.TestCase):
+    def test_independent_exported_typed_rows(self):
+        decoded = decode_dictionary(EXPORTED_TYPED_FIELDS, lambda value: value["Value"]["string"])
+        self.assertEqual(decoded, {"January": 31.0, "All Day": True, "time_entry": {"created_with": "Workflow"}})
+        self.assertIs(type(decoded["All Day"]), bool)
+
+    def test_old_number_as_dictionary_type_is_rejected(self):
+        invalid = copy.deepcopy(EXPORTED_TYPED_FIELDS)
+        invalid["Value"]["WFDictionaryFieldValueItems"][0]["WFItemType"] = 1
+        with self.assertRaises(AssertionError):
+            decode_dictionary(invalid, lambda value: value["Value"]["string"])
+
+    def test_old_dictionary_as_number_type_is_rejected(self):
+        invalid = copy.deepcopy(EXPORTED_TYPED_FIELDS)
+        invalid["Value"]["WFDictionaryFieldValueItems"][2]["WFItemType"] = 3
+        with self.assertRaises(AssertionError):
+            decode_dictionary(invalid, lambda value: value["Value"]["string"])
+
+    def test_old_raw_boolean_is_rejected(self):
+        invalid = copy.deepcopy(EXPORTED_TYPED_FIELDS)
+        invalid["Value"]["WFDictionaryFieldValueItems"][1]["WFValue"] = True
+        with self.assertRaises(AssertionError):
+            decode_dictionary(invalid, lambda value: value["Value"]["string"])
+
+    def test_missing_nested_dictionary_wrapper_is_rejected(self):
+        invalid = copy.deepcopy(EXPORTED_TYPED_FIELDS)
+        row = invalid["Value"]["WFDictionaryFieldValueItems"][2]
+        row["WFValue"] = row["WFValue"]["Value"]
+        with self.assertRaises(AssertionError):
+            decode_dictionary(invalid, lambda value: value["Value"]["string"])
+
+
 class CompiledFlowTests(unittest.TestCase):
     def test_both_metrics_one_request_original_independent_dates(self):
         result = ShortcutFixture({"Body Mass": WEIGHT, "Body Fat Percentage": BODY_FAT}, saved=CONFIG).run()
@@ -164,6 +280,9 @@ class CompiledFlowTests(unittest.TestCase):
         self.assertEqual(samples[0]["measuredAt"], WEIGHT["Start Date"])
         self.assertEqual(samples[1]["measuredAt"], BODY_FAT["Start Date"])
         self.assertEqual(samples[1]["value"], 30.3)
+        for sample in samples:
+            self.assertIs(type(sample["value"]), float)
+        self.assertIsInstance(json.loads(json.dumps(result.requests[0]))["samples"][0]["value"], float)
 
     def test_weight_or_fat_only(self):
         for health_type, sample, metric in [("Body Mass", WEIGHT, "weightKg"), ("Body Fat Percentage", BODY_FAT, "bodyFatPercent")]:
@@ -180,13 +299,14 @@ class CompiledFlowTests(unittest.TestCase):
     def test_configuration_verified_before_saved_and_no_health_file(self):
         result = ShortcutFixture(config=CONFIG).run()
         self.assertEqual(result.requests, [{"provider": "apple_health", "test": True}])
+        self.assertIs(type(result.requests[0]["test"]), bool)
         self.assertEqual(json.loads(result.files["connection.json"]), CONFIG)
         self.assertEqual(set(result.files), {"connection.json"})
 
     def test_failed_configuration_not_saved(self):
         result = ShortcutFixture(config=CONFIG, reject="test").run()
         self.assertEqual(result.files, {})
-        self.assertIn("Data belum terkirim", result.alerts[-1])
+        self.assertIn("Uji koneksi gagal (response_invalid)", result.alerts[-1])
 
     def test_bad_endpoint_never_receives_token_or_samples(self):
         for endpoint in ["http://slothly.example/api/health-sync", "https://slothly.example/api/other", "https://x.example/api/health-sync?token=no"]:
@@ -200,8 +320,35 @@ class CompiledFlowTests(unittest.TestCase):
 
     def test_rejected_ingest_never_reports_success(self):
         result = ShortcutFixture({"Body Mass": WEIGHT}, saved=CONFIG, reject="ingest").run()
-        self.assertIn("Data belum terkirim", result.alerts[-1])
+        self.assertIn("Pengiriman pengukuran gagal (response_invalid)", result.alerts[-1])
         self.assertNotIn("pengukuran disimpan", result.alerts[-1])
+
+    def test_safe_error_codes_identify_failed_stage_without_private_response(self):
+        for code in ("connection_invalid", "request_invalid", "storage_unavailable", "unexpected-" + CONFIG["token"]):
+            for stage, expected_stage in (("test", "Uji koneksi"), ("ingest", "Pengiriman pengukuran")):
+                fixture = {"config": CONFIG} if stage == "test" else {"saved": CONFIG}
+                result = ShortcutFixture({"Body Mass": WEIGHT}, reject=stage, error_code=code, **fixture).run()
+                expected_code = "response_invalid" if code.startswith("unexpected-") else code
+                message = result.alerts[-1]
+                self.assertIn(f"{expected_stage} gagal ({expected_code})", message)
+                self.assertNotIn(CONFIG["token"], message)
+                self.assertNotIn(CONFIG["endpoint"], message)
+                self.assertNotIn("sensitive synthetic detail", message)
+                self.assertNotIn(str(WEIGHT["Value"]), message)
+
+    def test_http_headers_and_url_resolve_to_expected_configuration(self):
+        fixture = ShortcutFixture(saved=CONFIG)
+        fixture.variables.update(Endpoint=CONFIG["endpoint"], Token=CONFIG["token"])
+        workflow = builder.build()
+        for action in workflow["WFWorkflowActions"]:
+            if action["WFWorkflowActionIdentifier"] != "is.workflow.actions.downloadurl":
+                continue
+            params = action["WFWorkflowActionParameters"]
+            self.assertEqual(fixture.resolve(params["WFURL"]), CONFIG["endpoint"])
+            self.assertEqual(fixture.resolve(params["WFHTTPHeaders"]), {
+                "Authorization": "Bearer " + CONFIG["token"],
+                "Content-Type": "application/json", "Accept": "application/json",
+            })
 
     def test_unsupported_weight_unit_stops_without_guessing(self):
         result = ShortcutFixture({"Body Mass": {**WEIGHT, "Unit": "unknown"}}, saved=CONFIG).run()
