@@ -92,6 +92,33 @@ EXPORTED_TEXT_TRANSFORMS = plistlib.loads(b'''<?xml version="1.0" encoding="UTF-
   </dict>
 </array></plist>''')
 
+# Factual Type-predicate schema and picker label from an actual Apple export;
+# no workflow implementation is retained. Source author: Kim, published
+# 2020-02-11, archived by suliveevil/My-Siri-Shortcuts at commit
+# 352a5007e518835fb285acd18a70198dc1cff4f3, action UUID
+# FDBE497C-0493-4D21-85A0-5AFFA621CF9B. This separate source is not covered by
+# the MacStories MIT notice above. Its functional schema confirms Weight;
+# Body Mass is an SDK-derived guess, not the observed picker label.
+# https://github.com/suliveevil/My-Siri-Shortcuts/blob/352a5007e518835fb285acd18a70198dc1cff4f3/assets/backup/%E8%BA%AB%E4%BD%93%E6%8C%87%E6%95%B0%E8%AE%A1%E7%AE%97%E5%99%A8.txt
+EXPORTED_WEIGHT_TYPE_PREDICATE = plistlib.loads(b'''<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>Bounded</key><true/>
+  <key>Operator</key><integer>4</integer>
+  <key>Property</key><string>Type</string>
+  <key>Removable</key><false/>
+  <key>Values</key><dict><key>Enumeration</key><dict>
+    <key>Value</key><string>Weight</string>
+    <key>WFSerializationType</key><string>WFStringSubstitutableState</string>
+  </dict></dict>
+</dict></plist>''')
+
+
+def weight_query_matches_export(workflow):
+    first_health_query = next(action for action in workflow["WFWorkflowActions"]
+        if action["WFWorkflowActionIdentifier"] == "is.workflow.actions.filter.health.quantity")
+    predicate = first_health_query["WFWorkflowActionParameters"]["WFContentItemFilter"]["Value"]["WFActionParameterFilterTemplates"][0]
+    assert predicate == EXPORTED_WEIGHT_TYPE_PREDICATE, "Weight query must match the exported Weight picker predicate"
+
 
 def text_transform_input(params):
     """Use the input key observed in exported Split/Combine Text action rows."""
@@ -288,6 +315,18 @@ RESTING_HEART_RATE = {"Value": 63, "Unit": "count/min", "Start Date": "2026-10-2
 
 
 class ExportedWireFormatTests(unittest.TestCase):
+    def test_weight_query_matches_actual_exported_picker_label(self):
+        weight_query_matches_export(builder.build())
+        self.assertEqual(EXPORTED_WEIGHT_TYPE_PREDICATE["Values"]["Enumeration"]["Value"], "Weight")
+
+    def test_old_body_mass_picker_guess_is_rejected(self):
+        workflow = copy.deepcopy(builder.build())
+        action = next(action for action in workflow["WFWorkflowActions"]
+            if action["WFWorkflowActionIdentifier"] == "is.workflow.actions.filter.health.quantity")
+        action["WFWorkflowActionParameters"]["WFContentItemFilter"]["Value"]["WFActionParameterFilterTemplates"][0]["Values"]["Enumeration"]["Value"] = "Body Mass"
+        with self.assertRaisesRegex(AssertionError, "exported Weight picker"):
+            weight_query_matches_export(workflow)
+
     def test_actual_exported_text_actions_require_text_input(self):
         self.assertEqual([action["WFWorkflowActionIdentifier"] for action in EXPORTED_TEXT_TRANSFORMS],
             ["is.workflow.actions.text.split", "is.workflow.actions.text.combine"])
@@ -341,7 +380,7 @@ class ExportedWireFormatTests(unittest.TestCase):
 
 class CompiledFlowTests(unittest.TestCase):
     def test_all_fifteen_available_subsets_are_one_numeric_request(self):
-        fixtures = {"Body Mass": WEIGHT, "Body Fat Percentage": BODY_FAT,
+        fixtures = {"Weight": WEIGHT, "Body Fat Percentage": BODY_FAT,
             "Cardio Fitness": VO2_MAX, "Resting Heart Rate": RESTING_HEART_RATE}
         for count in range(1, 5):
             for available in itertools.combinations(builder.METRICS, count):
@@ -356,9 +395,9 @@ class CompiledFlowTests(unittest.TestCase):
                         self.assertEqual(sample["value"], fixtures[item[2]]["Value"])
 
     def test_deselected_denied_body_fat_is_never_queried(self):
-        result = ShortcutFixture({"Body Mass": WEIGHT, "Body Fat Percentage": BODY_FAT},
+        result = ShortcutFixture({"Weight": WEIGHT, "Body Fat Percentage": BODY_FAT},
             saved=CONFIG, selected=["Berat badan"], denied=["Body Fat Percentage"]).run()
-        self.assertEqual(result.reads, ["Body Mass"])
+        self.assertEqual(result.reads, ["Weight"])
         self.assertEqual(result.requests[0]["samples"][0]["metric"], "weightKg")
 
     def test_selecting_a_denied_type_is_not_falsely_reported_as_caught(self):
@@ -375,7 +414,7 @@ class CompiledFlowTests(unittest.TestCase):
 
     def test_only_selected_fitness_metrics_are_read_and_sent(self):
         result = ShortcutFixture({"Cardio Fitness": VO2_MAX, "Resting Heart Rate": RESTING_HEART_RATE},
-            saved=CONFIG, selected=["VO2 max", "Denyut istirahat"], denied=["Body Mass", "Body Fat Percentage"]).run()
+            saved=CONFIG, selected=["VO2 max", "Denyut istirahat"], denied=["Weight", "Body Fat Percentage"]).run()
         self.assertEqual(result.reads, ["Cardio Fitness", "Resting Heart Rate"])
         self.assertEqual([sample["metric"] for sample in result.requests[0]["samples"]], ["vo2Max", "restingHeartRate"])
 
@@ -392,7 +431,7 @@ class CompiledFlowTests(unittest.TestCase):
             self.assertIn("Satuan", result.alerts[-1])
 
     def test_both_metrics_one_request_original_independent_dates(self):
-        result = ShortcutFixture({"Body Mass": WEIGHT, "Body Fat Percentage": BODY_FAT}, saved=CONFIG).run()
+        result = ShortcutFixture({"Weight": WEIGHT, "Body Fat Percentage": BODY_FAT}, saved=CONFIG).run()
         self.assertEqual(len(result.requests), 1)
         samples = result.requests[0]["samples"]
         self.assertEqual([s["metric"] for s in samples], ["weightKg", "bodyFatPercent"])
@@ -405,7 +444,7 @@ class CompiledFlowTests(unittest.TestCase):
         self.assertIsInstance(json.loads(json.dumps(result.requests[0]))["samples"][0]["value"], float)
 
     def test_weight_or_fat_only(self):
-        for health_type, sample, metric in [("Body Mass", WEIGHT, "weightKg"), ("Body Fat Percentage", BODY_FAT, "bodyFatPercent")]:
+        for health_type, sample, metric in [("Weight", WEIGHT, "weightKg"), ("Body Fat Percentage", BODY_FAT, "bodyFatPercent")]:
             result = ShortcutFixture({health_type: sample}, saved=CONFIG).run()
             self.assertEqual(len(result.requests), 1)
             self.assertEqual(len(result.requests[0]["samples"]), 1)
@@ -435,11 +474,11 @@ class CompiledFlowTests(unittest.TestCase):
             self.assertEqual(result.files, {})
 
     def test_unchanged_result_does_not_claim_import(self):
-        result = ShortcutFixture({"Body Mass": WEIGHT}, saved=CONFIG, received=0).run()
+        result = ShortcutFixture({"Weight": WEIGHT}, saved=CONFIG, received=0).run()
         self.assertIn("Tidak ada pengukuran baru", result.alerts[-1])
 
     def test_rejected_ingest_never_reports_success(self):
-        result = ShortcutFixture({"Body Mass": WEIGHT}, saved=CONFIG, reject="ingest").run()
+        result = ShortcutFixture({"Weight": WEIGHT}, saved=CONFIG, reject="ingest").run()
         self.assertIn("Pengiriman pengukuran gagal (response_invalid)", result.alerts[-1])
         self.assertNotIn("pengukuran disimpan", result.alerts[-1])
 
@@ -447,7 +486,7 @@ class CompiledFlowTests(unittest.TestCase):
         for code in ("connection_invalid", "request_invalid", "storage_unavailable", "unexpected-" + CONFIG["token"]):
             for stage, expected_stage in (("test", "Uji koneksi"), ("ingest", "Pengiriman pengukuran")):
                 fixture = {"config": CONFIG} if stage == "test" else {"saved": CONFIG}
-                result = ShortcutFixture({"Body Mass": WEIGHT}, reject=stage, error_code=code, **fixture).run()
+                result = ShortcutFixture({"Weight": WEIGHT}, reject=stage, error_code=code, **fixture).run()
                 expected_code = "response_invalid" if code.startswith("unexpected-") else code
                 message = result.alerts[-1]
                 self.assertIn(f"{expected_stage} gagal ({expected_code})", message)
@@ -471,17 +510,17 @@ class CompiledFlowTests(unittest.TestCase):
             })
 
     def test_unsupported_weight_unit_stops_without_guessing(self):
-        result = ShortcutFixture({"Body Mass": {**WEIGHT, "Unit": "unknown"}}, saved=CONFIG).run()
+        result = ShortcutFixture({"Weight": {**WEIGHT, "Unit": "unknown"}}, saved=CONFIG).run()
         self.assertEqual(result.requests, [])
         self.assertIn("Satuan berat belum didukung", result.alerts[-1])
 
     def test_timestamp_requires_seconds_and_timezone_before_ingest(self):
         for date in ["2026-10-25", "2026-10-25T07:00+07:00", "2026-10-25T07:00:00", "2026-10-25T07:00:00+0700"]:
-            result = ShortcutFixture({"Body Mass": {**WEIGHT, "Start Date": date}}, saved=CONFIG).run()
+            result = ShortcutFixture({"Weight": {**WEIGHT, "Start Date": date}}, saved=CONFIG).run()
             self.assertEqual(result.requests, [])
             self.assertIn("Tanggal pengukuran belum dapat dibaca lengkap", result.alerts[-1])
         for date in ["2026-10-25T07:00:00Z", "2026-10-25T07:00:00+07:00", "2026-10-25T07:00:00.250-04:00"]:
-            result = ShortcutFixture({"Body Mass": {**WEIGHT, "Start Date": date}}, saved=CONFIG).run()
+            result = ShortcutFixture({"Weight": {**WEIGHT, "Start Date": date}}, saved=CONFIG).run()
             self.assertEqual(len(result.requests), 1)
             self.assertEqual(result.requests[0]["samples"][0]["measuredAt"], date)
 

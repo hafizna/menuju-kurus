@@ -854,8 +854,8 @@ let child, browser;
   await page.getByRole("link", { name: "Hubungkan Apple Health →", exact: true }).click();
   await page.waitForURL(`${base}/settings/health`);
   await page.getByRole("heading", { name: "Hubungkan Apple Health", exact: true }).waitFor();
-  await page.getByRole("heading", { name: "Gunakan Shortcut versi 4", exact: true }).waitFor();
-  assert.equal(await page.getByRole("link", { name: "Unduh Shortcut terbaru", exact: true }).getAttribute("href"), "/shortcuts/slothly-health-sync.shortcut?v=4", "download link still serves the cached picker version");
+  await page.getByRole("heading", { name: "Gunakan Shortcut versi 5", exact: true }).waitFor();
+  assert.equal(await page.getByRole("link", { name: "Unduh Shortcut terbaru", exact: true }).getAttribute("href"), "/shortcuts/slothly-health-sync.shortcut?v=5", "download link still serves the cached query version");
   await page.getByRole("heading", { name: "Belum terhubung", exact: true }).waitFor();
   await page.evaluate(() => {
     Object.defineProperty(navigator, "clipboard", {

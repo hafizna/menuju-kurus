@@ -13,7 +13,7 @@ type ConnectionState = {
 
 const defaultShortcutName = "slothly-health-sync";
 const shortcutNameKey = "mk_health_shortcut_name";
-const shortcutDownload = "/shortcuts/slothly-health-sync.shortcut?v=4";
+const shortcutDownload = "/shortcuts/slothly-health-sync.shortcut?v=5";
 const fieldLabels: Record<string, string> = {
   weightKg: "Berat badan", bodyFatPercent: "Persentase lemak", calories: "Energi aktif",
   vo2Max: "VO₂ max", restingHeartRate: "Detak jantung istirahat", cardioMinutesWeekly: "Durasi kardio",
@@ -189,8 +189,8 @@ export default function HealthConnectionPage() {
       {message && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800 dark:bg-brand-950 dark:text-brand-200">{message}</p>}
 
       <section className="rounded-2xl border border-brand-200 bg-brand-50 p-4 dark:border-brand-800 dark:bg-brand-950/40" aria-label="Pembaruan Shortcut">
-        <h2 className="text-sm font-semibold">Gunakan Shortcut versi 4</h2>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Versi ini memperbaiki daftar pilihan metrik yang kosong pada versi 3. Ganti Shortcut lama dengan unduhan terbaru. Saat dijalankan, centang data di menu “Pilih data yang ingin dibaca”, lalu tekan Selesai / Done. Konfigurasi yang sudah berhasil disimpan dapat dipakai kembali.</p>
+        <h2 className="text-sm font-semibold">Gunakan Shortcut versi 5</h2>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Versi ini memperbaiki permintaan data berat agar memakai jenis “Weight” dari Apple Health. Ganti Shortcut lama dengan unduhan terbaru. Saat dijalankan, pilih Berat badan dan izinkan pembacaannya jika iPhone meminta. Konfigurasi yang sudah berhasil disimpan dapat dipakai kembali.</p>
         <a href={shortcutDownload} className={`${secondary} mt-3`}>Unduh Shortcut terbaru</a>
       </section>
 
@@ -265,7 +265,8 @@ export default function HealthConnectionPage() {
         <h2 className="font-semibold">Pilih data yang tersedia</h2>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Shortcut hanya membaca metrik yang kamu pilih. Jika tidak ingin memberi izin persentase lemak, jangan pilih metrik itu; berat badan tetap bisa dikirim sendiri.</p>
         <p className="mt-2 text-sm leading-relaxed text-neutral-500">Jika muncul pesan tidak punya akses, buka Health → foto profil → Apps / Aplikasi → Shortcuts, lalu aktifkan izin membaca metrik yang dipilih dan jalankan lagi. Izin yang ditolak masih dapat menghentikan Shortcut.</p>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-500">VO₂ max perlu sudah tersedia di Health → Jantung → Kebugaran Kardio. Data yang belum ada dilewati. VO₂ max dan detak jantung istirahat tampil di Perjalanan → Fitness bersama tanggal pengukuran aslinya.</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-500">Izin diberikan per jenis data. Aktifnya Persentase Lemak belum memberi akses ke Berat badan. Jika Weight belum muncul di daftar izin, jalankan versi terbaru dengan memilih Berat badan agar permintaannya dibuat.</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-500">Pilih metrik yang sudah memiliki pengukuran di Health. VO₂ max bisa diperiksa di Health → Jantung → Kebugaran Kardio. iOS dapat menghentikan pembacaan jika tidak ada sampel yang bisa dibaca. VO₂ max dan detak jantung istirahat tampil di Perjalanan → Fitness bersama tanggal pengukuran aslinya.</p>
       </section>
 
       <section className={card}>
