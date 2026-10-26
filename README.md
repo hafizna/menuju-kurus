@@ -218,7 +218,7 @@ penyalinan konfigurasi, pemeriksaan data terakhir diterima, dan pemutusan akses.
 Pemasangan pertama dilakukan di iPhone; persetujuan membaca Apple Health tetap
 diberikan pengguna di Shortcuts.
 
-Shortcut **Slothly Health Sync v4** mengambil **berat badan, persentase lemak,
+Shortcut **Slothly Health Sync v5** mengambil **berat badan, persentase lemak,
 VO₂ max, dan detak jantung istirahat terbaru** dengan tanggal pengukuran asli,
 lalu mengirimkannya ke Slothly. Setiap kali berjalan, pengguna memilih satu atau
 beberapa metrik sebelum Health dibaca. Metrik tanpa hasil dilewati; metrik yang
@@ -234,12 +234,17 @@ dengan empat nama metrik: `weightKg`, `bodyFatPercent`, `vo2Max`, dan
 isian Profil bersama sumber dan waktu aslinya. Perjalanan → Fitness menampilkan
 pengukuran terbaru tiap metrik; ini belum berupa riwayat atau grafik VO₂ max.
 Pengukuran lama tidak menimpa yang lebih baru. Isian Profil menjadi cadangan jika
-belum ada pengukuran impor. Langkah, tidur, dan energi aktivitas belum dibaca v4.
+belum ada pengukuran impor. Langkah, tidur, dan energi aktivitas belum dibaca v5.
 
 Versi 4 memperbaiki penghubung input Split/Combine Text agar daftar pilihan
 metrik tampil saat Shortcut dijalankan. Ganti file Shortcut versi 3 di iPhone;
 memuat ulang web saja tidak mengganti Shortcut yang terpasang. Konfigurasi
 tersimpan yang valid tetap dipakai.
+
+Versi 5 memperbaiki jenis sampel berat menjadi `Weight`, sesuai filter tipe
+Shortcut yang diekspor. Izin baca Health diberikan per metrik: persentase lemak
+yang sudah diizinkan belum memberikan akses ke berat badan. Pilih Berat badan
+di Shortcut terbaru untuk meminta akses jika belum muncul di daftar izin.
 
 Token dibuat dari app dan hanya diperlihatkan sekali dalam konfigurasi pemasangan.
 Server menyimpan hash token. Mengganti atau memutus koneksi menghentikan akses
@@ -283,8 +288,8 @@ Settings sebagai nilai terbaru.
    | Metrik | Tipe Health | Rentang | Statistik |
    |---|---|---|---|
    | `calories` | Active Energy | Start Date is Today | Sum |
-   | `weightKg` | Body Mass | Start Date is Today | Latest |
-   | `bodyFatPercent` | Body Fat Percentage | sama seperti Body Mass | Latest/Average |
+   | `weightKg` | Weight | Start Date is Today | Latest |
+   | `bodyFatPercent` | Body Fat Percentage | sama seperti Weight | Latest/Average |
    | `vo2Max` | VO2 Max | 7–30 hari terakhir | Latest |
    | `restingHeartRate` | Resting Heart Rate | Start Date is Today | Average |
    | `cardioMinutesWeekly` | Workout Duration (filter kardio) atau Exercise Minutes | 7 hari terakhir | Sum |

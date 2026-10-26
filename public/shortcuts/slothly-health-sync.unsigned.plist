@@ -43,7 +43,7 @@
 				<key>UUID</key>
 				<string>EA88F443-D7DF-5562-9624-9C8AD683F8A0</string>
 				<key>WFCommentActionText</key>
-				<string>Slothly Health Sync v4. Pilih berat, persentase lemak, VO2 max, atau denyut istirahat sebelum membaca data terbaru beserta tanggal pengukuran aslinya. Jangan pilih jenis data yang izin bacanya ditolak; error izin iOS dapat menghentikan Shortcut. Tidak menulis data ke Apple Health. Konfigurasi disimpan di folder Shortcuts/Slothly/connection.json; folder ini dapat tersinkron lewat iCloud sesuai pengaturan perangkat. Jangan bagikan berkas konfigurasi tersebut.</string>
+				<string>Slothly Health Sync v5. Pilih berat, persentase lemak, VO2 max, atau denyut istirahat sebelum membaca data terbaru beserta tanggal pengukuran aslinya. Jangan pilih jenis data yang izin bacanya ditolak; error izin iOS dapat menghentikan Shortcut. Tidak menulis data ke Apple Health. Konfigurasi disimpan di folder Shortcuts/Slothly/connection.json; folder ini dapat tersinkron lewat iCloud sesuai pengaturan perangkat. Jangan bagikan berkas konfigurasi tersebut.</string>
 			</dict>
 		</dict>
 		<dict>
@@ -2126,7 +2126,7 @@ Denyut istirahat</string>
 									<key>Enumeration</key>
 									<dict>
 										<key>Value</key>
-										<string>Body Mass</string>
+										<string>Weight</string>
 										<key>WFSerializationType</key>
 										<string>WFStringSubstitutableState</string>
 									</dict>

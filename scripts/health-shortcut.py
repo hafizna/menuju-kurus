@@ -24,7 +24,7 @@ SHORTCUTS_FOLDER = {
 }
 NAMESPACE = uuid.UUID("2aa370a4-78b5-4955-a96e-7124339b8b0c")
 METRICS = [
-    ("weight", "Berat badan", "Body Mass", "weightKg"),
+    ("weight", "Berat badan", "Weight", "weightKg"),
     ("body-fat", "Lemak tubuh", "Body Fat Percentage", "bodyFatPercent"),
     # Cardio Fitness is the current Shortcuts picker label; the SDK identifier
     # HKQuantityTypeIdentifierVO2Max is not the picker label (see docs).
@@ -284,7 +284,7 @@ class Workflow:
 
 def build():
     w = Workflow()
-    w.add("comment", "intro", WFCommentActionText="Slothly Health Sync v4. Pilih berat, persentase lemak, VO2 max, atau denyut istirahat sebelum membaca data terbaru beserta tanggal pengukuran aslinya. Jangan pilih jenis data yang izin bacanya ditolak; error izin iOS dapat menghentikan Shortcut. Tidak menulis data ke Apple Health. Konfigurasi disimpan di folder Shortcuts/Slothly/connection.json; folder ini dapat tersinkron lewat iCloud sesuai pengaturan perangkat. Jangan bagikan berkas konfigurasi tersebut.")
+    w.add("comment", "intro", WFCommentActionText="Slothly Health Sync v5. Pilih berat, persentase lemak, VO2 max, atau denyut istirahat sebelum membaca data terbaru beserta tanggal pengukuran aslinya. Jangan pilih jenis data yang izin bacanya ditolak; error izin iOS dapat menghentikan Shortcut. Tidak menulis data ke Apple Health. Konfigurasi disimpan di folder Shortcuts/Slothly/connection.json; folder ini dapat tersinkron lewat iCloud sesuai pengaturan perangkat. Jangan bagikan berkas konfigurasi tersebut.")
     incoming = attachment({"Type": "ExtensionInput"})
     w.begin("received-config", incoming)
     # Get Text creates an explicit string to save, rather than persisting Shortcut Input attachments.
@@ -413,7 +413,7 @@ def main():
     if reported_input:
         assert reported_input == sha(unsigned), "Signing service signed different input"
     signed_path.write_bytes(signed)
-    manifest_path.write_text(json.dumps({"name": NAME, "version": 4, "actions": len(workflow["WFWorkflowActions"]),
+    manifest_path.write_text(json.dumps({"name": NAME, "version": 5, "actions": len(workflow["WFWorkflowActions"]),
         "installPath": "/shortcuts/slothly-health-sync.shortcut", "signingFormat": "AEA1", "signingMode": "anyone",
         "signingService": args.signing_server, "unsignedSha256": sha(unsigned), "signedSha256": sha(signed),
         "generatorSha256": generator_sha(),

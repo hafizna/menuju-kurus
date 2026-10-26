@@ -292,12 +292,32 @@ test('picker chain rejects v3 WFInput-only text actions and disconnected action 
   }
 });
 
+test('weight query uses the exported Weight picker type without a date filter', () => {
+  // Observed Type row, not the SDK-derived Body Mass label guess:
+  // https://github.com/suliveevil/My-Siri-Shortcuts/blob/352a5007e518835fb285acd18a70198dc1cff4f3/assets/backup/%E8%BA%AB%E4%BD%93%E6%8C%87%E6%95%B0%E8%AE%A1%E7%AE%97%E5%99%A8.txt
+  // Source action UUID FDBE497C-0493-4D21-85A0-5AFFA621CF9B.
+  const queries = workflow.WFWorkflowActions.filter((action) => action.WFWorkflowActionIdentifier === 'is.workflow.actions.filter.health.quantity');
+  const weight = queries.filter((action) => action.WFWorkflowActionParameters.WFContentItemFilter.Value.WFActionParameterFilterTemplates.some((row) => row.Property === 'Type' && row.Values.Enumeration.Value === 'Weight'));
+  assert.equal(weight.length, 1, 'Weight must use its observed picker label, not the guessed Body Mass label');
+  const parameters = weight[0].WFWorkflowActionParameters;
+  const rows = parameters.WFContentItemFilter.Value.WFActionParameterFilterTemplates;
+  assert.equal(rows.length, 1, 'A date filter must not hide an older available weight sample');
+  assert.equal(rows[0].Bounded, true);
+  assert.equal(rows[0].Removable, false);
+  assert.equal(rows[0].Operator, 4);
+  assert.equal(rows[0].Values.Enumeration.WFSerializationType, 'WFStringSubstitutableState');
+  assert.equal(parameters.WFContentItemSortProperty, 'Start Date');
+  assert.equal(parameters.WFContentItemSortOrder, 'Latest First');
+  assert.equal(parameters.WFContentItemLimitEnabled, true);
+  assert.equal(parameters.WFContentItemLimitNumber, 1);
+});
+
 test('shipped Shortcut asks for optional types before reading Health and guards every query by its own selection', () => {
   const actions = workflow.WFWorkflowActions;
   const byId = new Map(actions.map((action) => [action.WFWorkflowActionParameters.UUID, action]));
   const { chooseAction, combined } = assertPickerChain(actions);
   const healthLabels = {
-    'Body Mass': 'Berat badan',
+    'Weight': 'Berat badan',
     'Body Fat Percentage': 'Lemak tubuh',
     'Cardio Fitness': 'VO2 max',
     'Resting Heart Rate': 'Denyut istirahat',

@@ -1,13 +1,13 @@
 {
   "name": "Slothly Health Sync",
-  "version": 4,
+  "version": 5,
   "actions": 757,
   "installPath": "/shortcuts/slothly-health-sync.shortcut",
   "signingFormat": "AEA1",
   "signingMode": "anyone",
   "signingService": "https://sign.shortcuty.app/api/v1/sign",
-  "unsignedSha256": "b9af25ba46a520b759faa760d924c5ee635deaec15cc9ceaa5de104586dff30e",
-  "signedSha256": "d0caacf7a5600db476488a1e4711f33fc02059063038f03cfa640d67f8084e69",
-  "generatorSha256": "4b63c704ff5648417970cb23c69aee212a382b5403b4afba1250e336557bc7eb",
+  "unsignedSha256": "226d8acc6e3c3488403c6323becfc56c396d45c0aa1664f105f6445cf9bc8e6b",
+  "signedSha256": "2155f8d92713d6c8994fb9bafaaeb336d47a11c529397e9c06c408418f613f41",
+  "generatorSha256": "1f8c53275f479503995bf7d25f8110a0fa4435ea67776052daa4f8dbcb94f982",
   "deviceVerification": "Pending real iPhone import, permissions, and sample transfer validation"
 }
