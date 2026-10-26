@@ -218,7 +218,7 @@ penyalinan konfigurasi, pemeriksaan data terakhir diterima, dan pemutusan akses.
 Pemasangan pertama dilakukan di iPhone; persetujuan membaca Apple Health tetap
 diberikan pengguna di Shortcuts.
 
-Shortcut **Slothly Health Sync v3** mengambil **berat badan, persentase lemak,
+Shortcut **Slothly Health Sync v4** mengambil **berat badan, persentase lemak,
 VO₂ max, dan detak jantung istirahat terbaru** dengan tanggal pengukuran asli,
 lalu mengirimkannya ke Slothly. Setiap kali berjalan, pengguna memilih satu atau
 beberapa metrik sebelum Health dibaca. Metrik tanpa hasil dilewati; metrik yang
@@ -234,7 +234,12 @@ dengan empat nama metrik: `weightKg`, `bodyFatPercent`, `vo2Max`, dan
 isian Profil bersama sumber dan waktu aslinya. Perjalanan → Fitness menampilkan
 pengukuran terbaru tiap metrik; ini belum berupa riwayat atau grafik VO₂ max.
 Pengukuran lama tidak menimpa yang lebih baru. Isian Profil menjadi cadangan jika
-belum ada pengukuran impor. Langkah, tidur, dan energi aktivitas belum dibaca v3.
+belum ada pengukuran impor. Langkah, tidur, dan energi aktivitas belum dibaca v4.
+
+Versi 4 memperbaiki penghubung input Split/Combine Text agar daftar pilihan
+metrik tampil saat Shortcut dijalankan. Ganti file Shortcut versi 3 di iPhone;
+memuat ulang web saja tidak mengganti Shortcut yang terpasang. Konfigurasi
+tersimpan yang valid tetap dipakai.
 
 Token dibuat dari app dan hanya diperlihatkan sekali dalam konfigurasi pemasangan.
 Server menyimpan hash token. Mengganti atau memutus koneksi menghentikan akses

@@ -28,6 +28,8 @@ spec.loader.exec_module(builder)
 # 3dd4ee24e43f464f92adaa70a0311eaa.xml: All Day Boolean row (type 4).
 # ef669bcf8bad489d9ef4b88bfaf5772f.xml: time_entry nested JSON Dictionary row
 # (type 1, double wrapper). Only relevant rows are retained below.
+# 51cc4e26d1044893a0c3f2f3630cf2d2.xml: Split/Combine Text input key
+# `text`, retained separately below. WFInput is NOT their input parameter.
 # Do not derive these fixtures or the decoder's type codes from the generator.
 #
 # MIT License
@@ -71,6 +73,31 @@ EXPORTED_TYPED_FIELDS = plistlib.loads(b'''<?xml version="1.0" encoding="UTF-8"?
     </dict>
   </array></dict><key>WFSerializationType</key><string>WFDictionaryFieldValue</string>
 </dict></plist>''')
+
+# Minimal actual exported action rows from the same MIT corpus/notice above.
+# https://github.com/viticci/shortcuts-playground-plugin/blob/main/codex/skills/shortcuts-playground/golden-shortcuts/xml/51cc4e26d1044893a0c3f2f3630cf2d2.xml
+EXPORTED_TEXT_TRANSFORMS = plistlib.loads(b'''<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><array>
+  <dict><key>WFWorkflowActionIdentifier</key><string>is.workflow.actions.text.split</string>
+    <key>WFWorkflowActionParameters</key><dict>
+      <key>Show-text</key><true/><key>UUID</key><string>E7C4458C-4167-416C-BF22-45C83B3FCA40</string>
+      <key>text</key><dict><key>Value</key><dict><key>OutputName</key><string>Text</string><key>OutputUUID</key><string>6E47EB56-D943-4EF3-91DD-D365C159A63A</string><key>Type</key><string>ActionOutput</string></dict><key>WFSerializationType</key><string>WFTextTokenAttachment</string></dict>
+    </dict>
+  </dict>
+  <dict><key>WFWorkflowActionIdentifier</key><string>is.workflow.actions.text.combine</string>
+    <key>WFWorkflowActionParameters</key><dict>
+      <key>Show-text</key><true/><key>UUID</key><string>B20DF477-4CE2-4DDE-9F33-1F79F41EA3B0</string>
+      <key>text</key><dict><key>Value</key><dict><key>Type</key><string>Variable</string><key>VariableName</key><string>Emoji</string></dict><key>WFSerializationType</key><string>WFTextTokenAttachment</string></dict>
+    </dict>
+  </dict>
+</array></plist>''')
+
+
+def text_transform_input(params):
+    """Use the input key observed in exported Split/Combine Text action rows."""
+    assert "text" in params, "Split/Combine Text requires its exported text input parameter"
+    assert "WFInput" not in params, "WFInput is not a Split/Combine Text input parameter"
+    return params["text"]
 
 
 def decode_dictionary(value, resolve_text):
@@ -165,8 +192,8 @@ class ShortcutFixture:
             return float(value) > float(p["WFNumberValue"])
         raise AssertionError(f"Unmodelled condition {code}")
 
-    def run(self):
-        workflow = builder.build()
+    def run(self, workflow=None):
+        workflow = workflow if workflow is not None else builder.build()
         builder.validate(workflow)
         stack = []
         try:
@@ -192,7 +219,7 @@ class ShortcutFixture:
                     result = self.resolve(p["WFTextActionText"])
                 elif ident == "text.split":
                     assert p["WFTextSeparator"] == "New Lines"
-                    result = self.resolve(p["WFInput"]).split("\n")
+                    result = self.resolve(text_transform_input(p)).split("\n")
                 elif ident == "choosefromlist":
                     assert p["WFChooseFromListActionSelectMultiple"] is True
                     choices = self.resolve(p["WFInput"])
@@ -200,7 +227,7 @@ class ShortcutFixture:
                     result = self.selected
                 elif ident == "text.combine":
                     assert p["WFTextSeparator"] == "New Lines"
-                    result = "\n".join(self.resolve(p["WFInput"]))
+                    result = "\n".join(self.resolve(text_transform_input(p)))
                 elif ident == "detect.dictionary":
                     result = json.loads(self.resolve(p["WFInput"]))
                 elif ident == "setvariable":
@@ -261,6 +288,26 @@ RESTING_HEART_RATE = {"Value": 63, "Unit": "count/min", "Start Date": "2026-10-2
 
 
 class ExportedWireFormatTests(unittest.TestCase):
+    def test_actual_exported_text_actions_require_text_input(self):
+        self.assertEqual([action["WFWorkflowActionIdentifier"] for action in EXPORTED_TEXT_TRANSFORMS],
+            ["is.workflow.actions.text.split", "is.workflow.actions.text.combine"])
+        for action in EXPORTED_TEXT_TRANSFORMS:
+            params = action["WFWorkflowActionParameters"]
+            self.assertEqual(text_transform_input(params)["WFSerializationType"], "WFTextTokenAttachment")
+            invalid = copy.deepcopy(params)
+            invalid["WFInput"] = invalid.pop("text")
+            with self.assertRaisesRegex(AssertionError, "requires its exported text"):
+                text_transform_input(invalid)
+
+    def test_old_v3_split_or_combine_wfinput_wiring_is_rejected(self):
+        for action_id in ("is.workflow.actions.text.split", "is.workflow.actions.text.combine"):
+            workflow = copy.deepcopy(builder.build())
+            action = next(action for action in workflow["WFWorkflowActions"] if action["WFWorkflowActionIdentifier"] == action_id)
+            params = action["WFWorkflowActionParameters"]
+            params["WFInput"] = params.pop("text")
+            with self.assertRaisesRegex(AssertionError, "requires its exported text"):
+                ShortcutFixture(saved=CONFIG, selected=["Berat badan"]).run(workflow)
+
     def test_independent_exported_typed_rows(self):
         decoded = decode_dictionary(EXPORTED_TYPED_FIELDS, lambda value: value["Value"]["string"])
         self.assertEqual(decoded, {"January": 31.0, "All Day": True, "time_entry": {"created_with": "Workflow"}})
