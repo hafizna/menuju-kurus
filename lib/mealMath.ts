@@ -30,32 +30,26 @@ export function adjustMeal(analysis: FoodAnalysis, adjust: MealAdjust) {
     : [{ name: analysis.foodName, role: "other", grams: 0, calories: analysis.calories, protein_g: analysis.protein_g, carbs_g: analysis.carbs_g, fat_g: analysis.fat_g, sugar_g: analysis.sugar_g }];
   const staple = stapleOf(analysis);
 
-  let calories = 0;
-  let protein = 0;
-  let carbs = 0;
-  let fat = 0;
-  let sugar = 0;
-  for (const c of components) {
+  const corrected = components.map((c) => {
     let scale = 1;
     if (staple && c === staple) scale = Math.max(0, (c.grams + adjust.stapleDeltaG) / c.grams);
     else if (c.role === "oil_sauce") scale = OIL_FACTOR[adjust.oil];
-    calories += c.calories * scale;
-    protein += c.protein_g * scale;
-    carbs += c.carbs_g * scale;
-    fat += c.fat_g * scale;
-    sugar += c.sugar_g * scale;
-  }
-
-  const k = adjust.eaten;
-  const ratio = analysis.calories > 0 ? calories / analysis.calories : 1;
+    const k = scale * adjust.eaten;
+    return { ...c, grams: Math.round(c.grams * k), calories: Math.round(c.calories * k), protein_g: Math.round(c.protein_g * k), carbs_g: Math.round(c.carbs_g * k), fat_g: Math.round(c.fat_g * k), sugar_g: Math.round(c.sugar_g * k) };
+  });
+  const sum = (field: "calories" | "protein_g" | "carbs_g" | "fat_g" | "sugar_g") => corrected.reduce((total, c) => total + c[field], 0);
+  const calories = sum("calories");
+  const ratio = analysis.calories > 0 ? calories / analysis.calories : adjust.eaten;
   return {
-    calories: Math.round(calories * k),
-    protein_g: Math.round(protein * k),
-    carbs_g: Math.round(carbs * k),
-    fat_g: Math.round(fat * k),
-    sugar_g: Math.round(sugar * k),
-    low: Math.round(analysis.kcalLow * ratio * k),
-    high: Math.round(analysis.kcalHigh * ratio * k),
+    calories,
+    protein_g: sum("protein_g"),
+    carbs_g: sum("carbs_g"),
+    fat_g: sum("fat_g"),
+    // A restored draft from before sugar existed has no value: stay unknown, not 0.
+    sugar_g: components.every((c) => Number.isFinite(c.sugar_g)) ? sum("sugar_g") : undefined,
+    low: Math.round(analysis.kcalLow * ratio),
+    high: Math.round(analysis.kcalHigh * ratio),
+    components: corrected,
     stapleGrams: staple ? Math.max(0, staple.grams + adjust.stapleDeltaG) : 0,
   };
 }

@@ -7,7 +7,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 function linkClass(active: boolean): string {
   return `rounded-xl px-1 py-2.5 text-center text-xs font-medium transition-colors ${
     active
-      ? "bg-white text-brand-700 shadow-xs dark:bg-neutral-800 dark:text-brand-300"
+      ? "bg-white text-brand-800 shadow-xs dark:bg-neutral-800 dark:text-brand-300"
       : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200"
   }`;
 }
@@ -21,17 +21,17 @@ function MakanNav() {
   const catatActive = !restaurantActive && !habitsActive && !cariActive;
 
   return (
-    <nav className="grid grid-cols-4 gap-1 rounded-2xl border border-neutral-100 bg-neutral-100 p-1 dark:border-neutral-800 dark:bg-neutral-900">
-      <Link href="/makan" className={linkClass(catatActive)}>
+    <nav aria-label="Pilihan makan" className="grid grid-cols-4 gap-1 rounded-2xl border border-brand-100 bg-brand-50/60 p-1 dark:border-neutral-800 dark:bg-neutral-900">
+      <Link href="/makan" aria-current={catatActive ? "page" : undefined} className={linkClass(catatActive)}>
         Catat
       </Link>
-      <Link href="/makan?mode=cari" className={linkClass(cariActive)}>
-        Rekomendasi
+      <Link href="/makan?mode=cari" aria-current={cariActive ? "page" : undefined} className={linkClass(cariActive)}>
+        Ide makan
       </Link>
-      <Link href="/makan/restaurant" className={linkClass(restaurantActive)}>
+      <Link href="/makan/restaurant" aria-current={restaurantActive ? "page" : undefined} className={linkClass(restaurantActive)}>
         Restoran
       </Link>
-      <Link href="/makan/habits" className={linkClass(habitsActive)}>
+      <Link href="/makan/habits" aria-current={habitsActive ? "page" : undefined} className={linkClass(habitsActive)}>
         Sering
       </Link>
     </nav>

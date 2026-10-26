@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 require('./register.cjs');
-const { daySugar, weekSugar, parseSugarInput, SUGAR_REFERENCE_G } = require('../lib/sugar');
+const { daySugar, weekSugar, parseSugarInput, sugarNote, SUGAR_REFERENCE_G } = require('../lib/sugar');
 const { buildAdaptiveCoach } = require('../lib/adaptiveCoach');
 const { summarizeDay, computeWeeklyBudget } = require('../lib/energy');
 const { buildHabitStrategy } = require('../lib/habits');
@@ -61,4 +61,12 @@ test('the sugar tip needs enough days, a real average above the reference, and s
   assert.ok(tip);
   assert.ok(tip.evidence.includes('70 g'));
   assert.ok(/bukan larangan/i.test(tip.detail));
+});
+
+test('the Home note flags partial data, shows the average when known, and reads as a guide not a limit', () => {
+  const week = { avgG: 62, daysWithData: 4, daysOver: 3 };
+  const none = { avgG: null, daysWithData: 0, daysOver: 0 };
+  assert.equal(sugarNote({ grams: 35, knownMeals: 2, totalMeals: 2, complete: true }, none), 'Patokan sampai 50 g');
+  assert.equal(sugarNote({ grams: 35, knownMeals: 2, totalMeals: 2, complete: true }, week), 'Rata-rata 62 g/hari · Patokan sampai 50 g');
+  assert.equal(sugarNote({ grams: 55, knownMeals: 1, totalMeals: 3, complete: false }, week), 'Sebagian tercatat · Rata-rata 62 g/hari · Di atas patokan 50 g');
 });

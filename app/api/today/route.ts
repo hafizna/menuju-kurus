@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
   const sugarWeek = weekSugar(last7Logs.filter((day) => day.date !== date || day.foodLogComplete));
 
   return NextResponse.json({
+    userId,
     date,
     log,
     summary,

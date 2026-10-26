@@ -159,12 +159,3 @@ export function IconRuler({ className }: IconProps) {
     </svg>
   );
 }
-
-export function IconCup({ className }: IconProps) {
-  return (
-    <svg {...base} className={className} aria-hidden="true">
-      <path d="M6 4h12l-1.4 14.2a2 2 0 0 1-2 1.8H9.4a2 2 0 0 1-2-1.8L6 4Z" />
-      <path d="M6.6 10h10.8" />
-    </svg>
-  );
-}

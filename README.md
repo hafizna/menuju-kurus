@@ -6,6 +6,8 @@ Aplikasi personal untuk calorie tracking, weight management, fitness intelligenc
 
 Slothly diposisikan sebagai **personal nutrition decision assistant**: logika lokal menentukan keputusan, sedangkan AI hanya menjelaskan hasil yang sudah dihitung.
 
+Tampilan **Rumah Kukang** memakai ilustrasi kanopi dan maskot SVG orisinal, dengan flow Catat → cek porsi → simpan → review harian/mingguan. Detail draft, kesiapan data, motion, dan perilaku penyimpanan ada di [panduan Rumah Kukang](docs/rumah-kukang.md).
+
 ## Fitur utama
 
 1. **Foto makanan → estimasi kalori dan makro.** Foto diproses in-memory, dikirim ke Gemini, lalu dibuang. Hanya hasil teks yang disimpan.
@@ -210,11 +212,24 @@ npm run build
 
 ## Apple Health Sync
 
-Ini web app, jadi HealthKit **tidak bisa** dibaca langsung dari browser — tidak ada
-API web untuk HealthKit, dan tidak ada tombol "Connect Apple Health" yang mungkin
-dibuat dari sisi web (beda dengan Google Fit/Strava yang punya REST API). Satu-satunya
-jembatan yang tersedia adalah **Apple Shortcuts**, yang jalan sebagai automation di
-HP dan POST snapshot ke `/api/health-sync`.
+Di Slothly, buka **Profil → Data kesehatan → Hubungkan Apple Health**. Halaman
+ini menyediakan pembuatan koneksi pribadi, unduhan Shortcut bertanda tangan,
+penyalinan konfigurasi, pemeriksaan data terakhir diterima, dan pemutusan akses.
+Pemasangan pertama dilakukan di iPhone; persetujuan membaca Apple Health tetap
+diberikan pengguna di Shortcuts.
+
+Shortcut **Slothly Health Sync** mengambil **berat badan dan persentase lemak
+terbaru** dengan tanggal pengukuran asli, lalu mengirimkannya ke Slothly. Metrik
+yang tidak tersedia dilewati. Setelah dipasang, Shortcut dapat dijalankan manual
+atau melalui Automasi. HealthKit dibaca di iPhone, bukan oleh browser. Konektor
+Android Health Connect belum disertakan dalam versi ini.
+
+Token dibuat dari app dan hanya diperlihatkan sekali dalam konfigurasi pemasangan.
+Server menyimpan hash token. Mengganti atau memutus koneksi menghentikan akses
+token lama, termasuk token environment sebelumnya. Status uji koneksi dipisahkan
+dari penerimaan pengukuran nyata. Lihat [detail Shortcut](docs/health-shortcut.md).
+
+### Kompatibilitas Shortcut lama
 
 `/api/health-sync` menerima kombinasi field apa pun berikut — semuanya opsional,
 kirim yang berhasil kamu baca dari Health saja (mis. tanpa Apple Watch, `vo2Max` dan
@@ -238,7 +253,7 @@ lain. `calories` dan `weightKg` dan `bodyFatPercent` masuk ke catatan hari itu (
 keluar & berat badan); `vo2Max`, `restingHeartRate`, `cardioMinutesWeekly` masuk ke
 Settings sebagai nilai terbaru.
 
-### Setup Shortcuts (satu automation untuk semua)
+### Setup manual untuk Shortcut lama
 
 1. Buka app **Shortcuts** → tab **Automation** → **+** → **Create Personal
    Automation** → pilih trigger (misalnya **Time of Day**, jalan tiap pagi/malam,
@@ -251,7 +266,7 @@ Settings sebagai nilai terbaru.
    | Metrik | Tipe Health | Rentang | Statistik |
    |---|---|---|---|
    | `calories` | Active Energy | Start Date is Today | Sum |
-   | `weightKg` | Body Mass | Start Date is Today (atau 7 hari terakhir) | Latest/Average |
+   | `weightKg` | Body Mass | Start Date is Today | Latest |
    | `bodyFatPercent` | Body Fat Percentage | sama seperti Body Mass | Latest/Average |
    | `vo2Max` | VO2 Max | 7–30 hari terakhir | Latest |
    | `restingHeartRate` | Resting Heart Rate | Start Date is Today | Average |

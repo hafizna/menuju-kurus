@@ -1,157 +1,146 @@
-import { upsertBodyCheckIn } from "@/lib/bodyStore";
-import { validMeasurementDate, BODY_LABELS } from "@/lib/body";
 import { NextRequest, NextResponse } from "next/server";
+import { getBodyCheckIns, upsertBodyCheckInResult } from "@/lib/bodyStore";
+import { validMeasurementDate, BODY_LABELS } from "@/lib/body";
 import { getDayLog, saveDayLog, getSettings, saveSettings } from "@/lib/day";
-import { todayKey } from "@/lib/dates";
-import { findUserByHealthSyncToken } from "@/lib/users";
-import { upsertWeightEntry } from "@/lib/weight";
+import { dateKeyFor, todayKey } from "@/lib/dates";
+import { findHealthSyncUser, recordHealthSync, recordHealthTest } from "@/lib/healthConnection";
+import { getWeightEntries, upsertWeightEntryResult } from "@/lib/weight";
 
-function numberOrUndefined(value: unknown): number | undefined {
-  if (value === undefined || value === null || value === "") return undefined;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : undefined;
+const METRICS = ["calories", "weightKg", "bodyFatPercent", "vo2Max", "restingHeartRate", "cardioMinutesWeekly"] as const;
+type Metric = (typeof METRICS)[number];
+type Sample = { metric: Metric; value: number; date: string; measuredAt: string };
+const ranges: Record<Metric, [number, number]> = {
+  calories: [0, 20000], weightKg: [1, 400],
+  bodyFatPercent: [BODY_LABELS.bodyFatPercent.min, BODY_LABELS.bodyFatPercent.max],
+  vo2Max: [10, 90], restingHeartRate: [30, 140], cardioMinutesWeekly: [0, 1000],
+};
+const json = (body: unknown, status = 200) => NextResponse.json(body, {
+  status, headers: { "Cache-Control": "no-store" },
+});
+const failures = {
+  connection_invalid: { status: 401, error: "Koneksi belum valid. Sambungkan ulang dari Slothly." },
+  request_invalid: { status: 400, error: "Format permintaan belum sesuai. Perbarui Shortcut dari Slothly lalu coba lagi." },
+  storage_unavailable: { status: 503, error: "Data belum dapat disimpan. Coba lagi sebentar." },
+} as const;
+function failure(code: keyof typeof failures) {
+  const { status, error } = failures[code];
+  return json({ status: "error", code, error }, status);
 }
 
-// Called by an Apple Shortcuts personal automation (see README) that reads
-// from the Health app and POSTs a combined snapshot here. Each user has
-// their own bearer token. Every field is optional and independently
-// upserted — Shortcuts sends whatever it could read this run (e.g. no
-// Apple Watch means no VO2 max / resting heart rate), so a field missing
-// from one sync must not clobber a value obtained on a previous sync.
-// Active Energy and weight/body fat overwrite the day's single synced
-// entry rather than accumulating; VO2 max / resting HR / cardio minutes
-// overwrite the corresponding settings field directly. No value is ever
-// summed across syncs.
-export async function POST(req: NextRequest) {
-  const auth = req.headers.get("authorization") || "";
-  const token = auth.replace(/^Bearer\s+/i, "");
+function parseNumber(value: unknown): number | null {
+  if (typeof value !== "number" && (typeof value !== "string" || !/^-?\d+(?:\.\d+)?$/.test(value.trim()))) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
 
-  const user = findUserByHealthSyncToken(token);
-  if (!token || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+function validTimestamp(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return false;
+  const instant = Date.parse(value);
+  const calendar = value.slice(0, 10);
+  return Number.isFinite(instant) && instant <= Date.now() &&
+    validMeasurementDate(calendar, "9999-12-31");
+}
+
+// The browser never reads HealthKit. A user-authorized Shortcut sends samples
+// with original measurement timestamps to this bearer-authenticated endpoint.
+export async function POST(req: NextRequest) {
+  try {
+    return await receive(req);
+  } catch {
+    // Storage failures must stay readable by Shortcuts without exposing tokens,
+    // measurement values, Redis details, or an upstream exception message.
+    return failure("storage_unavailable");
   }
+}
+
+async function receive(req: NextRequest) {
+  const authorization = req.headers.get("authorization") ?? "";
+  const token = /^Bearer\s+(\S+)$/i.exec(authorization)?.[1];
+  const user = token ? await findHealthSyncUser(token) : null;
+  if (!user) return failure("connection_invalid");
 
   const body = await req.json().catch(() => null);
-  if (!body)
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-
-  const calories = numberOrUndefined(body.calories);
-  const weightKg = numberOrUndefined(body.weightKg);
-  const bodyFatPercent = numberOrUndefined(body.bodyFatPercent);
-  const vo2Max = numberOrUndefined(body.vo2Max);
-  const restingHeartRate = numberOrUndefined(body.restingHeartRate);
-  const cardioMinutesWeekly = numberOrUndefined(body.cardioMinutesWeekly);
-
-  const hasAnyField =
-    calories !== undefined ||
-    weightKg !== undefined ||
-    bodyFatPercent !== undefined ||
-    vo2Max !== undefined ||
-    restingHeartRate !== undefined ||
-    cardioMinutesWeekly !== undefined;
-
-  if (!hasAnyField) {
-    return NextResponse.json(
-      {
-        error:
-          "Provide at least one of: calories, weightKg, bodyFatPercent, vo2Max, restingHeartRate, cardioMinutesWeekly",
-      },
-      { status: 400 },
-    );
+  if (!body || typeof body !== "object" || Array.isArray(body)) return failure("request_invalid");
+  if (body.provider !== undefined && body.provider !== "apple_health") return failure("request_invalid");
+  if (body.test !== undefined) {
+    if (body.test !== true || body.samples !== undefined || METRICS.some((metric) => body[metric] !== undefined)) return failure("request_invalid");
+    await recordHealthTest(user.id);
+    return json({ ok: true, status: "tested", tested: true });
   }
 
   const settings = await getSettings(user.id);
-  const date: string =
-    typeof body.date === "string" ? body.date : todayKey(settings.timezone);
-
   const today = todayKey(settings.timezone);
-  if (!validMeasurementDate(date, today))
-    return NextResponse.json(
-      { error: "Invalid measurement date" },
-      { status: 400 },
-    );
-  if (calories !== undefined && calories < 0)
-    return NextResponse.json(
-      { error: "Invalid Active Energy" },
-      { status: 400 },
-    );
-  if (weightKg !== undefined && (weightKg < 1 || weightKg > 400))
-    return NextResponse.json({ error: "Invalid weight" }, { status: 400 });
-  if (
-    bodyFatPercent !== undefined &&
-    (bodyFatPercent < BODY_LABELS.bodyFatPercent.min ||
-      bodyFatPercent > BODY_LABELS.bodyFatPercent.max)
-  )
-    return NextResponse.json(
-      { error: "Invalid body fat percentage" },
-      { status: 400 },
-    );
-
-  if (calories !== undefined && calories >= 0) {
-    const log = await getDayLog(user.id, date);
-    const existing = log.burns.find((b) => b.source === "shortcuts");
-    if (existing) {
-      existing.calories = Math.round(calories);
-      existing.time = new Date().toISOString();
-    } else {
-      log.burns.push({
-        id: crypto.randomUUID(),
-        time: new Date().toISOString(),
-        calories: Math.round(calories),
-        label: "Active Energy (Apple Health)",
-        source: "shortcuts",
-      });
+  const samples: Sample[] = [];
+  if (body.samples !== undefined) {
+    if (body.provider !== "apple_health" || !Array.isArray(body.samples) || !body.samples.length || body.samples.length > 200) return failure("request_invalid");
+    for (const sample of body.samples) {
+      if (!sample || typeof sample !== "object" || Array.isArray(sample) ||
+        !["weightKg", "bodyFatPercent"].includes(sample.metric) ||
+        typeof sample.value !== "number" || !Number.isFinite(sample.value) || !validTimestamp(sample.measuredAt)) return failure("request_invalid");
+      const metric = sample.metric as Metric;
+      const [min, max] = ranges[metric];
+      if (sample.value < min || sample.value > max) return failure("request_invalid");
+      const measuredAt = new Date(sample.measuredAt).toISOString();
+      const date = dateKeyFor(new Date(measuredAt), settings.timezone);
+      if (!validMeasurementDate(date, today)) return failure("request_invalid");
+      samples.push({ metric, value: sample.value, measuredAt, date });
     }
-    await saveDayLog(user.id, log);
+  } else {
+    // Keep installed, environment-token Shortcuts working while users migrate.
+    const date = body.date === undefined ? today : body.date;
+    if (!validMeasurementDate(date, today)) return failure("request_invalid");
+    for (const metric of METRICS) {
+      if (body[metric] === undefined || body[metric] === null || body[metric] === "") continue;
+      const value = parseNumber(body[metric]);
+      const [min, max] = ranges[metric];
+      if (value === null || value < min || value > max) return failure("request_invalid");
+      samples.push({ metric, value, date, measuredAt: new Date().toISOString() });
+    }
+    if (!samples.length) return failure("request_invalid");
   }
 
-  if (weightKg !== undefined && weightKg > 0) {
-    await upsertWeightEntry(user.id, {
-      date,
-      weightKg,
-      bodyFat: bodyFatPercent,
-      source: "shortcuts",
-      heightCm: date === today ? (settings.heightCm ?? undefined) : undefined,
-    });
+  // One reading per metric/day. Collapse a batch to its latest sample before
+  // touching storage, so an older sample cannot replace a newer sample in it.
+  const latest = new Map<string, Sample>();
+  for (const sample of samples) {
+    const key = `${sample.date}:${sample.metric}`;
+    if (!latest.has(key) || sample.measuredAt >= latest.get(key)!.measuredAt) latest.set(key, sample);
   }
-
-  if (bodyFatPercent !== undefined && weightKg === undefined) {
-    await upsertBodyCheckIn(
-      user.id,
-      date,
-      { bodyFatPercent },
-      "shortcuts",
-      date === today ? settings.heightCm : undefined,
-    );
+  const accepted: Sample[] = [];
+  let ignored = samples.length - latest.size;
+  for (const sample of latest.values()) {
+    const heightCm = sample.date === today ? settings.heightCm : undefined;
+    if (sample.metric === "weightKg") {
+      const result = await upsertWeightEntryResult(user.id, { date: sample.date, weightKg: sample.value, source: "shortcuts", heightCm: heightCm ?? undefined, recordedAt: sample.measuredAt });
+      if (!result.applied) { ignored++; continue; }
+    } else if (sample.metric === "bodyFatPercent") {
+      const [checkIns, weights] = await Promise.all([getBodyCheckIns(user.id), getWeightEntries(user.id)]);
+      const current = checkIns.find((entry) => entry.date === sample.date)?.bodyFatPercent;
+      const legacy = weights.find((entry) => entry.date === sample.date);
+      const previousTime = current?.recordedAt ?? (legacy?.bodyFat !== undefined ? legacy.bodyFatRecordedAt ?? legacy.createdAt : undefined);
+      if (previousTime && Date.parse(previousTime) > Date.parse(sample.measuredAt)) { ignored++; continue; }
+      const result = await upsertBodyCheckInResult(user.id, sample.date, { bodyFatPercent: sample.value }, "shortcuts", heightCm, sample.measuredAt);
+      if (!result.appliedFields.includes("bodyFatPercent")) { ignored++; continue; }
+    } else if (sample.metric === "calories") {
+      const log = await getDayLog(user.id, sample.date);
+      const existing = log.burns.find((burn) => burn.source === "shortcuts");
+      if (existing) { existing.calories = Math.round(sample.value); existing.time = sample.measuredAt; }
+      else log.burns.push({ id: crypto.randomUUID(), time: sample.measuredAt, calories: Math.round(sample.value), label: "Active Energy (Apple Health)", source: "shortcuts" });
+      await saveDayLog(user.id, log);
+    } else {
+      // Legacy settings fields remain partial updates, preserving other fields.
+      const current = await getSettings(user.id);
+      await saveSettings(user.id, { ...current, [sample.metric]: sample.metric === "cardioMinutesWeekly" ? Math.round(sample.value) : sample.value });
+    }
+    accepted.push(sample);
   }
-
-  const settingsPatch: Partial<typeof settings> = {};
-  if (vo2Max !== undefined)
-    settingsPatch.vo2Max = Math.min(90, Math.max(10, vo2Max));
-  if (restingHeartRate !== undefined)
-    settingsPatch.restingHeartRate = Math.min(
-      140,
-      Math.max(30, restingHeartRate),
-    );
-  if (cardioMinutesWeekly !== undefined) {
-    settingsPatch.cardioMinutesWeekly = Math.min(
-      1000,
-      Math.max(0, Math.round(cardioMinutesWeekly)),
-    );
-  }
-  if (Object.keys(settingsPatch).length > 0) {
-    await saveSettings(user.id, { ...settings, ...settingsPatch });
-  }
-
-  return NextResponse.json({
-    ok: true,
-    synced: {
-      calories: calories !== undefined && calories >= 0,
-      weightKg: weightKg !== undefined && weightKg > 0,
-      bodyFatPercent: bodyFatPercent !== undefined,
-      vo2Max: vo2Max !== undefined,
-      restingHeartRate: restingHeartRate !== undefined,
-      cardioMinutesWeekly: cardioMinutesWeekly !== undefined,
-    },
+  if (accepted.length) await recordHealthSync(user.id, {
+    receivedAt: new Date().toISOString(), provider: "apple_health",
+    dates: [...new Set(accepted.map((sample) => sample.date))].sort(),
+    fields: [...new Set(accepted.map((sample) => sample.metric))].sort(),
+  });
+  return json({
+    ok: true, status: "ok", received: accepted.length, ignored,
+    synced: Object.fromEntries(METRICS.map((metric) => [metric, accepted.some((sample) => sample.metric === metric)])),
   });
 }

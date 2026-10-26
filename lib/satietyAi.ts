@@ -15,8 +15,8 @@ const JSON_SHAPE_HINT = `{"summary": "string", "suggestions": ["string", "string
 // the top 3 into readable lines instead of calling any model.
 const GENERIC_SATIETY_SUGGESTIONS = [
   "Sesuaikan porsi dengan rasa lapar sebenarnya, bukan cuma sisa budget kalori.",
-  "Tambahkan bahan di kolom pantry biar rekomendasi lebih sesuai yang ada di rumah.",
-  "Coba ubah filter objective kalau pilihan di atas belum pas seleranya.",
+  "Tambahkan bahan yang ada di rumah agar pilihan makan lebih sesuai.",
+  "Coba ubah preferensi makan kalau pilihan di atas belum sesuai selera.",
 ];
 
 function templateSatietySummary(strategy: SatietyStrategy): SatietyAiResult {

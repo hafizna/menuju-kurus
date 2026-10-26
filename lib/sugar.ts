@@ -57,3 +57,13 @@ export function parseSugarInput(value: unknown): number | undefined {
   if (!Number.isFinite(n)) return undefined;
   return Math.min(300, Math.max(0, Math.round(n)));
 }
+
+// One line for Home: partial data is flagged, the weekly average is shown when
+// it exists, and the reference reads as a guide rather than a limit.
+export function sugarNote(today: DaySugar, week: WeekSugar): string {
+  const parts: string[] = [];
+  if (!today.complete) parts.push("Sebagian tercatat");
+  if (week.avgG !== null) parts.push(`Rata-rata ${week.avgG} g/hari`);
+  parts.push(today.grams > SUGAR_REFERENCE_G ? `Di atas patokan ${SUGAR_REFERENCE_G} g` : `Patokan sampai ${SUGAR_REFERENCE_G} g`);
+  return parts.join(" · ");
+}

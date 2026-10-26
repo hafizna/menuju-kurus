@@ -51,7 +51,7 @@ export default function BodyTab() {
       const response = await fetch("/api/body");
       if (!response.ok)
         throw new Error(
-          "Pengukuran belum dapat dimuat. Periksa koneksi dan konfigurasi database.",
+          "Pengukuran belum dapat dimuat. Periksa koneksi lalu coba lagi.",
         );
       setData(await response.json());
     } catch (error) {

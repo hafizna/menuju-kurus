@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ActivityLevel, BiologicalSex, FitnessGoal, UserSettings } from "@/lib/types";
-import type { ProgramRecommendation } from "@/lib/programCalories";
+import { computeProgramRecommendation, type ProgramRecommendation } from "@/lib/programCalories";
 import DisplaySettings from "@/components/DisplaySettings";
+import { programDraftError } from "@/lib/programDraft";
 
 const GOALS: { value: FitnessGoal; label: string; description: string }[] = [
-  { value: "weight_loss", label: "Weight loss", description: "Turun berat dengan defisit moderat." },
-  { value: "very_lean", label: "Very lean", description: "Defisit lebih konservatif sambil menjaga otot." },
-  { value: "athletic", label: "Athletic", description: "Mulai dari maintenance dan fokus performa." },
-  { value: "muscle_gain", label: "Muscle gain", description: "Surplus kecil dan terkontrol." },
+  { value: "weight_loss", label: "Turun berat", description: "Turun berat dengan defisit moderat." },
+  { value: "very_lean", label: "Lebih ramping", description: "Defisit lebih konservatif sambil menjaga otot." },
+  { value: "athletic", label: "Jaga performa", description: "Mulai dari maintenance dan fokus performa." },
+  { value: "muscle_gain", label: "Tambah otot", description: "Surplus kecil dan terkontrol." },
 ];
 const ACTIVITIES: { value: ActivityLevel; label: string; description: string }[] = [
   { value: "sedentary", label: "Sedentary", description: "Mayoritas duduk, hampir tidak berolahraga." },
@@ -24,39 +26,66 @@ type SettingsResponse = { settings: UserSettings; recommendation: ProgramRecomme
 export default function SettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [recommendation, setRecommendation] = useState<ProgramRecommendation | null>(null);
+  const [showRecommendation, setShowRecommendation] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  async function load() {
+    setLoading(true); setError("");
+    try {
+      const response = await fetch("/api/settings");
+      if (!response.ok) throw new Error("Profil belum dapat dimuat. Coba lagi ya.");
+      const data: SettingsResponse = await response.json();
+      setSettings(data.settings);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Profil belum dapat dimuat."); }
+    finally { setLoading(false); }
+  }
   useEffect(() => {
-    fetch("/api/settings").then((r) => r.json()).then((d: SettingsResponse) => { setSettings(d.settings); setRecommendation(d.recommendation); });
-    fetch("/api/me").then((r) => r.json()).then((d) => setUserName(d.name ?? ""));
+    void load();
+    fetch("/api/me").then((r) => r.ok ? r.json() : null).then((d) => setUserName(d?.name ?? "")).catch(() => {});
   }, []);
+  const validationError = settings ? programDraftError(settings) : null;
+  const recommendation = settings && !validationError ? computeProgramRecommendation(settings) : null;
 
   async function persist(applyRecommendation = false) {
     if (!settings) return;
-    setSaving(true); setSaved(false);
+    const invalid = programDraftError(settings);
+    if (invalid) { setError(invalid); return; }
+    setSaving(true); setSaved(false); setError("");
     try {
       const res = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...settings, applyRecommendation }) });
+      if (!res.ok) throw new Error("Program belum tersimpan. Isianmu tetap ada; coba lagi.");
       const data: SettingsResponse = await res.json();
-      setSettings(data.settings); setRecommendation(data.recommendation); setSaved(true);
+      setSettings(data.settings); setSaved(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Program belum tersimpan. Isianmu tetap ada.");
     } finally { setSaving(false); }
   }
 
   async function save(e: React.FormEvent) { e.preventDefault(); await persist(false); }
-  async function logout() { await fetch("/api/auth", { method: "DELETE" }); router.replace("/login"); }
+  async function logout() {
+    try {
+      const response = await fetch("/api/auth", { method: "DELETE" });
+      if (!response.ok) throw new Error("Belum dapat keluar. Coba lagi.");
+      router.replace("/login");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Belum dapat keluar."); }
+  }
 
-  if (!settings) return <div className="p-6 text-center text-neutral-400">Memuat...</div>;
+  if (!settings) return <div className="space-y-3 p-6">{loading ? <p className="text-neutral-500">Memuat profil…</p> : <><p role="alert" className="text-sm text-red-600">{error}</p><button type="button" onClick={() => void load()} className="rounded-xl bg-brand-700 px-4 py-3 font-medium text-white">Coba lagi</button></>}</div>;
   const inputClass = "w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800";
 
   return (
     <div className="space-y-4 p-4">
       <header className="pt-2"><h1 className="text-xl font-bold">Program Saya</h1>{userName && <p className="text-sm text-neutral-500">Masuk sebagai {userName}</p>}</header>
+      {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-200">{error}</p>}
+      {saved && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800 dark:bg-brand-950 dark:text-brand-200">Program tersimpan.</p>}
 
       {!settings.programConfigured && <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900 dark:bg-amber-950/30"><div className="font-semibold">Lengkapi profil program</div><p className="mt-1 text-neutral-600 dark:text-neutral-300">Angka 1.800 kcal dan 120 g protein saat ini masih nilai awal, bukan rekomendasi personal.</p></section>}
 
-      <form onSubmit={save} className="space-y-4">
+      <form onSubmit={save} onChange={() => { setSaved(false); setError(""); }} className="space-y-4">
         <Section title="Nama panggilan" description="Dipakai untuk sapaan di Home.">
           <input value={settings.displayName ?? ""} maxLength={30} onChange={(e) => setSettings({ ...settings, displayName: e.target.value })} placeholder="nama panggilan" className={inputClass} />
         </Section>
@@ -80,9 +109,12 @@ export default function SettingsPage() {
           <div className="space-y-2">{ACTIVITIES.map((item) => <button key={item.value} type="button" onClick={() => setSettings({ ...settings, activityLevel: item.value })} className={`w-full rounded-xl border p-3 text-left ${settings.activityLevel === item.value ? "border-brand-500 bg-brand-50 dark:bg-brand-950/30" : "border-neutral-200 dark:border-neutral-700"}`}><div className="text-sm font-medium">{item.label}</div><div className="text-xs text-neutral-500">{item.description}</div></button>)}</div>
         </Section>
 
-        <button type="submit" disabled={saving} className="w-full rounded-xl border border-brand-500 py-3 font-medium text-brand-600 disabled:opacity-50">{saving ? "Menghitung..." : "Hitung rekomendasi"}</button>
+        <button type="button" onClick={() => { setShowRecommendation(true); setSaved(false); }} className="w-full rounded-xl border border-brand-500 py-3 font-medium text-brand-700 dark:text-brand-300">Lihat rekomendasi dari isian ini</button>
+        <p className="text-center text-xs text-neutral-500">Melihat rekomendasi tidak menyimpan atau mengubah target aktif.</p>
 
-        {recommendation?.complete && <Section title="Rekomendasi program" description={`Confidence ${recommendation.confidence}. Angka dibulatkan agar praktis digunakan.`}>
+        {showRecommendation && validationError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{validationError}</p>}
+        {showRecommendation && !validationError && !recommendation?.complete && <p role="status" className="text-sm text-neutral-500">Lengkapi usia, jenis kelamin, tinggi, dan aktivitas agar rekomendasi bisa dihitung.</p>}
+        {showRecommendation && recommendation?.complete && <Section title="Rekomendasi program" description="Estimasi awal berdasarkan isianmu. Angka dibulatkan agar praktis digunakan.">
           <div className="grid grid-cols-2 gap-3 text-center">
             <Stat label="BMI" value={`${recommendation.bmi}`} note={recommendation.bmiLabel} />
             <Stat label="Maintenance" value={`${recommendation.maintenanceCalories} kcal`} note={`BMR ${recommendation.bmr} kcal`} />
@@ -104,16 +136,9 @@ export default function SettingsPage() {
         <button type="submit" disabled={saving} className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">{saving ? "Menyimpan..." : saved ? "Tersimpan ✓" : "Simpan Program"}</button>
       </form>
 
-      <Section title="Integrasi" description="Semua lewat satu automation Apple Shortcuts — lihat README untuk setup lengkap.">
-        <ul className="space-y-1.5 text-sm text-neutral-500">
-          <li>• Active Energy → kalori keluar hari ini</li>
-          <li>• Berat badan &amp; body fat % → catatan berat hari ini</li>
-          <li>• VO₂ max &amp; resting heart rate → metrik fitness terbaru</li>
-          <li>• Durasi kardio mingguan → target aktivitas</li>
-        </ul>
-        <p className="mt-3 text-xs text-neutral-400">
-          Setiap sync menimpa nilai sebelumnya (bukan menumpuk), dan field yang tidak dikirim Shortcuts tidak akan menghapus nilai yang sudah ada.
-        </p>
+      <Section title="Data kesehatan" description="Masukkan hasil pengukuran dari Apple Health lewat Shortcut di iPhone.">
+        <p className="text-sm text-neutral-500">Hubungkan berat badan dan persentase lemak, lalu periksa kapan data terakhir masuk.</p>
+        <Link href="/settings/health" className="mt-3 inline-flex rounded-xl bg-brand-700 px-4 py-3 text-sm font-medium text-white">Hubungkan Apple Health →</Link>
       </Section>
       <Section title="Tampilan" description="Otomatis mengikuti pengaturan HP-mu."><DisplaySettings /></Section>
       <Section title="Akun">

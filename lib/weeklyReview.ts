@@ -3,12 +3,18 @@ import { summarizeDay, foodLogStatus, TARGET_FEEDBACK_MIN_RATIO } from "./energy
 import { WeightTrend } from "./weight";
 
 export interface WeeklyReview {
+  periodStart: string | null;
+  periodEnd: string | null;
   weightChange: number | null;
   avgCalories: number | null;
   avgProtein: number | null;
   successRate: number | null;
   completedDays: number;
   totalDays: number;
+  belowRangeDays: number;
+  withinRangeDays: number;
+  aboveRangeDays: number;
+  incompleteDays: number;
   exerciseDays: number; // out of the last 7 days, how many had a burn logged
   bestDay: { date: string; caloriesIn: number } | null;
   worstDay: { date: string; caloriesIn: number } | null;
@@ -80,17 +86,27 @@ export function computeWeeklyReview(
   if (withData.length < last7Logs.length) recommendationFlags.push("incomplete-food-logs");
   if (dayStats.some((day) => day.caloriesIn < settings.dailyTargetKcal * TARGET_FEEDBACK_MIN_RATIO)) recommendationFlags.push("low-intake");
   if (weekWeightEntries.length === 0) recommendationFlags.push("no-weigh-in");
-  if (withData.length > 0 && avgProtein !== null && avgProtein < settings.weightKg * 1.2) recommendationFlags.push("low-protein");
+  if (withData.length > 0 && avgProtein !== null && avgProtein < settings.proteinTargetG) recommendationFlags.push("low-protein");
   if (dayStats.filter((day) => day.diff > 0).length > dayStats.length / 2) recommendationFlags.push("over-budget");
-  if (weightTrend.weeklyRate !== null && Math.abs(weightTrend.weeklyRate) < 0.1) {
+  if ((settings.fitnessGoal === "weight_loss" || settings.fitnessGoal === "very_lean") && weightTrend.weeklyRate !== null && Math.abs(weightTrend.weeklyRate) < 0.1) {
     recommendationFlags.push("weight-plateau");
   }
   if (weightTrend.weeklyRate !== null && weightTrend.weeklyRate < -1.2) {
     recommendationFlags.push("losing-too-fast");
   }
-  if (withData.length >= 5 && successRate !== null && successRate >= 85 && weightTrend.direction === "down") {
+  if (withData.length >= 5 && successRate !== null && successRate >= 85) {
     recommendationFlags.push("great-week");
   }
 
-  return { completedDays: withData.length, totalDays: last7Logs.length, weightChange, avgCalories, avgProtein, successRate, exerciseDays, bestDay, worstDay, recommendationFlags };
+  return {
+    periodStart: last7Logs[0]?.date ?? null,
+    periodEnd: last7Logs[last7Logs.length - 1]?.date ?? null,
+    completedDays: withData.length,
+    totalDays: last7Logs.length,
+    belowRangeDays: dayStats.filter((day) => day.caloriesIn < settings.dailyTargetKcal * TARGET_FEEDBACK_MIN_RATIO).length,
+    withinRangeDays: dayStats.filter((day) => day.onTrack).length,
+    aboveRangeDays: dayStats.filter((day) => day.diff > 0).length,
+    incompleteDays: last7Logs.length - withData.length,
+    weightChange, avgCalories, avgProtein, successRate, exerciseDays, bestDay, worstDay, recommendationFlags,
+  };
 }

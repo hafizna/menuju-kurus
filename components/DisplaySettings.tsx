@@ -13,11 +13,13 @@ const OPTIONS: Array<{ value: Theme; label: string }> = [
 // reapplies it before first paint on every load.
 export default function DisplaySettings() {
   const [theme, setTheme] = useState<Theme>("auto");
+  const [motion, setMotion] = useState<"auto" | "off">("auto");
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem("mk_theme");
       if (saved === "light" || saved === "dark") setTheme(saved);
+      if (localStorage.getItem("mk_motion") === "off") setMotion("off");
     } catch {
       // Storage can be blocked (private mode); the toggle still works for this visit.
     }
@@ -33,7 +35,15 @@ export default function DisplaySettings() {
     window.dispatchEvent(new Event("mk-theme"));
   }
 
+  function chooseMotion(next: "auto" | "off") {
+    setMotion(next);
+    document.documentElement.dataset.motion = next;
+    try { localStorage.setItem("mk_motion", next); } catch { /* Keep the choice for this visit. */ }
+    window.dispatchEvent(new Event("mk-motion"));
+  }
+
   return (
+    <div className="space-y-4">
     <div className="grid grid-cols-3 gap-1 rounded-xl bg-neutral-100 p-1 dark:bg-neutral-800" role="radiogroup" aria-label="Tema tampilan">
       {OPTIONS.map((option) => (
         <button
@@ -51,6 +61,11 @@ export default function DisplaySettings() {
           {option.label}
         </button>
       ))}
+    </div>
+    <label className="flex items-start gap-3 text-sm">
+      <input type="checkbox" checked={motion === "off"} onChange={(event) => chooseMotion(event.target.checked ? "off" : "auto")} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-700" />
+      <span>Kurangi animasi<span className="mt-1 block text-xs text-neutral-500">Maskot tetap terlihat. Saat opsi ini mati, gerakan mengikuti pengaturan perangkatmu.</span></span>
+    </label>
     </div>
   );
 }

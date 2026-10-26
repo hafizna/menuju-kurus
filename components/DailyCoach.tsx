@@ -98,7 +98,7 @@ export default function DailyCoach({
       )}
 
       <p className="mt-3 border-t border-black/5 pt-2 text-xs text-neutral-500 dark:border-white/10">
-        Disusun dari {coach.basis.join(", ")}, bukan oleh AI.
+        Berdasarkan {coach.basis.join(", ")}.
       </p>
     </section>
   );
