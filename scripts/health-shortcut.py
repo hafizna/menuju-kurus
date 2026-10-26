@@ -247,14 +247,14 @@ class Workflow:
         # Choose from List's actual exported multi-select parameter avoids a
         # mandatory read of a denied Health type. Selection precedes ALL reads.
         choices = self.add("gettext", "metric-choices", WFTextActionText="\n".join(item[1] for item in METRICS))
-        choices_list = self.add("text.split", "metric-choices-list", WFInput=choices, WFTextSeparator="New Lines")
+        choices_list = self.add("text.split", "metric-choices-list", text=choices, WFTextSeparator="New Lines")
         chosen = self.add("choosefromlist", "choose-metrics", WFInput=choices_list,
             WFChooseFromListActionPrompt="Pilih data yang ingin dibaca. Jangan pilih jenis yang izin bacanya belum diberikan.",
             WFChooseFromListActionSelectMultiple=True)
         self.begin("selected-any", chosen, 101)
         self.stop("no-selection", "Tidak ada jenis data yang dipilih. Tidak ada data kesehatan yang dibaca atau dikirim.")
         self.end("selected-any")
-        selected = self.add("text.combine", "selected-metric-lines", WFInput=chosen, WFTextSeparator="New Lines")
+        selected = self.add("text.combine", "selected-metric-lines", text=chosen, WFTextSeparator="New Lines")
         for label, title, health_type, metric in METRICS:
             matched = self.add("text.match", label + "-selected", text=text(selected),
                 WFMatchTextPattern="(?m)^" + title + "$", WFMatchTextCaseSensitive=True)
@@ -284,7 +284,7 @@ class Workflow:
 
 def build():
     w = Workflow()
-    w.add("comment", "intro", WFCommentActionText="Slothly Health Sync v3. Pilih berat, persentase lemak, VO2 max, atau denyut istirahat sebelum membaca data terbaru beserta tanggal pengukuran aslinya. Jangan pilih jenis data yang izin bacanya ditolak; error izin iOS dapat menghentikan Shortcut. Tidak menulis data ke Apple Health. Konfigurasi disimpan di folder Shortcuts/Slothly/connection.json; folder ini dapat tersinkron lewat iCloud sesuai pengaturan perangkat. Jangan bagikan berkas konfigurasi tersebut.")
+    w.add("comment", "intro", WFCommentActionText="Slothly Health Sync v4. Pilih berat, persentase lemak, VO2 max, atau denyut istirahat sebelum membaca data terbaru beserta tanggal pengukuran aslinya. Jangan pilih jenis data yang izin bacanya ditolak; error izin iOS dapat menghentikan Shortcut. Tidak menulis data ke Apple Health. Konfigurasi disimpan di folder Shortcuts/Slothly/connection.json; folder ini dapat tersinkron lewat iCloud sesuai pengaturan perangkat. Jangan bagikan berkas konfigurasi tersebut.")
     incoming = attachment({"Type": "ExtensionInput"})
     w.begin("received-config", incoming)
     # Get Text creates an explicit string to save, rather than persisting Shortcut Input attachments.
@@ -413,7 +413,7 @@ def main():
     if reported_input:
         assert reported_input == sha(unsigned), "Signing service signed different input"
     signed_path.write_bytes(signed)
-    manifest_path.write_text(json.dumps({"name": NAME, "version": 3, "actions": len(workflow["WFWorkflowActions"]),
+    manifest_path.write_text(json.dumps({"name": NAME, "version": 4, "actions": len(workflow["WFWorkflowActions"]),
         "installPath": "/shortcuts/slothly-health-sync.shortcut", "signingFormat": "AEA1", "signingMode": "anyone",
         "signingService": args.signing_server, "unsignedSha256": sha(unsigned), "signedSha256": sha(signed),
         "generatorSha256": generator_sha(),

@@ -13,7 +13,7 @@ type ConnectionState = {
 
 const defaultShortcutName = "slothly-health-sync";
 const shortcutNameKey = "mk_health_shortcut_name";
-const shortcutDownload = "/shortcuts/slothly-health-sync.shortcut?v=3";
+const shortcutDownload = "/shortcuts/slothly-health-sync.shortcut?v=4";
 const fieldLabels: Record<string, string> = {
   weightKg: "Berat badan", bodyFatPercent: "Persentase lemak", calories: "Energi aktif",
   vo2Max: "VO₂ max", restingHeartRate: "Detak jantung istirahat", cardioMinutesWeekly: "Durasi kardio",
@@ -189,8 +189,8 @@ export default function HealthConnectionPage() {
       {message && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800 dark:bg-brand-950 dark:text-brand-200">{message}</p>}
 
       <section className="rounded-2xl border border-brand-200 bg-brand-50 p-4 dark:border-brand-800 dark:bg-brand-950/40" aria-label="Pembaruan Shortcut">
-        <h2 className="text-sm font-semibold">Gunakan Shortcut versi 3</h2>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Versi ini menambahkan VO₂ max, detak jantung istirahat, dan pilihan data yang dibaca. Ganti Shortcut lama dengan unduhan terbaru. Konfigurasi yang sudah berhasil disimpan dapat dipakai kembali.</p>
+        <h2 className="text-sm font-semibold">Gunakan Shortcut versi 4</h2>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Versi ini memperbaiki daftar pilihan metrik yang kosong pada versi 3. Ganti Shortcut lama dengan unduhan terbaru. Saat dijalankan, centang data di menu “Pilih data yang ingin dibaca”, lalu tekan Selesai / Done. Konfigurasi yang sudah berhasil disimpan dapat dipakai kembali.</p>
         <a href={shortcutDownload} className={`${secondary} mt-3`}>Unduh Shortcut terbaru</a>
       </section>
 

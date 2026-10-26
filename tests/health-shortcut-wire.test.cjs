@@ -18,6 +18,60 @@ const parsed = spawnSync(process.env.PYTHON || 'python', ['-c',
 ], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
 assert.equal(parsed.status, 0, 'Python 3 plistlib must parse the shipped unsigned Shortcut');
 const workflow = JSON.parse(parsed.stdout);
+
+// Two unmodified action rows from an actual Apple-exported Shortcut. The input
+// parameter name is action-specific: Split Text and Combine Text use `text`,
+// even though Choose from List and many other actions use `WFInput`.
+// Source (MIT): https://github.com/viticci/shortcuts-playground-plugin/blob/main/codex/skills/shortcuts-playground/golden-shortcuts/xml/51cc4e26d1044893a0c3f2f3630cf2d2.xml
+//
+// MIT License
+// Copyright (c) 2026 Federico Viticci / MacStories
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+const exportedTextActionsXml = `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><array>
+  <dict>
+    <key>WFWorkflowActionIdentifier</key><string>is.workflow.actions.text.split</string>
+    <key>WFWorkflowActionParameters</key><dict>
+      <key>Show-text</key><true/>
+      <key>UUID</key><string>E7C4458C-4167-416C-BF22-45C83B3FCA40</string>
+      <key>text</key><dict><key>Value</key><dict>
+        <key>OutputName</key><string>Text</string>
+        <key>OutputUUID</key><string>6E47EB56-D943-4EF3-91DD-D365C159A63A</string>
+        <key>Type</key><string>ActionOutput</string>
+      </dict><key>WFSerializationType</key><string>WFTextTokenAttachment</string></dict>
+    </dict>
+  </dict>
+  <dict>
+    <key>WFWorkflowActionIdentifier</key><string>is.workflow.actions.text.combine</string>
+    <key>WFWorkflowActionParameters</key><dict>
+      <key>Show-text</key><true/>
+      <key>UUID</key><string>B20DF477-4CE2-4DDE-9F33-1F79F41EA3B0</string>
+      <key>text</key><dict><key>Value</key><dict>
+        <key>Type</key><string>Variable</string>
+        <key>VariableName</key><string>Emoji</string>
+      </dict><key>WFSerializationType</key><string>WFTextTokenAttachment</string></dict>
+    </dict>
+  </dict>
+</array></plist>`;
+const parsedTextFixture = spawnSync(process.env.PYTHON || 'python', ['-c',
+  'import json,plistlib,sys; print(json.dumps(plistlib.loads(sys.stdin.buffer.read())))',
+], { input: exportedTextActionsXml, encoding: 'utf8', maxBuffer: 1024 * 1024 });
+assert.equal(parsedTextFixture.status, 0, 'Python plistlib must parse the independently retained Apple export');
+const exportedTextActions = JSON.parse(parsedTextFixture.stdout);
 const postActions = workflow.WFWorkflowActions
   .filter((action) => action.WFWorkflowActionIdentifier === 'is.workflow.actions.downloadurl')
   .map((action) => action.WFWorkflowActionParameters)
@@ -173,16 +227,75 @@ async function send(request) {
   }));
 }
 
+function assertPickerChain(actions) {
+  const byId = new Map(actions.map((action, index) => [action.WFWorkflowActionParameters.UUID, { action, index }]));
+  function outputSource(state, consumer) {
+    assert.equal(state?.WFSerializationType, 'WFTextTokenAttachment', 'Picker inputs must retain the exported text-token attachment envelope');
+    assert.equal(state.Value?.Type, 'ActionOutput', 'Each picker step must reference the preceding action output explicitly');
+    const source = byId.get(state.Value.OutputUUID);
+    assert.ok(source, 'Picker output reference must target an existing action');
+    assert.ok(source.index < actions.indexOf(consumer), 'Picker output reference must target a preceding action');
+    return source.action;
+  }
+  const choices = actions.filter((action) => action.WFWorkflowActionIdentifier === 'is.workflow.actions.choosefromlist');
+  assert.equal(choices.length, 1);
+  const chooseAction = choices[0];
+  const choice = chooseAction.WFWorkflowActionParameters;
+  assert.equal(choice.WFChooseFromListActionSelectMultiple, true, 'The user must be able to select only the permitted Health types');
+  const split = outputSource(choice.WFInput, chooseAction);
+  assert.equal(split.WFWorkflowActionIdentifier, 'is.workflow.actions.text.split', 'Choose from List must receive Split Text output, not one multiline item');
+  const splitParameters = split.WFWorkflowActionParameters;
+  assert.equal(Object.hasOwn(splitParameters, 'WFInput'), false, 'Split Text cannot use the generic WFInput parameter');
+  assert.equal(splitParameters.WFTextSeparator, 'New Lines');
+  const sourceText = outputSource(splitParameters.text, split);
+  assert.equal(sourceText.WFWorkflowActionIdentifier, 'is.workflow.actions.gettext');
+  assert.equal(sourceText.WFWorkflowActionParameters.WFTextActionText, 'Berat badan\nLemak tubuh\nVO2 max\nDenyut istirahat', 'Split Text must receive exactly the four metric choices');
+  const combinedActions = actions.filter((action) => action.WFWorkflowActionIdentifier === 'is.workflow.actions.text.combine');
+  assert.equal(combinedActions.length, 1);
+  const combined = combinedActions[0];
+  const combinedParameters = combined.WFWorkflowActionParameters;
+  assert.equal(Object.hasOwn(combinedParameters, 'WFInput'), false, 'Combine Text cannot use the generic WFInput parameter');
+  assert.equal(combinedParameters.WFTextSeparator, 'New Lines');
+  assert.equal(outputSource(combinedParameters.text, combined), chooseAction, 'Combine Text must receive the selected list, not the original choices or an intervening action');
+  return { choice, chooseAction, split, combined };
+}
+
+test('actual exported Split Text and Combine Text rows use the text input attachment parameter', () => {
+  assert.deepEqual(exportedTextActions.map((action) => action.WFWorkflowActionIdentifier), [
+    'is.workflow.actions.text.split', 'is.workflow.actions.text.combine',
+  ]);
+  for (const action of exportedTextActions) {
+    const parameters = action.WFWorkflowActionParameters;
+    assert.equal(parameters.text.WFSerializationType, 'WFTextTokenAttachment');
+    assert.equal(Object.hasOwn(parameters, 'WFInput'), false, 'The fixture must retain the observed input name rather than a generator assumption');
+  }
+  assert.equal(exportedTextActions[0].WFWorkflowActionParameters.text.Value.OutputUUID, '6E47EB56-D943-4EF3-91DD-D365C159A63A');
+  assert.equal(exportedTextActions[1].WFWorkflowActionParameters.text.Value.VariableName, 'Emoji');
+});
+
+test('picker chain rejects v3 WFInput-only text actions and disconnected action output references', () => {
+  assertPickerChain(workflow.WFWorkflowActions);
+  for (const identifier of ['is.workflow.actions.text.split', 'is.workflow.actions.text.combine']) {
+    const regressed = structuredClone(workflow.WFWorkflowActions);
+    const parameters = regressed.find((action) => action.WFWorkflowActionIdentifier === identifier).WFWorkflowActionParameters;
+    parameters.WFInput = parameters.text;
+    delete parameters.text;
+    assert.throws(() => assertPickerChain(regressed), /cannot use the generic WFInput/, 'The previous v3 input-field bug must fail independently of the Python simulator');
+  }
+  for (const identifier of ['is.workflow.actions.choosefromlist', 'is.workflow.actions.text.combine']) {
+    const disconnected = structuredClone(workflow.WFWorkflowActions);
+    const { split } = assertPickerChain(disconnected);
+    const wrongSource = split.WFWorkflowActionParameters.text;
+    const parameters = disconnected.find((action) => action.WFWorkflowActionIdentifier === identifier).WFWorkflowActionParameters;
+    parameters[identifier.endsWith('choosefromlist') ? 'WFInput' : 'text'] = structuredClone(wrongSource);
+    assert.throws(() => assertPickerChain(disconnected), /must receive/, 'A syntactically valid attachment must still point to the correct picker step');
+  }
+});
+
 test('shipped Shortcut asks for optional types before reading Health and guards every query by its own selection', () => {
   const actions = workflow.WFWorkflowActions;
   const byId = new Map(actions.map((action) => [action.WFWorkflowActionParameters.UUID, action]));
-  const choices = actions.filter((action) => action.WFWorkflowActionIdentifier === 'is.workflow.actions.choosefromlist');
-  assert.equal(choices.length, 1);
-  const choice = choices[0].WFWorkflowActionParameters;
-  assert.equal(choice.WFChooseFromListActionSelectMultiple, true, 'The user must be able to select only the permitted Health types');
-  const combined = actions.find((action) => action.WFWorkflowActionIdentifier === 'is.workflow.actions.text.combine' &&
-    action.WFWorkflowActionParameters.WFInput?.Value?.OutputUUID === choice.UUID);
-  assert.ok(combined, 'The permission selection must flow from Choose from List');
+  const { chooseAction, combined } = assertPickerChain(actions);
   const healthLabels = {
     'Body Mass': 'Berat badan',
     'Body Fat Percentage': 'Lemak tubuh',
@@ -199,7 +312,7 @@ test('shipped Shortcut asks for optional types before reading Health and guards 
       else if (parameters.WFControlFlowMode === 2) guards.pop();
     }
     if (action.WFWorkflowActionIdentifier !== 'is.workflow.actions.filter.health.quantity') continue;
-    assert.ok(actions.indexOf(choices[0]) < actions.indexOf(action), 'Selection must precede every Health query');
+    assert.ok(actions.indexOf(chooseAction) < actions.indexOf(action), 'Selection must precede every Health query');
     const type = parameters.WFContentItemFilter.Value.WFActionParameterFilterTemplates[0].Values.Enumeration.Value;
     assert.ok(Object.hasOwn(healthLabels, type), 'Only supported, explicitly named Health types may be queried');
     found.push(type);
