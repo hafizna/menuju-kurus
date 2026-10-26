@@ -1,8 +1,10 @@
 # Apple Health → Slothly
 
-> This document describes the older combined v5 workflow. The app now offers
-> [Slothly Berat and Slothly Watch](native-health-shortcuts.md), with separate
-> signed downloads, installation configuration, and personal automation guides.
+> Archived v5 workflow for Shortcuts that are already configured. Its manual
+> setup controls are no longer in the app. For a new installation, use
+> [Slothly Berat and Slothly Watch v2](native-health-shortcuts.md): generic signed
+> downloads, one-time account pairing, shared private configuration, and personal
+> automation guides. No JSON or Bearer token copying is required in v2.
 
 Slothly's web app cannot read HealthKit directly. The included **Slothly Health Sync v5** Apple Shortcut offers weight, body fat percentage, VO2 max, and resting heart rate on the iPhone. It reads only the types selected for that run, with permission, and sends each selected type's latest available measurement to the connected Slothly account. AFit, Apple Watch, or another source is responsible for putting its measurements into Apple Health first. Missing measurements are not calculated or replaced with zero.
 
