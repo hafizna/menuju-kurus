@@ -865,12 +865,18 @@ let child, browser;
   assert.match(readCheckDownload.headers.get("content-disposition"), /slothly-health-read-check\.shortcut/, "Health read check download lost its installable filename");
   assert.equal(Buffer.from(await readCheckDownload.arrayBuffer()).subarray(0, 4).toString("ascii"), "AEA1", "Health read check is not a signed Apple archive");
 
+  assert.equal((await fetch(`${base}/api/health-pairing`, { method: "POST" })).status, 401);
+  assert.equal((await fetch(`${base}/api/health-pairing/redeem`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: "invalid" }) })).status, 410);
+  // Preparation can fail independently from status. Downloads remain available,
+  // and retry must produce a real URL without ever issuing a browser Bearer.
+  const beforePairingCredential = JSON.parse(store.get("mk:u3:healthConnection") ?? "null");
+  await page.route("**/api/health-pairing", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Temporarily unavailable" }) }));
   await page.goto(`${base}/settings`);
   await page.getByRole("link", { name: "Hubungkan Apple Health →", exact: true }).click();
   await page.waitForURL(`${base}/settings/health`);
   await page.getByRole("heading", { name: "Hubungkan Apple Health", exact: true }).waitFor();
-  assert.equal(await page.getByRole("link", { name: "Pasang Slothly Berat", exact: true }).getAttribute("href"), "/shortcuts/Slothly%20Berat.shortcut?v=1");
-  assert.equal(await page.getByRole("link", { name: "Pasang Slothly Watch", exact: true }).getAttribute("href"), "/shortcuts/Slothly%20Watch.shortcut?v=1");
+  assert.equal(await page.getByRole("link", { name: "Pasang Slothly Berat", exact: true }).getAttribute("href"), "/shortcuts/Slothly%20Berat.shortcut?v=2");
+  assert.equal(await page.getByRole("link", { name: "Pasang Slothly Watch", exact: true }).getAttribute("href"), "/shortcuts/Slothly%20Watch.shortcut?v=2");
   const automation = page.getByRole("heading", { name: "3. Atur automasi di iPhone", exact: true });
   await automation.waitFor();
   const weightGuide = page.locator("details").filter({ has: page.locator("summary").filter({ hasText: "Slothly Berat · setelah aplikasi timbangan ditutup" }) });
@@ -895,137 +901,82 @@ let child, browser;
   await readCheckHelp.locator("summary").click();
   assert.equal(await readCheckHelp.getByRole("link", { name: "Unduh pemeriksaan Health", exact: true }).getAttribute("href"), "/shortcuts/slothly-health-read-check.shortcut?v=1");
   await readCheckHelp.locator("summary").click();
-  await page.evaluate(() => {
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: async (text) => { window.__healthClipboard = text; } },
-    });
+  await page.getByRole("button", { name: "Coba siapkan lagi", exact: true }).waitFor();
+  assert.equal(await page.getByRole("link", { name: "Hubungkan lewat Slothly Berat", exact: true }).count(), 0, "failed preparation exposed a stale pairing link");
+  await page.unroute("**/api/health-pairing");
+  await page.getByRole("button", { name: "Coba siapkan lagi", exact: true }).click();
+  const connectWeightLink = page.getByRole("link", { name: "Hubungkan lewat Slothly Berat", exact: true });
+  const connectWatchLink = page.getByRole("link", { name: "Hubungkan lewat Slothly Watch", exact: true });
+  await connectWeightLink.waitFor();
+  assert.deepEqual(JSON.parse(store.get("mk:u3:healthConnection") ?? "null"), beforePairingCredential, "preparing a link changed existing Health access");
+  const readPairingLink = async (link) => {
+    const href = new URL(await link.getAttribute("href"));
+    assert.equal(href.protocol, "shortcuts:");
+    assert.equal(href.searchParams.get("input"), "text");
+    const input = JSON.parse(href.searchParams.get("text"));
+    assert.deepEqual(Object.keys(input).sort(), ["code", "redeemUrl"]);
+    assert.match(input.code, /^hp1\.u3\.[A-Za-z0-9_-]{43}$/);
+    assert.equal(input.redeemUrl, `${base}/api/health-pairing/redeem`);
+    return input;
+  };
+  const firstPairing = await readPairingLink(connectWeightLink);
+  assert.deepEqual(await readPairingLink(connectWatchLink), firstPairing, "Berat and Watch should share one account pairing");
+  const redeemPairing = (input) => fetch(input.redeemUrl, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: input.code }),
   });
-  const createHealthResponse = page.waitForResponse((response) =>
-    response.url() === `${base}/api/health-connection` && response.request().method() === "POST",
-  );
-  await page.getByRole("button", { name: "Siapkan koneksi", exact: true }).click();
-  const createdHealthResponse = await createHealthResponse;
-  assert.equal(createdHealthResponse.status(), 200, "Health connection creation failed");
-  const healthCreated = await createdHealthResponse.json();
-  let healthToken = healthCreated.token;
-  assert.ok(typeof healthToken === "string" && healthToken.length > 40, "Health setup did not issue a private credential");
-  await page.getByRole("heading", { name: "Selesaikan pemasangan", exact: true }).waitFor();
+  // Simulate the native Shortcut redeeming directly. No browser fetch, DOM,
+  // session storage or local storage ever receives this long-lived credential.
+  const redeemed = await redeemPairing(firstPairing);
+  assert.equal(redeemed.status, 200);
+  const healthPaired = await redeemed.json();
+  let healthToken = healthPaired.token;
+  assert.equal(healthPaired.status, "paired");
+  assert.equal(healthPaired.accountName, "Pengguna uji", "native account confirmation did not receive the verified identity");
+  assert.equal(healthPaired.endpoint, `${base}/api/health-sync`);
+  assert.match(healthToken, /^slothly\.u3\.[A-Za-z0-9_-]{43}$/);
+  assert.equal((await redeemPairing(firstPairing)).status, 410, "pairing code was reusable");
   const expectNoHealthSecret = async (...tokens) => {
     const exposed = await page.evaluate((secrets) => {
       const rendered = document.body.textContent || "";
+      const links = [...document.querySelectorAll("a")].map((a) => a.href).join(" ");
       const persisted = JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]);
-      return secrets.some((secret) => rendered.includes(secret) || persisted.includes(secret));
+      return secrets.some((secret) => rendered.includes(secret) || links.includes(secret) || persisted.includes(secret));
     }, tokens);
-    assert.equal(exposed, false, "a Health credential leaked into rendered text or browser storage");
+    assert.equal(exposed, false, "a Health credential leaked into rendered content, URL or browser storage");
     assert.equal([...store.values()].some((value) => tokens.some((token) => value.includes(token))), false, "raw Health credential persisted in the database");
   };
   await expectNoHealthSecret(healthToken);
-
-  const manualConfiguration = page.getByRole("textbox", { name: "Konfigurasi koneksi pribadi", exact: true });
-  const configurationReady = page.getByText("Konfigurasi siap ditempel.", { exact: true });
   const openShortcutLink = page.getByRole("link", { name: "Buka Slothly Berat", exact: true });
   const openWatchLink = page.getByRole("link", { name: "Buka Slothly Watch", exact: true });
+  for (const [link, name] of [[openShortcutLink, "Slothly Berat"], [openWatchLink, "Slothly Watch"]]) {
+    const href = new URL(await link.getAttribute("href"));
+    assert.equal(href.searchParams.get("name"), name);
+    assert.equal(href.searchParams.has("input"), false, "ordinary sync should reuse its installed shared configuration");
+  }
+  assert.equal(await page.getByRole("textbox", { name: "Konfigurasi koneksi pribadi", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).count(), 0);
+  await page.getByRole("region", { name: "Shortcut Slothly", exact: true }).screenshot({ path: path.join(projectRoot, ".next/validation/health-native-shortcuts.png") });
   const shortcutNameInput = page.getByRole("textbox", { name: "Nama Shortcut Berat di iPhone", exact: true });
   const watchNameInput = page.getByRole("textbox", { name: "Nama Shortcut Watch di iPhone", exact: true });
   await page.getByText("Nama Shortcut di iPhone berbeda?", { exact: true }).click();
-  assert.equal(await shortcutNameInput.inputValue(), "Slothly Berat", "default Shortcut name does not match the installed filename");
+  assert.equal(await shortcutNameInput.inputValue(), "Slothly Berat");
   assert.equal(await watchNameInput.inputValue(), "Slothly Watch");
-  await page.getByRole("button", { name: "Salin manual", exact: true }).click();
-  await manualConfiguration.waitFor();
-  const initialManualConfiguration = JSON.parse(await manualConfiguration.inputValue());
-  assert.equal(initialManualConfiguration.token, healthToken, "manual configuration did not contain the current connection");
-  assert.equal(initialManualConfiguration.endpoint, `${base}/api/health-sync`);
-  assert.equal(await openShortcutLink.count(), 0, "showing a configuration falsely marked it copied");
-
-  // An issued token is not proof that the iPhone saved its configuration.
-  // After leaving setup, offer a visible recovery action instead of waiting.
-  await page.reload();
-  await page.getByRole("heading", { name: "Selesaikan pemasangan", exact: true }).waitFor();
-  assert.equal(await page.getByRole("link", { name: "Sinkronkan Berat", exact: true }).count(), 0, "untested connection skipped required setup");
-  const resumeSetup = page.waitForResponse((response) => response.url() === `${base}/api/health-connection` && response.request().method() === "POST");
-  await page.getByRole("button", { name: "Lengkapi pemasangan", exact: true }).click();
-  healthToken = (await (await resumeSetup).json()).token;
-  await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).waitFor();
-
-  const reconnectForClipboardTest = async () => {
-    const management = page.locator("details").filter({ has: page.locator("summary").filter({ hasText: "Kelola koneksi" }) });
-    if (!(await management.evaluate((details) => details.open))) await management.locator("summary").click();
-    const response = page.waitForResponse((result) =>
-      result.url() === `${base}/api/health-connection` && result.request().method() === "POST",
-    );
-    await page.getByRole("button", { name: "Sambungkan ulang", exact: true }).click();
-    const nextConnectionResponse = await response;
-    assert.equal(nextConnectionResponse.status(), 200, "could not replace the Health connection for clipboard recovery");
-    const nextConnection = await nextConnectionResponse.json();
-    assert.ok(nextConnection.token && nextConnection.token !== healthToken, "reconnecting did not replace the configuration");
-    await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).waitFor();
-    assert.equal(await configurationReady.count(), 0, "a new connection reused a previous copy confirmation");
-    healthToken = nextConnection.token;
-  };
-
-  await reconnectForClipboardTest();
-  assert.equal(await manualConfiguration.count(), 0, "reconnecting exposed the new private configuration before manual copy was requested");
-  await page.evaluate(() => {
-    navigator.clipboard.writeText = async () => { throw new DOMException("Clipboard denied by browser", "NotAllowedError"); };
-  });
-  await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).click();
-  await manualConfiguration.waitFor();
-  assert.equal(await openShortcutLink.count(), 0, "denied clipboard access falsely marked the configuration copied");
-  await page.getByRole("button", { name: "Pilih teks", exact: true }).click();
-  assert.equal(await manualConfiguration.evaluate((field) => field.selectionStart === 0 && field.selectionEnd === field.value.length), true, "manual configuration cannot be selected in full");
-  await page.getByRole("button", { name: "Sudah saya salin", exact: true }).click();
-  await openShortcutLink.waitFor();
-
-  await reconnectForClipboardTest();
-  await page.evaluate(() => {
-    navigator.clipboard.writeText = (text) => new Promise((resolve) => {
-      window.__resolveDelayedHealthClipboard = () => { window.__healthClipboard = text; resolve(); };
-    });
-  });
-  const clipboardHangStarted = Date.now();
-  await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).click();
-  await manualConfiguration.waitFor({ timeout: 4500 });
-  assert.ok(Date.now() - clipboardHangStarted < 4500, "a hanging Clipboard API left setup without a timely recovery");
-  assert.equal(JSON.parse(await manualConfiguration.inputValue()).token, healthToken, "clipboard recovery showed an outdated connection");
-  assert.equal(await openShortcutLink.count(), 0, "a hanging Clipboard API falsely marked the configuration copied");
-  await page.getByRole("button", { name: "Pilih teks", exact: true }).click();
-  await page.getByRole("button", { name: "Sudah saya salin", exact: true }).click();
-  await openShortcutLink.waitFor();
-
-  await reconnectForClipboardTest();
-  await page.evaluate(async () => {
-    window.__resolveDelayedHealthClipboard();
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  });
-  assert.equal(await openShortcutLink.count(), 0, "a late clipboard result unlocked a different connection");
-  assert.equal(await configurationReady.count(), 0, "a late clipboard result marked the new configuration copied");
-  await expectNoHealthSecret(healthToken);
-  await page.evaluate(() => {
-    navigator.clipboard.writeText = async (text) => { window.__healthClipboard = text; };
-  });
-  await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).click();
-  await page.getByRole("button", { name: "Disalin ✓", exact: true }).waitFor();
-  const copiedHealthConfiguration = await page.evaluate(() => JSON.parse(window.__healthClipboard));
-  assert.equal(copiedHealthConfiguration.endpoint, `${base}/api/health-sync`);
-  assert.ok(copiedHealthConfiguration.token === healthToken, "copied configuration did not match the fresh connection");
-  const shortcutLink = await openShortcutLink.getAttribute("href");
-  assert.equal(new URL(shortcutLink).searchParams.get("name"), "Slothly Berat", "handoff cannot find the installed Shortcut name");
-  assert.equal(new URL(shortcutLink).searchParams.has("input"), false, "native Shortcut should use its installation configuration");
-  assert.equal(new URL(await openWatchLink.getAttribute("href")).searchParams.get("name"), "Slothly Watch");
-  await page.getByRole("region", { name: "Shortcut Slothly", exact: true }).screenshot({ path: path.join(projectRoot, ".next/validation/health-native-shortcuts.png") });
-  assert.equal(shortcutLink.includes(healthToken), false, "Health credential was exposed in a URL");
   const customShortcutName = "Slothly Berat Pribadi";
-  await page.getByText("Nama Shortcut di iPhone berbeda?", { exact: true }).click();
   await shortcutNameInput.fill(customShortcutName);
   await watchNameInput.fill("Slothly Watch Pribadi");
-  const customShortcutLink = await openShortcutLink.getAttribute("href");
-  assert.equal(new URL(customShortcutLink).searchParams.get("name"), customShortcutName, "renaming the installed Shortcut does not update handoff");
-  assert.equal(customShortcutLink.includes(healthToken), false, "custom Shortcut name exposed the Health credential in a URL");
+  assert.equal(new URL(await connectWeightLink.getAttribute("href")).searchParams.get("name"), customShortcutName);
+  assert.equal(new URL(await openShortcutLink.getAttribute("href")).searchParams.get("name"), customShortcutName);
+  assert.deepEqual(await readPairingLink(connectWeightLink), firstPairing, "renaming changed the account pairing");
   await page.setViewportSize({ width: 320, height: 720 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Shortcut installation steps overflow at 320px");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: path.join(projectRoot, ".next/validation/health-setup-mobile.png"), fullPage: true });
+  await page.reload();
+  await connectWeightLink.waitFor();
+  assert.notEqual((await readPairingLink(connectWeightLink)).code, firstPairing.code, "returning to setup did not prepare a fresh single-use link");
+  await page.getByRole("heading", { name: "Akses akun tersambung", exact: true }).waitFor();
+  assert.equal(await page.getByRole("heading", { name: "Data sudah diterima", exact: true }).count(), 0, "account pairing claimed a measurement arrived");
+  await expectNoHealthSecret(healthToken);
 
   const beforeHealthTestWeights = store.get("mk:u3:weight");
   const beforeHealthTestBody = store.get("mk:u3:body");
@@ -1038,7 +989,7 @@ let child, browser;
   assert.equal((await testHealthResponse.json()).tested, true);
   await page.getByRole("button", { name: "Periksa status", exact: true }).click();
   await page.getByText(/^Koneksi diuji:/).waitFor();
-  assert.equal(await page.getByRole("heading", { name: "Koneksi diuji, data belum masuk", exact: true }).isVisible(), true, "connection test falsely claimed a measurement arrived");
+  assert.equal(await page.getByRole("heading", { name: "Akses akun tersambung", exact: true }).isVisible(), true, "connection test falsely claimed a measurement arrived");
   assert.equal(store.get("mk:u3:weight"), beforeHealthTestWeights, "connection test changed weight history");
   assert.equal(store.get("mk:u3:body"), beforeHealthTestBody, "connection test changed body history");
 
@@ -1113,11 +1064,12 @@ let child, browser;
   await page.goto(`${base}/settings/health`);
   await page.reload();
   await page.getByRole("heading", { name: "Data sudah diterima", exact: true }).waitFor();
-  assert.equal(await page.getByRole("button", { name: "Siapkan pemasangan baru", exact: true }).isVisible(), true, "returning user cannot configure new template downloads");
+  await connectWeightLink.waitFor();
+  assert.notEqual((await readPairingLink(connectWeightLink)).code, firstPairing.code, "returning user cannot pair a new installation");
   await page.getByText("Nama Shortcut di iPhone berbeda?", { exact: true }).click();
   assert.equal(await shortcutNameInput.inputValue(), customShortcutName, "the installed Shortcut name was forgotten on reload");
   assert.equal(await watchNameInput.inputValue(), "Slothly Watch Pribadi");
-  const syncShortcutLink = await page.getByRole("link", { name: "Sinkronkan Berat", exact: true }).getAttribute("href");
+  const syncShortcutLink = await page.getByRole("link", { name: "Buka Slothly Berat", exact: true }).getAttribute("href");
   assert.equal(new URL(syncShortcutLink).searchParams.get("name"), customShortcutName, "subsequent sync uses a different Shortcut name");
   await expectNoHealthSecret(healthToken);
   assert.equal(await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).count(), 0, "reload recovered a credential that should exist only in memory");
@@ -1133,26 +1085,36 @@ let child, browser;
   await page.evaluate(() => { localStorage.setItem("mk_theme", "light"); window.dispatchEvent(new Event("mk-theme")); });
 
   await page.locator("summary").filter({ hasText: "Kelola koneksi" }).click();
-  const rotateHealthResponse = page.waitForResponse((response) =>
-    response.url() === `${base}/api/health-connection` && response.request().method() === "POST",
-  );
-  await page.getByRole("button", { name: "Sambungkan ulang", exact: true }).click();
-  const rotatedHealth = await (await rotateHealthResponse).json();
-  assert.ok(typeof rotatedHealth.token === "string" && rotatedHealth.token !== healthToken, "reconnect reused the old credential");
-  await expectNoHealthSecret(healthToken, rotatedHealth.token);
-  assert.equal((await sendHealthSamples()).status, 401, "old Health credential still worked after reconnect");
-  assert.equal((await fetch(`${base}/api/health-sync`, {
+  // Pairing another installation is additive; merely preparing or redeeming a
+  // new code cannot break a previously working Shortcut or manual installation.
+  const secondPairing = await readPairingLink(connectWeightLink);
+  const secondRedeem = await redeemPairing(secondPairing);
+  assert.equal(secondRedeem.status, 200);
+  const secondHealth = await secondRedeem.json();
+  assert.notEqual(secondHealth.token, healthToken);
+  await expectNoHealthSecret(healthToken, secondHealth.token);
+  const testToken = (token) => fetch(`${base}/api/health-sync`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${rotatedHealth.token}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ test: true, provider: "apple_health" }),
-  })).status, 200, "fresh Health credential could not test the connection");
+  });
+  assert.equal((await testToken(healthToken)).status, 200, "pairing a second installation broke the first");
+  assert.equal((await testToken(secondHealth.token)).status, 200, "second installation could not test its connection");
+  const refreshedLink = page.waitForResponse((response) => response.url() === `${base}/api/health-pairing` && response.request().method() === "POST");
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  assert.equal((await refreshedLink).status(), 200);
+  await connectWeightLink.waitFor();
+  const pendingBeforeDisconnect = await readPairingLink(connectWeightLink);
+  assert.notEqual(pendingBeforeDisconnect.code, secondPairing.code);
   await page.getByRole("button", { name: "Putuskan koneksi", exact: true }).click();
   await page.getByRole("heading", { name: "Belum terhubung", exact: true }).waitFor();
-  assert.equal((await fetch(`${base}/api/health-sync`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${rotatedHealth.token}` },
-    body: JSON.stringify({ test: true, provider: "apple_health" }),
-  })).status, 401, "revoked Health credential could still submit");
+  assert.equal((await testToken(healthToken)).status, 401, "disconnect retained the first installation");
+  assert.equal((await testToken(secondHealth.token)).status, 401, "disconnect retained the second installation");
+  assert.equal((await redeemPairing(pendingBeforeDisconnect)).status, 410, "disconnect left a pending pairing code usable");
+  await connectWeightLink.waitFor();
+  const afterDisconnect = await readPairingLink(connectWeightLink);
+  assert.notEqual(afterDisconnect.code, pendingBeforeDisconnect.code, "disconnect reused its stale pairing link");
+  await expectNoHealthSecret(healthToken, secondHealth.token);
   assert.equal(JSON.parse(store.get("mk:u3:weight")).find((entry) => entry.date === importedWeightDate).weightKg, 90.2, "disconnect deleted imported history");
   assert.deepEqual(apiErrors, []);
   assert.deepEqual(browserErrors, []);
@@ -1160,7 +1122,7 @@ let child, browser;
     "Browser: PASS — third-user login, Rumah Kukang mobile/desktop, meal draft across mode/route/reload, photo corrections and override, reviewed recent meal, save/undo failure and retry, today failure/retry, scoped session draft without photos, calibration keep/apply/context/stale proposal/cooldown/Home target, Body Response 14/28/56-day selection and failure/retry, body comparison/check-in/deletion, keyboard navigation, Fitness/Weekly regression, empty/missing-height states, 320px/mobile/desktop layout, persisted motion toggle and OS reduced-motion, optional-name/athletic onboarding validation.",
   );
   console.log(
-    "Health connection: PASS — unauthenticated management denied, public signed Shortcut download, private configuration copy, denied/hanging clipboard recovery and manual confirmation, stale clipboard completion after rotation, installed/custom Shortcut name handoff and persistence, test versus receipt status, historical timestamp/timezone preservation, independent weight/body-fat history, retry deduplication, secret-free status/reload/storage, 320px/light/dark layouts, rotation and revocation. Synthetic Redis REST, Clipboard API outcomes, and Health samples used; real Upstash/Gemini/HealthKit/device access not tested.",
+    "Health connection: PASS — unauthenticated management denied, public signed v2 Shortcut downloads, pairing preparation failure/retry without rotating access, direct single-use-code handoff and native-account response, no browser Bearer/copy flow, installed/custom Shortcut names and persistence, pairing/test versus receipt status, historical timestamp/timezone preservation, independent weight/body-fat history, retry deduplication, secret-free status/reload/storage, 320px/light/dark layouts, additive installations and full revocation including pending codes. Synthetic Redis REST, native redeem requests, and Health samples used; real Upstash/Gemini/HealthKit/device access not tested.",
   );
 })()
   .catch(async (error) => {

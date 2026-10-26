@@ -14,7 +14,9 @@ spec = importlib.util.spec_from_file_location("native_shortcuts", Path(__file__)
 builder = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(builder)
 
-CONFIG = {"endpoint": "https://example.invalid/api/health-sync", "token": "synthetic-test-token"}
+CONFIG = {"endpoint": "https://menuju-kurus.vercel.app/api/health-sync", "token": "synthetic-test-token"}
+CONFIG_PATH = "/Slothly/connection.json"
+PAIRING = {"redeemUrl": "https://menuju-kurus.vercel.app/api/health-pairing/redeem", "code": "synthetic-one-use-code"}
 DATE = "2026-10-25T11:19:00+07:00"
 # Synthetic Health fixtures specify native unit strings independently of the
 # generator's patterns. Per-sample overrides exercise mixed/unsupported units.
@@ -23,12 +25,20 @@ HEALTH_UNITS = {"Weight": "kg", "Body Fat Percentage": "%", "Resting Heart Rate"
 
 
 class Fixture:
-    def __init__(self, kind, config=None, samples=None, response=None):
+    def __init__(self, kind, config=None, samples=None, response=None, incoming=None, files=None,
+                 redeem_response=None, test_response=None, cancel_pairing=False):
         self.kind, self.config = kind, CONFIG if config is None else config
         self.samples, self.response = samples or {}, response or {"status": "ok", "ok": True}
-        self.outputs, self.variables, self.posts, self.queries, self.alerts = {}, {}, [], [], []
+        self.incoming = json.dumps(incoming) if isinstance(incoming, dict) else incoming
+        self.files = {CONFIG_PATH: json.dumps(self.config)} if files is None else files
+        self.redeem_response = {"status": "paired", "accountName": "Synthetic Account", **CONFIG} if redeem_response is None else redeem_response
+        self.test_response = {"status": "tested", "tested": True} if test_response is None else test_response
+        self.outputs, self.variables, self.posts, self.requests, self.queries, self.alerts = {}, {}, [], [], [], []
+        self.confirmations, self.cancel_pairing = [], cancel_pairing
 
     def attachment(self, item):
+        if item["Type"] == "ExtensionInput":
+            return self.incoming
         return self.variables.get(item["VariableName"]) if item["Type"] == "Variable" else self.outputs[item["OutputUUID"]]
 
     def resolve(self, value):
@@ -57,6 +67,8 @@ class Fixture:
             return result
         if kind == "WFArrayParameterState":
             return [self.resolve(item["WFValue"]) for item in state]
+        if kind == "WFNumberSubstitutableState":
+            return bool(state)
         raise AssertionError("Unknown wire structure")
 
     def condition(self, params):
@@ -72,7 +84,6 @@ class Fixture:
         workflow = builder.build(self.kind) if workflow is None else workflow
         builder.validate(workflow, self.kind)
         stack = []
-        question_index = workflow["WFWorkflowImportQuestions"][0]["ActionIndex"]
         for index, action in enumerate(workflow["WFWorkflowActions"]):
             kind = action["WFWorkflowActionIdentifier"].removeprefix("is.workflow.actions.")
             params = action["WFWorkflowActionParameters"]
@@ -93,9 +104,14 @@ class Fixture:
             if kind in ("comment", "nothing"):
                 pass
             elif kind == "gettext":
-                result = json.dumps(self.config) if index == question_index else self.resolve(params["WFTextActionText"])
+                result = self.resolve(params["WFTextActionText"])
+                if isinstance(result, dict):
+                    result = json.dumps(result)
             elif kind == "detect.dictionary":
-                result = json.loads(self.resolve(params["WFInput"]))
+                value = self.resolve(params["WFInput"])
+                result = value if isinstance(value, dict) else json.loads(value)
+            elif kind == "dictionary":
+                result = self.resolve(params["WFItems"])
             elif kind == "getvalueforkey":
                 result = self.resolve(params["WFInput"]).get(params["WFDictionaryKey"])
             elif kind == "setvariable":
@@ -124,11 +140,33 @@ class Fixture:
                 values = self.resolve(params["Input"])
                 result = sum(values if isinstance(values, list) else [values])
             elif kind == "downloadurl":
-                self.posts.append({"url": self.resolve(params["WFURL"]), "headers": self.resolve(params["WFHTTPHeaders"]),
-                                   "body": self.resolve(params["WFJSONValues"])})
-                result = self.response
+                request = {"url": self.resolve(params["WFURL"]), "headers": self.resolve(params["WFHTTPHeaders"]),
+                           "body": self.resolve(params["WFJSONValues"])}
+                self.requests.append(request)
+                if params["UUID"] == builder.wire.uid(self.kind + "-redeem"):
+                    result = self.redeem_response
+                elif params["UUID"] == builder.wire.uid(self.kind + "-test"):
+                    result = self.test_response
+                else:
+                    self.posts.append(request)
+                    result = self.response
+            elif kind == "documentpicker.open":
+                result = self.files.get(params["WFGetFilePath"])
+            elif kind == "file.createfolder":
+                pass
+            elif kind == "setitemname":
+                result = self.resolve(params["WFInput"])
+            elif kind == "documentpicker.save":
+                self.files[CONFIG_PATH] = self.resolve(params["WFInput"])
+                result = self.files[CONFIG_PATH]
             elif kind == "alert":
-                self.alerts.append(self.resolve(params["WFAlertActionMessage"]))
+                message = self.resolve(params["WFAlertActionMessage"])
+                if params.get("WFAlertActionCancelButtonShown"):
+                    self.confirmations.append(message)
+                    if self.cancel_pairing:
+                        break
+                else:
+                    self.alerts.append(message)
             elif kind == "exit":
                 break
             else:
@@ -147,7 +185,7 @@ class NativeTemplateTests(unittest.TestCase):
         for kind in builder.KINDS:
             workflow = builder.build(kind)
             builder.validate(plistlib.loads(plistlib.dumps(workflow)), kind)
-            self.assertLess(len(workflow["WFWorkflowActions"]), 80)
+            self.assertLess(len(workflow["WFWorkflowActions"]), 160)
 
     def test_native_queries_counts_values_and_conditions_are_preserved(self):
         for kind in builder.KINDS:
@@ -156,13 +194,110 @@ class NativeTemplateTests(unittest.TestCase):
                 if not action["WFWorkflowActionIdentifier"].endswith(".downloadurl"):
                     self.assertIn(action, built)
 
-    def test_single_installation_question_has_generic_placeholder(self):
+    def test_runtime_pairing_has_no_import_questions_clipboard_or_interactive_picker(self):
         for kind in builder.KINDS:
             workflow = builder.build(kind)
-            q, = workflow["WFWorkflowImportQuestions"]
-            self.assertEqual(q["Category"], "Parameter")
-            self.assertEqual(q["ParameterKey"], "WFTextActionText")
-            self.assertEqual(workflow["WFWorkflowActions"][q["ActionIndex"]]["WFWorkflowActionParameters"]["WFTextActionText"], "{}")
+            self.assertEqual(workflow["WFWorkflowImportQuestions"], [])
+            self.assertTrue(workflow["WFWorkflowHasShortcutInputVariables"])
+            kinds = [a["WFWorkflowActionIdentifier"].removeprefix("is.workflow.actions.") for a in workflow["WFWorkflowActions"]]
+            self.assertNotIn("getclipboard", kinds)
+            self.assertNotIn("setclipboard", kinds)
+            self.assertNotIn("ask", kinds)
+            self.assertNotIn("choosefromlist", kinds)
+            for action in workflow["WFWorkflowActions"]:
+                if action["WFWorkflowActionIdentifier"].endswith(".alert"):
+                    self.assertNotIn("Salin konfigurasi", str(action["WFWorkflowActionParameters"]))
+                if action["WFWorkflowActionIdentifier"].endswith(".documentpicker.save"):
+                    self.assertFalse(action["WFWorkflowActionParameters"]["WFAskWhereToSave"])
+
+    def test_pairing_redeems_without_bearer_tests_then_saves_only_private_config(self):
+        fixture = Fixture("berat", incoming=PAIRING, files={}).run()
+        self.assertEqual([r["url"] for r in fixture.requests], [PAIRING["redeemUrl"], CONFIG["endpoint"]])
+        self.assertEqual(fixture.requests[0]["body"], {"code": PAIRING["code"]})
+        self.assertNotIn("Authorization", fixture.requests[0]["headers"])
+        self.assertEqual(fixture.requests[1]["body"], {"provider": "apple_health", "test": True})
+        self.assertEqual(json.loads(fixture.files[CONFIG_PATH]), CONFIG)
+        self.assertNotIn(PAIRING["code"], fixture.files[CONFIG_PATH])
+        self.assertEqual(fixture.queries, ["Weight", "Body Fat Percentage"])
+        self.assertEqual(len(fixture.confirmations), 1)
+        self.assertIn("Synthetic Account", fixture.confirmations[0])
+        self.assertNotIn(CONFIG["token"], fixture.confirmations[0])
+
+    def test_missing_shared_config_stops_before_network_and_health(self):
+        fixture = Fixture("watch", files={}).run()
+        self.assertEqual(fixture.requests, [])
+        self.assertEqual(fixture.queries, [])
+        self.assertEqual(len(fixture.alerts), 1)
+        self.assertIn("Hubungkan akun", fixture.alerts[0])
+
+    def test_berat_pairing_config_is_reused_by_watch_without_pairing_again(self):
+        first = Fixture("berat", incoming=PAIRING, files={}).run()
+        second = Fixture("watch", files=first.files, samples={"Resting Heart Rate": [{"Value": 62, "Start Date": DATE}]}).run()
+        self.assertEqual(len(second.requests), 1)
+        self.assertEqual(second.requests[0]["headers"]["Authorization"], "Bearer " + CONFIG["token"])
+        self.assertEqual(second.requests[0]["body"]["samples"][0]["metric"], "restingHeartRate")
+
+    def test_failed_redeem_or_connection_test_never_replaces_old_file_or_reads_health(self):
+        for failure in ("redeem", "test"):
+            old = json.dumps({"endpoint": CONFIG["endpoint"], "token": "synthetic-old-token"})
+            args = {"redeem_response": {"status": "error", "error": "private-error-sentinel"}} if failure == "redeem" else {
+                "test_response": {"status": "error", "error": "private-error-sentinel"}}
+            fixture = Fixture("berat", incoming=PAIRING, files={CONFIG_PATH: old}, **args).run()
+            self.assertEqual(fixture.files[CONFIG_PATH], old)
+            self.assertEqual(fixture.queries, [])
+            self.assertEqual(len(fixture.requests), 1 if failure == "redeem" else 2)
+            self.assertEqual(len(fixture.alerts), 1)
+            self.assertNotIn("private-error-sentinel", fixture.alerts[0])
+            self.assertNotIn(CONFIG["token"], fixture.alerts[0])
+
+    def test_pairing_requires_https_exact_path_and_code_before_network(self):
+        for value in ({}, {"redeemUrl": PAIRING["redeemUrl"]}, {"redeemUrl": "http://example.invalid/api/health-pairing/redeem", "code": "synthetic"},
+                      {"redeemUrl": "https://example.invalid/wrong", "code": "synthetic"}):
+            fixture = Fixture("watch", incoming=value, files={}).run()
+            self.assertEqual(fixture.requests, [])
+            self.assertEqual(fixture.queries, [])
+            self.assertEqual(fixture.files, {})
+
+    def test_paired_response_requires_valid_config_before_test_or_overwrite(self):
+        for response in ({"status": "paired", "endpoint": CONFIG["endpoint"]},
+                         {"status": "paired", "endpoint": "http://example.invalid/api/health-sync", "token": "synthetic"},
+                         {"status": "paired", "endpoint": "https://example.invalid/wrong", "token": "synthetic"}):
+            old = json.dumps({"endpoint": CONFIG["endpoint"], "token": "synthetic-old-token"})
+            fixture = Fixture("berat", incoming=PAIRING, files={CONFIG_PATH: old}, redeem_response=response).run()
+            self.assertEqual(fixture.files[CONFIG_PATH], old)
+            self.assertEqual(len(fixture.requests), 1)
+            self.assertEqual(fixture.queries, [])
+            self.assertEqual(len(fixture.alerts), 1)
+
+    def test_untrusted_redeem_host_is_blocked_before_any_network(self):
+        fixture = Fixture("berat", incoming={**PAIRING, "redeemUrl": "https://attacker.invalid/api/health-pairing/redeem"}, files={}).run()
+        self.assertEqual(fixture.requests, [])
+        self.assertEqual(fixture.queries, [])
+        self.assertEqual(fixture.files, {})
+
+    def test_wrong_returned_endpoint_is_blocked_before_test_confirm_or_save(self):
+        old = json.dumps(CONFIG)
+        fixture = Fixture("berat", incoming=PAIRING, files={CONFIG_PATH: old}, redeem_response={
+            "status": "paired", "accountName": "Synthetic Account", "endpoint": "https://attacker.invalid/api/health-sync", "token": "synthetic"}).run()
+        self.assertEqual(len(fixture.requests), 1)
+        self.assertEqual(fixture.queries, [])
+        self.assertEqual(fixture.files[CONFIG_PATH], old)
+        self.assertEqual(fixture.confirmations, [])
+
+    def test_canceling_account_confirmation_keeps_old_config_and_reads_no_health(self):
+        old = json.dumps({**CONFIG, "token": "synthetic-old-token"})
+        fixture = Fixture("berat", incoming=PAIRING, files={CONFIG_PATH: old}, cancel_pairing=True).run()
+        self.assertEqual(len(fixture.requests), 1)
+        self.assertEqual(fixture.files[CONFIG_PATH], old)
+        self.assertEqual(fixture.queries, [])
+        self.assertEqual(len(fixture.confirmations), 1)
+
+    def test_missing_verified_account_name_stops_before_confirmation_or_health(self):
+        fixture = Fixture("berat", incoming=PAIRING, files={}, redeem_response={"status": "paired", **CONFIG}).run()
+        self.assertEqual(len(fixture.requests), 1)
+        self.assertEqual(fixture.files, {})
+        self.assertEqual(fixture.queries, [])
+        self.assertEqual(fixture.confirmations, [])
 
     def test_downloaded_basename_matches_the_installed_display_name(self):
         for kind, name in (("berat", "Slothly Berat"), ("watch", "Slothly Watch")):

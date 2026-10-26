@@ -9,7 +9,7 @@
 	<key>WFWorkflowHasOutputFallback</key>
 	<false/>
 	<key>WFWorkflowHasShortcutInputVariables</key>
-	<false/>
+	<true/>
 	<key>WFWorkflowIcon</key>
 	<dict>
 		<key>WFWorkflowIconGlyphNumber</key>
@@ -18,22 +18,11 @@
 		<integer>-1263359489</integer>
 	</dict>
 	<key>WFWorkflowImportQuestions</key>
-	<array>
-		<dict>
-			<key>ParameterKey</key>
-			<string>WFTextActionText</string>
-			<key>Category</key>
-			<string>Parameter</string>
-			<key>ActionIndex</key>
-			<integer>1</integer>
-			<key>Text</key>
-			<string>Tempel konfigurasi JSON pribadi dari Slothly → Profil → Data kesehatan. Jangan bagikan konfigurasi ini.</string>
-			<key>DefaultValue</key>
-			<string>{}</string>
-		</dict>
-	</array>
-	<key>WFWorkflowInputContentItemClasses</key>
 	<array/>
+	<key>WFWorkflowInputContentItemClasses</key>
+	<array>
+		<string>WFStringContentItem</string>
+	</array>
 	<key>WFWorkflowMinimumClientVersion</key>
 	<integer>900</integer>
 	<key>WFWorkflowMinimumClientVersionString</key>
@@ -57,18 +46,37 @@
 				<key>UUID</key>
 				<string>A5AB8F3B-FD60-50E3-9A09-C2F1A060450C</string>
 				<key>WFCommentActionText</key>
-				<string>Slothly Berat v1. Membaca berat dan persentase lemak yang tersedia hari ini dari Apple Health. Untuk otomatisasi setelah menimbang, pilih aplikasi timbangan digital milikmu saat ditutup. Tempel konfigurasi JSON pribadi dari Slothly saat memasang. Jangan bagikan konfigurasi atau Shortcut yang sudah diisi. Tidak menulis ke Apple Health.</string>
+				<string>Slothly Berat v2. Membaca berat dan persentase lemak yang tersedia hari ini dari Apple Health. Untuk otomatisasi setelah menimbang, pilih aplikasi timbangan digital milikmu saat ditutup. Setelah memasang, pilih Hubungkan akun di Slothly sekali. Berat dan Watch memakai konfigurasi bersama di Shortcuts/Slothly/connection.json. Berkas dapat tersinkron lewat iCloud sesuai pengaturan perangkat; jangan bagikan berkas ini. Tidak menulis ke Apple Health.</string>
 			</dict>
 		</dict>
 		<dict>
 			<key>WFWorkflowActionIdentifier</key>
-			<string>is.workflow.actions.gettext</string>
+			<string>is.workflow.actions.conditional</string>
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>F069B82B-E0D9-5C60-A03D-ED905553851D</string>
-				<key>WFTextActionText</key>
-				<string>{}</string>
+				<string>B146843D-D8BD-5222-9B3D-E5766EF89A7F</string>
+				<key>GroupingIdentifier</key>
+				<string>B2D491A5-D743-5D8F-BBB9-039151DE8A32</string>
+				<key>WFControlFlowMode</key>
+				<integer>0</integer>
+				<key>WFCondition</key>
+				<integer>100</integer>
+				<key>WFInput</key>
+				<dict>
+					<key>Type</key>
+					<string>Variable</string>
+					<key>Variable</key>
+					<dict>
+						<key>Value</key>
+						<dict>
+							<key>Type</key>
+							<string>ExtensionInput</string>
+						</dict>
+						<key>WFSerializationType</key>
+						<string>WFTextTokenAttachment</string>
+					</dict>
+				</dict>
 			</dict>
 		</dict>
 		<dict>
@@ -77,7 +85,26 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>79431AF6-5BA7-5C5C-9B7E-6083C1A6E050</string>
+				<string>1B152C73-F757-5CC6-947F-D7E09EFEA02A</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ExtensionInput</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.getvalueforkey</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>553086E9-E65A-517E-A10F-C06B7EE8831D</string>
 				<key>WFInput</key>
 				<dict>
 					<key>Value</key>
@@ -85,7 +112,36 @@
 						<key>Type</key>
 						<string>ActionOutput</string>
 						<key>OutputUUID</key>
-						<string>F069B82B-E0D9-5C60-A03D-ED905553851D</string>
+						<string>1B152C73-F757-5CC6-947F-D7E09EFEA02A</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+				<key>WFDictionaryKey</key>
+				<string>redeemUrl</string>
+				<key>WFGetDictionaryValueType</key>
+				<string>Value</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.setvariable</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>062E0283-118C-5270-A849-863E49A50819</string>
+				<key>WFVariableName</key>
+				<string>RedeemURL</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>553086E9-E65A-517E-A10F-C06B7EE8831D</string>
 						<key>OutputName</key>
 						<string>Result</string>
 					</dict>
@@ -100,7 +156,7 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>070C09F0-02F5-5D4F-8305-43A63B4A3669</string>
+				<string>0CCCA925-D677-5E9E-A1B0-C050A6DA3E42</string>
 				<key>WFInput</key>
 				<dict>
 					<key>Value</key>
@@ -108,7 +164,483 @@
 						<key>Type</key>
 						<string>ActionOutput</string>
 						<key>OutputUUID</key>
-						<string>79431AF6-5BA7-5C5C-9B7E-6083C1A6E050</string>
+						<string>1B152C73-F757-5CC6-947F-D7E09EFEA02A</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+				<key>WFDictionaryKey</key>
+				<string>code</string>
+				<key>WFGetDictionaryValueType</key>
+				<string>Value</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.setvariable</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>CD0CA2A1-E1A4-51AF-94C8-067167608775</string>
+				<key>WFVariableName</key>
+				<string>PairCode</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>0CCCA925-D677-5E9E-A1B0-C050A6DA3E42</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>AEF2E329-7416-573D-A8DE-98A4D99AC03C</string>
+				<key>GroupingIdentifier</key>
+				<string>FFC44C0C-37B6-5201-A2DE-1A64FB4724DD</string>
+				<key>WFControlFlowMode</key>
+				<integer>0</integer>
+				<key>WFCondition</key>
+				<integer>5</integer>
+				<key>WFInput</key>
+				<dict>
+					<key>Type</key>
+					<string>Variable</string>
+					<key>Variable</key>
+					<dict>
+						<key>Value</key>
+						<dict>
+							<key>Type</key>
+							<string>Variable</string>
+							<key>VariableName</key>
+							<string>RedeemURL</string>
+						</dict>
+						<key>WFSerializationType</key>
+						<string>WFTextTokenAttachment</string>
+					</dict>
+				</dict>
+				<key>WFConditionalActionString</key>
+				<string>https://menuju-kurus.vercel.app/api/health-pairing/redeem</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.alert</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>CDEFEB83-393B-5FA9-9176-7AF351B54D9E</string>
+				<key>WFAlertActionTitle</key>
+				<string>Slothly Health Sync</string>
+				<key>WFAlertActionMessage</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>Alamat koneksi belum sesuai. Buka Slothly → Profil → Data kesehatan, lalu pilih Hubungkan akun lagi.</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFAlertActionCancelButtonShown</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.exit</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>087E303D-8B16-5F02-B6E7-AE97668CCAFF</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>FE85F5BB-3029-57DA-9588-7257039F1B05</string>
+				<key>GroupingIdentifier</key>
+				<string>FFC44C0C-37B6-5201-A2DE-1A64FB4724DD</string>
+				<key>WFControlFlowMode</key>
+				<integer>2</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>1E1E987A-F7E7-5CD1-B1D5-9C986E399966</string>
+				<key>GroupingIdentifier</key>
+				<string>D21882C6-DE18-5ED9-B19B-5EA9FB2ECC32</string>
+				<key>WFControlFlowMode</key>
+				<integer>0</integer>
+				<key>WFCondition</key>
+				<integer>101</integer>
+				<key>WFInput</key>
+				<dict>
+					<key>Type</key>
+					<string>Variable</string>
+					<key>Variable</key>
+					<dict>
+						<key>Value</key>
+						<dict>
+							<key>Type</key>
+							<string>Variable</string>
+							<key>VariableName</key>
+							<string>PairCode</string>
+						</dict>
+						<key>WFSerializationType</key>
+						<string>WFTextTokenAttachment</string>
+					</dict>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.alert</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>DC037599-814B-5942-9627-28784D2F6A7C</string>
+				<key>WFAlertActionTitle</key>
+				<string>Slothly Health Sync</string>
+				<key>WFAlertActionMessage</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>Kode koneksi belum diterima. Kembali ke Slothly dan pilih Hubungkan akun lagi.</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFAlertActionCancelButtonShown</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.exit</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>003B115E-F739-5E51-ACA4-39B6C7CD924A</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>340124F4-DD27-5ED2-B687-DBC9F13E5CA3</string>
+				<key>GroupingIdentifier</key>
+				<string>D21882C6-DE18-5ED9-B19B-5EA9FB2ECC32</string>
+				<key>WFControlFlowMode</key>
+				<integer>2</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.downloadurl</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>028D97C6-EF9F-5761-96C8-B9ECD31E2DF2</string>
+				<key>WFURL</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>￼</string>
+						<key>attachmentsByRange</key>
+						<dict>
+							<key>{0, 1}</key>
+							<dict>
+								<key>Type</key>
+								<string>Variable</string>
+								<key>VariableName</key>
+								<string>RedeemURL</string>
+							</dict>
+						</dict>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFHTTPMethod</key>
+				<string>POST</string>
+				<key>WFHTTPBodyType</key>
+				<string>JSON</string>
+				<key>WFHTTPHeaders</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>WFDictionaryFieldValueItems</key>
+						<array>
+							<dict>
+								<key>WFKey</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>Content-Type</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+								<key>WFItemType</key>
+								<integer>0</integer>
+								<key>WFValue</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>application/json</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+							</dict>
+							<dict>
+								<key>WFKey</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>Accept</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+								<key>WFItemType</key>
+								<integer>0</integer>
+								<key>WFValue</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>application/json</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+							</dict>
+						</array>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFDictionaryFieldValue</string>
+				</dict>
+				<key>WFJSONValues</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>WFDictionaryFieldValueItems</key>
+						<array>
+							<dict>
+								<key>WFKey</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>code</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+								<key>WFItemType</key>
+								<integer>0</integer>
+								<key>WFValue</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>￼</string>
+										<key>attachmentsByRange</key>
+										<dict>
+											<key>{0, 1}</key>
+											<dict>
+												<key>Type</key>
+												<string>Variable</string>
+												<key>VariableName</key>
+												<string>PairCode</string>
+											</dict>
+										</dict>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+							</dict>
+						</array>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFDictionaryFieldValue</string>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.getvalueforkey</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>BBA1E58A-27C8-5E0F-B6C0-A26D9E716D10</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>028D97C6-EF9F-5761-96C8-B9ECD31E2DF2</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+				<key>WFDictionaryKey</key>
+				<string>status</string>
+				<key>WFGetDictionaryValueType</key>
+				<string>Value</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>01F7D287-03EB-5095-AC9E-C59E71586204</string>
+				<key>GroupingIdentifier</key>
+				<string>44D1B1F8-3271-5B6E-9EF5-9E4AE535B1F3</string>
+				<key>WFControlFlowMode</key>
+				<integer>0</integer>
+				<key>WFCondition</key>
+				<integer>5</integer>
+				<key>WFInput</key>
+				<dict>
+					<key>Type</key>
+					<string>Variable</string>
+					<key>Variable</key>
+					<dict>
+						<key>Value</key>
+						<dict>
+							<key>Type</key>
+							<string>ActionOutput</string>
+							<key>OutputUUID</key>
+							<string>BBA1E58A-27C8-5E0F-B6C0-A26D9E716D10</string>
+							<key>OutputName</key>
+							<string>Result</string>
+						</dict>
+						<key>WFSerializationType</key>
+						<string>WFTextTokenAttachment</string>
+					</dict>
+				</dict>
+				<key>WFConditionalActionString</key>
+				<string>paired</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.alert</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>E9A73C1E-634C-541B-82D2-917B886CE4B7</string>
+				<key>WFAlertActionTitle</key>
+				<string>Slothly</string>
+				<key>WFAlertActionMessage</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>Koneksi belum tersambung. Kode mungkin sudah digunakan atau kedaluwarsa. Kembali ke Slothly dan pilih Hubungkan akun lagi. Konfigurasi sebelumnya belum diganti.</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFAlertActionCancelButtonShown</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.exit</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>8AD7C717-A79F-53F5-8C01-91B729493D65</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>765E1A02-EE6D-5E1B-A365-87B9B6F36832</string>
+				<key>GroupingIdentifier</key>
+				<string>44D1B1F8-3271-5B6E-9EF5-9E4AE535B1F3</string>
+				<key>WFControlFlowMode</key>
+				<integer>2</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.detect.dictionary</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>8CD5747D-9B22-5037-AFAB-4799F5CE2B99</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>028D97C6-EF9F-5761-96C8-B9ECD31E2DF2</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.getvalueforkey</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>80596C0C-6E50-5B59-B49C-9C874FE1C597</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>8CD5747D-9B22-5037-AFAB-4799F5CE2B99</string>
 						<key>OutputName</key>
 						<string>Result</string>
 					</dict>
@@ -127,7 +659,7 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>D01772EB-D6EA-5C9D-8921-A3DA5709F03A</string>
+				<string>3C6C4CA3-4B09-5C42-9F4B-CC600F74DCD6</string>
 				<key>WFVariableName</key>
 				<string>Endpoint</string>
 				<key>WFInput</key>
@@ -137,7 +669,7 @@
 						<key>Type</key>
 						<string>ActionOutput</string>
 						<key>OutputUUID</key>
-						<string>070C09F0-02F5-5D4F-8305-43A63B4A3669</string>
+						<string>80596C0C-6E50-5B59-B49C-9C874FE1C597</string>
 						<key>OutputName</key>
 						<string>Result</string>
 					</dict>
@@ -152,7 +684,7 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>F56F241E-3EDA-5EA2-A076-DF58131CD4E0</string>
+				<string>050AC5BD-5762-5681-8949-AD882FBB839A</string>
 				<key>WFInput</key>
 				<dict>
 					<key>Value</key>
@@ -160,7 +692,7 @@
 						<key>Type</key>
 						<string>ActionOutput</string>
 						<key>OutputUUID</key>
-						<string>79431AF6-5BA7-5C5C-9B7E-6083C1A6E050</string>
+						<string>8CD5747D-9B22-5037-AFAB-4799F5CE2B99</string>
 						<key>OutputName</key>
 						<string>Result</string>
 					</dict>
@@ -179,7 +711,7 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>50C3E8A9-893A-59A9-8AC7-5FA8AE563545</string>
+				<string>2070F4BA-CD31-53B7-990D-C84F77AB55F4</string>
 				<key>WFVariableName</key>
 				<string>Token</string>
 				<key>WFInput</key>
@@ -189,7 +721,7 @@
 						<key>Type</key>
 						<string>ActionOutput</string>
 						<key>OutputUUID</key>
-						<string>F56F241E-3EDA-5EA2-A076-DF58131CD4E0</string>
+						<string>050AC5BD-5762-5681-8949-AD882FBB839A</string>
 						<key>OutputName</key>
 						<string>Result</string>
 					</dict>
@@ -204,7 +736,7 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>F44D3586-918C-52FD-AC65-ED239661D6E0</string>
+				<string>7E65EEED-8763-5C76-B718-31CE9B73F802</string>
 				<key>text</key>
 				<dict>
 					<key>Value</key>
@@ -237,9 +769,9 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>602D1FCE-9581-5F9C-ABB4-6CF001FF0FAE</string>
+				<string>CF5A2845-FBA1-5C64-8399-4D75A790D964</string>
 				<key>GroupingIdentifier</key>
-				<string>BA9732E6-D944-5CC3-9B61-F769B64BF78C</string>
+				<string>F1DD9F2F-8788-5EDC-8324-E986493C6DD3</string>
 				<key>WFControlFlowMode</key>
 				<integer>0</integer>
 				<key>WFCondition</key>
@@ -255,7 +787,7 @@
 							<key>Type</key>
 							<string>ActionOutput</string>
 							<key>OutputUUID</key>
-							<string>F44D3586-918C-52FD-AC65-ED239661D6E0</string>
+							<string>7E65EEED-8763-5C76-B718-31CE9B73F802</string>
 							<key>OutputName</key>
 							<string>Result</string>
 						</dict>
@@ -271,15 +803,15 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>1F7E1304-46DA-511B-8E90-694C929255B1</string>
+				<string>A15BDCCA-9504-50F2-99AE-BEC449926828</string>
 				<key>WFAlertActionTitle</key>
-				<string>Slothly Health Sync</string>
+				<string>Slothly</string>
 				<key>WFAlertActionMessage</key>
 				<dict>
 					<key>Value</key>
 					<dict>
 						<key>string</key>
-						<string>Alamat koneksi tidak valid. Salin konfigurasi baru dari Profil → Data kesehatan → Hubungkan Apple Health di Slothly.</string>
+						<string>Konfigurasi koneksi belum dapat digunakan. Buka Slothly → Profil → Data kesehatan, lalu pilih Hubungkan akun lagi. Belum ada data kesehatan yang dibaca atau dikirim.</string>
 					</dict>
 					<key>WFSerializationType</key>
 					<string>WFTextTokenString</string>
@@ -294,7 +826,7 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>08F908D9-3671-57C6-8488-FF2212E6DEA1</string>
+				<string>67F43071-A5CB-5AE4-A2FB-31DCFBB861CE</string>
 			</dict>
 		</dict>
 		<dict>
@@ -303,9 +835,9 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>9C224A0C-6B89-53AB-8C96-98DE866FFD71</string>
+				<string>AC2C92F5-AE27-50F1-AFFB-2DD215B19A44</string>
 				<key>GroupingIdentifier</key>
-				<string>BA9732E6-D944-5CC3-9B61-F769B64BF78C</string>
+				<string>F1DD9F2F-8788-5EDC-8324-E986493C6DD3</string>
 				<key>WFControlFlowMode</key>
 				<integer>2</integer>
 			</dict>
@@ -316,9 +848,9 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>77ECA877-0988-560D-BF78-22379FBCE8B4</string>
+				<string>27FD8837-3F6B-56B8-8C36-09ABDDF5DA6A</string>
 				<key>GroupingIdentifier</key>
-				<string>50C8D046-B352-58BF-BC26-40F9FF2D9BD7</string>
+				<string>352EF69F-75D7-5DB1-96E9-AACBE3F648B6</string>
 				<key>WFControlFlowMode</key>
 				<integer>0</integer>
 				<key>WFCondition</key>
@@ -348,15 +880,15 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>F0F3A898-1A2C-5324-8B62-0D0E83741A10</string>
+				<string>3E1F6610-FD06-596F-BF29-D62DA0E362C4</string>
 				<key>WFAlertActionTitle</key>
-				<string>Slothly Health Sync</string>
+				<string>Slothly</string>
 				<key>WFAlertActionMessage</key>
 				<dict>
 					<key>Value</key>
 					<dict>
 						<key>string</key>
-						<string>Token koneksi kosong. Salin konfigurasi baru dari Profil → Data kesehatan → Hubungkan Apple Health di Slothly.</string>
+						<string>Konfigurasi koneksi belum dapat digunakan. Buka Slothly → Profil → Data kesehatan, lalu pilih Hubungkan akun lagi. Belum ada data kesehatan yang dibaca atau dikirim.</string>
 					</dict>
 					<key>WFSerializationType</key>
 					<string>WFTextTokenString</string>
@@ -371,7 +903,7 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>B910EBD5-41D8-5392-939E-2FA004C612C2</string>
+				<string>F147D92D-D010-55CD-A250-7228E70C4C2C</string>
 			</dict>
 		</dict>
 		<dict>
@@ -380,9 +912,1260 @@
 			<key>WFWorkflowActionParameters</key>
 			<dict>
 				<key>UUID</key>
-				<string>B33EB1B2-6379-5552-80F5-DF183C8F7317</string>
+				<string>05FB6A45-A362-5276-B473-A03740C28E1A</string>
 				<key>GroupingIdentifier</key>
-				<string>50C8D046-B352-58BF-BC26-40F9FF2D9BD7</string>
+				<string>352EF69F-75D7-5DB1-96E9-AACBE3F648B6</string>
+				<key>WFControlFlowMode</key>
+				<integer>2</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>A91F3131-64F1-558B-9222-BA567D180F4A</string>
+				<key>GroupingIdentifier</key>
+				<string>28974F65-CA9D-5385-9169-1935E94A5D3C</string>
+				<key>WFControlFlowMode</key>
+				<integer>0</integer>
+				<key>WFCondition</key>
+				<integer>5</integer>
+				<key>WFInput</key>
+				<dict>
+					<key>Type</key>
+					<string>Variable</string>
+					<key>Variable</key>
+					<dict>
+						<key>Value</key>
+						<dict>
+							<key>Type</key>
+							<string>Variable</string>
+							<key>VariableName</key>
+							<string>Endpoint</string>
+						</dict>
+						<key>WFSerializationType</key>
+						<string>WFTextTokenAttachment</string>
+					</dict>
+				</dict>
+				<key>WFConditionalActionString</key>
+				<string>https://menuju-kurus.vercel.app/api/health-sync</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.alert</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>AE2DAEBA-4CB6-5DBC-8F4B-76E0DF385A63</string>
+				<key>WFAlertActionTitle</key>
+				<string>Slothly Health Sync</string>
+				<key>WFAlertActionMessage</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>Alamat koneksi bukan Slothly yang didukung. Buka menuju-kurus.vercel.app → Profil → Data kesehatan, lalu pilih Hubungkan akun lagi. Belum ada data kesehatan yang dibaca atau dikirim.</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFAlertActionCancelButtonShown</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.exit</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>4262F492-F8DC-5A35-844F-63D063453945</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>FEAC5F3C-CFB4-55ED-9D3E-39F2F3F1DE35</string>
+				<key>GroupingIdentifier</key>
+				<string>28974F65-CA9D-5385-9169-1935E94A5D3C</string>
+				<key>WFControlFlowMode</key>
+				<integer>2</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.getvalueforkey</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>D11AA035-133E-5D42-AE89-092ADF4F5AD4</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>028D97C6-EF9F-5761-96C8-B9ECD31E2DF2</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+				<key>WFDictionaryKey</key>
+				<string>accountName</string>
+				<key>WFGetDictionaryValueType</key>
+				<string>Value</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>D7F0A391-25A6-5079-90FC-91E3D0DBC41E</string>
+				<key>GroupingIdentifier</key>
+				<string>894875B9-31AC-5D99-87A7-D3AB0B5A39C0</string>
+				<key>WFControlFlowMode</key>
+				<integer>0</integer>
+				<key>WFCondition</key>
+				<integer>101</integer>
+				<key>WFInput</key>
+				<dict>
+					<key>Type</key>
+					<string>Variable</string>
+					<key>Variable</key>
+					<dict>
+						<key>Value</key>
+						<dict>
+							<key>Type</key>
+							<string>ActionOutput</string>
+							<key>OutputUUID</key>
+							<string>D11AA035-133E-5D42-AE89-092ADF4F5AD4</string>
+							<key>OutputName</key>
+							<string>Result</string>
+						</dict>
+						<key>WFSerializationType</key>
+						<string>WFTextTokenAttachment</string>
+					</dict>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.alert</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>A2E4454C-49F1-556F-B2BC-B279E7296DBF</string>
+				<key>WFAlertActionTitle</key>
+				<string>Slothly Health Sync</string>
+				<key>WFAlertActionMessage</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>Nama akun belum diterima. Kembali ke Slothly dan pilih Hubungkan akun lagi. Konfigurasi sebelumnya belum diganti.</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFAlertActionCancelButtonShown</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.exit</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>2D120A1B-376D-5428-8A59-E6A1821FF2A0</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>1A182CCD-03C4-5F34-901F-96E59E234DD7</string>
+				<key>GroupingIdentifier</key>
+				<string>894875B9-31AC-5D99-87A7-D3AB0B5A39C0</string>
+				<key>WFControlFlowMode</key>
+				<integer>2</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.alert</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>A7E174FA-03EA-55AB-A8DB-27DD708D70EC</string>
+				<key>WFAlertActionTitle</key>
+				<string>Hubungkan Slothly</string>
+				<key>WFAlertActionMessage</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>Hubungkan iPhone ini ke akun ￼ di Slothly? Lanjutkan hanya jika ini akunmu.</string>
+						<key>attachmentsByRange</key>
+						<dict>
+							<key>{29, 1}</key>
+							<dict>
+								<key>Type</key>
+								<string>ActionOutput</string>
+								<key>OutputUUID</key>
+								<string>D11AA035-133E-5D42-AE89-092ADF4F5AD4</string>
+								<key>OutputName</key>
+								<string>Result</string>
+							</dict>
+						</dict>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFAlertActionCancelButtonShown</key>
+				<true/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.downloadurl</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>9055D34E-B37C-5AED-A2B1-270E371FE615</string>
+				<key>WFURL</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>￼</string>
+						<key>attachmentsByRange</key>
+						<dict>
+							<key>{0, 1}</key>
+							<dict>
+								<key>Type</key>
+								<string>Variable</string>
+								<key>VariableName</key>
+								<string>Endpoint</string>
+							</dict>
+						</dict>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFHTTPMethod</key>
+				<string>POST</string>
+				<key>WFHTTPBodyType</key>
+				<string>JSON</string>
+				<key>WFHTTPHeaders</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>WFDictionaryFieldValueItems</key>
+						<array>
+							<dict>
+								<key>WFKey</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>Authorization</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+								<key>WFItemType</key>
+								<integer>0</integer>
+								<key>WFValue</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>Bearer ￼</string>
+										<key>attachmentsByRange</key>
+										<dict>
+											<key>{7, 1}</key>
+											<dict>
+												<key>Type</key>
+												<string>Variable</string>
+												<key>VariableName</key>
+												<string>Token</string>
+											</dict>
+										</dict>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+							</dict>
+							<dict>
+								<key>WFKey</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>Content-Type</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+								<key>WFItemType</key>
+								<integer>0</integer>
+								<key>WFValue</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>application/json</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+							</dict>
+							<dict>
+								<key>WFKey</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>Accept</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+								<key>WFItemType</key>
+								<integer>0</integer>
+								<key>WFValue</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>application/json</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+							</dict>
+						</array>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFDictionaryFieldValue</string>
+				</dict>
+				<key>WFJSONValues</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>WFDictionaryFieldValueItems</key>
+						<array>
+							<dict>
+								<key>WFKey</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>provider</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+								<key>WFItemType</key>
+								<integer>0</integer>
+								<key>WFValue</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>apple_health</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+							</dict>
+							<dict>
+								<key>WFKey</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>test</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+								<key>WFItemType</key>
+								<integer>4</integer>
+								<key>WFValue</key>
+								<dict>
+									<key>Value</key>
+									<integer>1</integer>
+									<key>WFSerializationType</key>
+									<string>WFNumberSubstitutableState</string>
+								</dict>
+							</dict>
+						</array>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFDictionaryFieldValue</string>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.getvalueforkey</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>C8277375-242E-5533-A2AE-A7073E2A7A02</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>9055D34E-B37C-5AED-A2B1-270E371FE615</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+				<key>WFDictionaryKey</key>
+				<string>status</string>
+				<key>WFGetDictionaryValueType</key>
+				<string>Value</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>1C5C5408-F041-5769-8E2C-18C0AD966249</string>
+				<key>GroupingIdentifier</key>
+				<string>472D1BB6-1BF1-5C79-B98E-15BF8B2D8A4A</string>
+				<key>WFControlFlowMode</key>
+				<integer>0</integer>
+				<key>WFCondition</key>
+				<integer>5</integer>
+				<key>WFInput</key>
+				<dict>
+					<key>Type</key>
+					<string>Variable</string>
+					<key>Variable</key>
+					<dict>
+						<key>Value</key>
+						<dict>
+							<key>Type</key>
+							<string>ActionOutput</string>
+							<key>OutputUUID</key>
+							<string>C8277375-242E-5533-A2AE-A7073E2A7A02</string>
+							<key>OutputName</key>
+							<string>Result</string>
+						</dict>
+						<key>WFSerializationType</key>
+						<string>WFTextTokenAttachment</string>
+					</dict>
+				</dict>
+				<key>WFConditionalActionString</key>
+				<string>tested</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.alert</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>C316D3E1-6CFA-5E8E-A50B-574C40B879BD</string>
+				<key>WFAlertActionTitle</key>
+				<string>Slothly</string>
+				<key>WFAlertActionMessage</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>Koneksi belum dapat diuji. Periksa internet, lalu pilih Hubungkan akun lagi di Slothly. Konfigurasi sebelumnya belum diganti.</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFAlertActionCancelButtonShown</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.exit</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>DF57B6D4-92D0-5489-9861-E199522E5108</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>35AB1432-00D2-5691-BF5A-9D29BF263F3C</string>
+				<key>GroupingIdentifier</key>
+				<string>472D1BB6-1BF1-5C79-B98E-15BF8B2D8A4A</string>
+				<key>WFControlFlowMode</key>
+				<integer>2</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.dictionary</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>BDCF8569-7DBC-5DD9-8F16-71944E8FBD7F</string>
+				<key>WFItems</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>WFDictionaryFieldValueItems</key>
+						<array>
+							<dict>
+								<key>WFKey</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>endpoint</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+								<key>WFItemType</key>
+								<integer>0</integer>
+								<key>WFValue</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>￼</string>
+										<key>attachmentsByRange</key>
+										<dict>
+											<key>{0, 1}</key>
+											<dict>
+												<key>Type</key>
+												<string>Variable</string>
+												<key>VariableName</key>
+												<string>Endpoint</string>
+											</dict>
+										</dict>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+							</dict>
+							<dict>
+								<key>WFKey</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>token</string>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+								<key>WFItemType</key>
+								<integer>0</integer>
+								<key>WFValue</key>
+								<dict>
+									<key>Value</key>
+									<dict>
+										<key>string</key>
+										<string>￼</string>
+										<key>attachmentsByRange</key>
+										<dict>
+											<key>{0, 1}</key>
+											<dict>
+												<key>Type</key>
+												<string>Variable</string>
+												<key>VariableName</key>
+												<string>Token</string>
+											</dict>
+										</dict>
+									</dict>
+									<key>WFSerializationType</key>
+									<string>WFTextTokenString</string>
+								</dict>
+							</dict>
+						</array>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFDictionaryFieldValue</string>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.gettext</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>75B8A07E-9368-5A85-ABD1-E3CB64E1BDE3</string>
+				<key>WFTextActionText</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>￼</string>
+						<key>attachmentsByRange</key>
+						<dict>
+							<key>{0, 1}</key>
+							<dict>
+								<key>Type</key>
+								<string>ActionOutput</string>
+								<key>OutputUUID</key>
+								<string>BDCF8569-7DBC-5DD9-8F16-71944E8FBD7F</string>
+								<key>OutputName</key>
+								<string>Result</string>
+							</dict>
+						</dict>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.file.createfolder</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>906B8A1D-FFE1-5140-ADAA-57E2038EBFC9</string>
+				<key>WFFilePath</key>
+				<string>Slothly</string>
+				<key>WFFolder</key>
+				<dict>
+					<key>fileLocation</key>
+					<dict>
+						<key>WFFileLocationType</key>
+						<string>Shortcuts</string>
+						<key>relativeSubpath</key>
+						<string></string>
+					</dict>
+					<key>filename</key>
+					<string>Documents</string>
+					<key>displayName</key>
+					<string>Shortcuts</string>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.setitemname</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>10EA722B-C5A4-58F7-A6A1-C71818FD12DF</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>75B8A07E-9368-5A85-ABD1-E3CB64E1BDE3</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+				<key>WFName</key>
+				<string>connection.json</string>
+				<key>WFDontIncludeFileExtension</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.documentpicker.save</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>9850FFDD-0FAD-5784-A932-4F1F6280A2A0</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>10EA722B-C5A4-58F7-A6A1-C71818FD12DF</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+				<key>WFFolder</key>
+				<dict>
+					<key>fileLocation</key>
+					<dict>
+						<key>WFFileLocationType</key>
+						<string>Shortcuts</string>
+						<key>relativeSubpath</key>
+						<string></string>
+					</dict>
+					<key>filename</key>
+					<string>Documents</string>
+					<key>displayName</key>
+					<string>Shortcuts</string>
+				</dict>
+				<key>WFAskWhereToSave</key>
+				<false/>
+				<key>WFFileDestinationPath</key>
+				<string>/Slothly/</string>
+				<key>WFSaveFileOverwrite</key>
+				<true/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>A8331228-8D39-5EA7-8E80-E8919AE24494</string>
+				<key>GroupingIdentifier</key>
+				<string>B2D491A5-D743-5D8F-BBB9-039151DE8A32</string>
+				<key>WFControlFlowMode</key>
+				<integer>1</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.documentpicker.open</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>9AF326AE-136F-5D5F-AC28-BA890236B5E0</string>
+				<key>WFFile</key>
+				<dict>
+					<key>fileLocation</key>
+					<dict>
+						<key>WFFileLocationType</key>
+						<string>Shortcuts</string>
+						<key>relativeSubpath</key>
+						<string></string>
+					</dict>
+					<key>filename</key>
+					<string>Documents</string>
+					<key>displayName</key>
+					<string>Shortcuts</string>
+				</dict>
+				<key>WFGetFilePath</key>
+				<string>/Slothly/connection.json</string>
+				<key>WFFileErrorIfNotFound</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>81DF561F-0AD1-5B4A-B36A-D0F6F29948CB</string>
+				<key>GroupingIdentifier</key>
+				<string>1E37FF13-011A-5F07-B2E8-63EF51022993</string>
+				<key>WFControlFlowMode</key>
+				<integer>0</integer>
+				<key>WFCondition</key>
+				<integer>101</integer>
+				<key>WFInput</key>
+				<dict>
+					<key>Type</key>
+					<string>Variable</string>
+					<key>Variable</key>
+					<dict>
+						<key>Value</key>
+						<dict>
+							<key>Type</key>
+							<string>ActionOutput</string>
+							<key>OutputUUID</key>
+							<string>9AF326AE-136F-5D5F-AC28-BA890236B5E0</string>
+							<key>OutputName</key>
+							<string>Result</string>
+						</dict>
+						<key>WFSerializationType</key>
+						<string>WFTextTokenAttachment</string>
+					</dict>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.alert</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>95657A31-0FF7-5F88-B6C0-198B465527BD</string>
+				<key>WFAlertActionTitle</key>
+				<string>Slothly Health Sync</string>
+				<key>WFAlertActionMessage</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>Belum terhubung. Buka Slothly → Profil → Data kesehatan, lalu pilih Hubungkan akun. Setelah tersambung sekali, Berat dan Watch menggunakan koneksi yang sama.</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFAlertActionCancelButtonShown</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.exit</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>54BF196B-0890-5210-BEC2-0FF4D483C756</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>90E16BF9-B669-56EB-9ED9-D7E331132B55</string>
+				<key>GroupingIdentifier</key>
+				<string>1E37FF13-011A-5F07-B2E8-63EF51022993</string>
+				<key>WFControlFlowMode</key>
+				<integer>2</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.detect.dictionary</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>B7735AA6-D106-5D2A-8729-25957B15C058</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>9AF326AE-136F-5D5F-AC28-BA890236B5E0</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.getvalueforkey</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>AE1CD384-C876-5D25-A754-0F59718EC1B2</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>B7735AA6-D106-5D2A-8729-25957B15C058</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+				<key>WFDictionaryKey</key>
+				<string>endpoint</string>
+				<key>WFGetDictionaryValueType</key>
+				<string>Value</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.setvariable</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>3394D0C1-2775-5F4E-A5AE-677A9B88737A</string>
+				<key>WFVariableName</key>
+				<string>Endpoint</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>AE1CD384-C876-5D25-A754-0F59718EC1B2</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.getvalueforkey</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>8D64ABAA-F1F1-57D1-A5EF-3A88F8B4D7AD</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>B7735AA6-D106-5D2A-8729-25957B15C058</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+				<key>WFDictionaryKey</key>
+				<string>token</string>
+				<key>WFGetDictionaryValueType</key>
+				<string>Value</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.setvariable</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>FD2DAB5C-89D0-59FA-B912-D0C82AAF7C16</string>
+				<key>WFVariableName</key>
+				<string>Token</string>
+				<key>WFInput</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>Type</key>
+						<string>ActionOutput</string>
+						<key>OutputUUID</key>
+						<string>8D64ABAA-F1F1-57D1-A5EF-3A88F8B4D7AD</string>
+						<key>OutputName</key>
+						<string>Result</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenAttachment</string>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.text.match</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>5F8904A9-B5AA-5F4C-96E7-142AE823F54A</string>
+				<key>text</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>￼</string>
+						<key>attachmentsByRange</key>
+						<dict>
+							<key>{0, 1}</key>
+							<dict>
+								<key>Type</key>
+								<string>Variable</string>
+								<key>VariableName</key>
+								<string>Endpoint</string>
+							</dict>
+						</dict>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFMatchTextPattern</key>
+				<string>^https://[A-Za-z0-9.-]+(?::443)?/api/health-sync$</string>
+				<key>WFMatchTextCaseSensitive</key>
+				<true/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>656DB9A2-1DD3-5B4E-A7C7-471D5CE767EC</string>
+				<key>GroupingIdentifier</key>
+				<string>2DF443C9-D7BC-573B-A8DA-16E0A8EED42F</string>
+				<key>WFControlFlowMode</key>
+				<integer>0</integer>
+				<key>WFCondition</key>
+				<integer>101</integer>
+				<key>WFInput</key>
+				<dict>
+					<key>Type</key>
+					<string>Variable</string>
+					<key>Variable</key>
+					<dict>
+						<key>Value</key>
+						<dict>
+							<key>Type</key>
+							<string>ActionOutput</string>
+							<key>OutputUUID</key>
+							<string>5F8904A9-B5AA-5F4C-96E7-142AE823F54A</string>
+							<key>OutputName</key>
+							<string>Result</string>
+						</dict>
+						<key>WFSerializationType</key>
+						<string>WFTextTokenAttachment</string>
+					</dict>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.alert</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>92104A89-4168-57BC-9C0D-54CD46523A33</string>
+				<key>WFAlertActionTitle</key>
+				<string>Slothly</string>
+				<key>WFAlertActionMessage</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>Konfigurasi koneksi belum dapat digunakan. Buka Slothly → Profil → Data kesehatan, lalu pilih Hubungkan akun lagi. Belum ada data kesehatan yang dibaca atau dikirim.</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFAlertActionCancelButtonShown</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.exit</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>88BA5E91-AACE-5461-BF11-DDC1CEA6E002</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>477E43CF-44D6-5887-8564-A65E54A67025</string>
+				<key>GroupingIdentifier</key>
+				<string>2DF443C9-D7BC-573B-A8DA-16E0A8EED42F</string>
+				<key>WFControlFlowMode</key>
+				<integer>2</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>F424C934-1858-5CD4-BD28-500B4AD7EF89</string>
+				<key>GroupingIdentifier</key>
+				<string>C01185ED-85DA-5060-A467-A3648218642E</string>
+				<key>WFControlFlowMode</key>
+				<integer>0</integer>
+				<key>WFCondition</key>
+				<integer>101</integer>
+				<key>WFInput</key>
+				<dict>
+					<key>Type</key>
+					<string>Variable</string>
+					<key>Variable</key>
+					<dict>
+						<key>Value</key>
+						<dict>
+							<key>Type</key>
+							<string>Variable</string>
+							<key>VariableName</key>
+							<string>Token</string>
+						</dict>
+						<key>WFSerializationType</key>
+						<string>WFTextTokenAttachment</string>
+					</dict>
+				</dict>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.alert</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>CA1B8A6D-A696-5D00-96A7-0EA3715F5BB4</string>
+				<key>WFAlertActionTitle</key>
+				<string>Slothly</string>
+				<key>WFAlertActionMessage</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>Konfigurasi koneksi belum dapat digunakan. Buka Slothly → Profil → Data kesehatan, lalu pilih Hubungkan akun lagi. Belum ada data kesehatan yang dibaca atau dikirim.</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFAlertActionCancelButtonShown</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.exit</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>EB242ACA-7A73-5635-9260-C2A7AF288146</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>DA5545A6-CF82-5A98-B9E0-49C9AA64D199</string>
+				<key>GroupingIdentifier</key>
+				<string>C01185ED-85DA-5060-A467-A3648218642E</string>
+				<key>WFControlFlowMode</key>
+				<integer>2</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>E8CED872-FE4B-568B-BC72-3835A950C8FB</string>
+				<key>GroupingIdentifier</key>
+				<string>4CB2D00E-4A63-5BF1-ACDE-9362E07E6DF0</string>
+				<key>WFControlFlowMode</key>
+				<integer>0</integer>
+				<key>WFCondition</key>
+				<integer>5</integer>
+				<key>WFInput</key>
+				<dict>
+					<key>Type</key>
+					<string>Variable</string>
+					<key>Variable</key>
+					<dict>
+						<key>Value</key>
+						<dict>
+							<key>Type</key>
+							<string>Variable</string>
+							<key>VariableName</key>
+							<string>Endpoint</string>
+						</dict>
+						<key>WFSerializationType</key>
+						<string>WFTextTokenAttachment</string>
+					</dict>
+				</dict>
+				<key>WFConditionalActionString</key>
+				<string>https://menuju-kurus.vercel.app/api/health-sync</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.alert</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>E607819B-B44C-5976-81F7-CEAB84F11268</string>
+				<key>WFAlertActionTitle</key>
+				<string>Slothly Health Sync</string>
+				<key>WFAlertActionMessage</key>
+				<dict>
+					<key>Value</key>
+					<dict>
+						<key>string</key>
+						<string>Alamat koneksi bukan Slothly yang didukung. Buka menuju-kurus.vercel.app → Profil → Data kesehatan, lalu pilih Hubungkan akun lagi. Belum ada data kesehatan yang dibaca atau dikirim.</string>
+					</dict>
+					<key>WFSerializationType</key>
+					<string>WFTextTokenString</string>
+				</dict>
+				<key>WFAlertActionCancelButtonShown</key>
+				<false/>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.exit</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>4B9184DF-232F-5BB7-82EB-37541030EF1B</string>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>E7320F56-2F50-5138-9DE8-7C12FE5B1D7C</string>
+				<key>GroupingIdentifier</key>
+				<string>4CB2D00E-4A63-5BF1-ACDE-9362E07E6DF0</string>
+				<key>WFControlFlowMode</key>
+				<integer>2</integer>
+			</dict>
+		</dict>
+		<dict>
+			<key>WFWorkflowActionIdentifier</key>
+			<string>is.workflow.actions.conditional</string>
+			<key>WFWorkflowActionParameters</key>
+			<dict>
+				<key>UUID</key>
+				<string>B26B1045-BC9C-5BA3-A3EF-E5E35DCDBE78</string>
+				<key>GroupingIdentifier</key>
+				<string>B2D491A5-D743-5D8F-BBB9-039151DE8A32</string>
 				<key>WFControlFlowMode</key>
 				<integer>2</integer>
 			</dict>
@@ -1124,7 +2907,7 @@
 					<key>Value</key>
 					<dict>
 						<key>string</key>
-						<string>Data belum tersimpan. Periksa koneksi internet. Jika masih gagal, pasang ulang Shortcut dengan konfigurasi terbaru dari Slothly → Profil → Data kesehatan.</string>
+						<string>Data belum tersimpan. Periksa koneksi internet. Jika masih gagal, pilih Hubungkan akun lagi di Slothly → Profil → Data kesehatan.</string>
 					</dict>
 					<key>WFSerializationType</key>
 					<string>WFTextTokenString</string>
@@ -1905,7 +3688,7 @@
 					<key>Value</key>
 					<dict>
 						<key>string</key>
-						<string>Data belum tersimpan. Periksa koneksi internet. Jika masih gagal, pasang ulang Shortcut dengan konfigurasi terbaru dari Slothly → Profil → Data kesehatan.</string>
+						<string>Data belum tersimpan. Periksa koneksi internet. Jika masih gagal, pilih Hubungkan akun lagi di Slothly → Profil → Data kesehatan.</string>
 					</dict>
 					<key>WFSerializationType</key>
 					<string>WFTextTokenString</string>

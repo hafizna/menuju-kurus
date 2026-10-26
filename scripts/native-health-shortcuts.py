@@ -2,7 +2,8 @@
 """Package sanitized, user-tested native Health actions as installable templates.
 
 The fixtures contain no credentials or Health readings. Only generic workflow
-bytes are sent to the signing service; installation supplies private JSON locally.
+bytes are sent to the signing service. A one-use pairing code retrieves private
+configuration directly from Slothly after installation, never from the signer.
 """
 from __future__ import annotations
 
@@ -22,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = ROOT / "scripts" / "shortcut-templates"
 OUTPUT = ROOT / "public" / "shortcuts"
 KINDS = ("berat", "watch")
+PRODUCTION_ORIGIN = "https://menuju-kurus.vercel.app"
 SPEC = importlib.util.spec_from_file_location("health_wire", Path(__file__).with_name("health-shortcut.py"))
 wire = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(wire)
@@ -68,6 +70,99 @@ def gate_unit(flow, kind, metric, found):
     flow.end(label + "-unsupported")
 
 
+def require_status(flow, label, response, expected, message):
+    status = flow.key(label + "-status", "status", response)
+    flow.begin(label + "-failed", status, 5, WFConditionalActionString=expected)
+    flow.add("alert", label + "-alert", WFAlertActionTitle="Slothly",
+             WFAlertActionMessage=wire.text(message), WFAlertActionCancelButtonShown=False)
+    flow.add("exit", label + "-stop")
+    flow.end(label + "-failed")
+
+
+def require_production_endpoint(flow, label):
+    flow.begin(label, wire.variable("Endpoint"), 5,
+               WFConditionalActionString=PRODUCTION_ORIGIN + "/api/health-sync")
+    flow.stop(label + "-invalid", "Alamat koneksi bukan Slothly yang didukung. Buka menuju-kurus.vercel.app → Profil → Data kesehatan, lalu pilih Hubungkan akun lagi. Belum ada data kesehatan yang dibaca atau dikirim.")
+    flow.end(label)
+
+
+def configure(flow, label, value):
+    first = len(flow.actions)
+    flow.config(label, value)
+    # Retain the established dictionary/validation wire shapes while replacing
+    # v5's manual-copy help with the v2 account-pairing instruction.
+    for action in flow.actions[first:]:
+        if action["WFWorkflowActionIdentifier"].endswith(".alert"):
+            action["WFWorkflowActionParameters"].update(WFAlertActionTitle="Slothly",
+                WFAlertActionMessage=wire.text("Konfigurasi koneksi belum dapat digunakan. Buka Slothly → Profil → Data kesehatan, lalu pilih Hubungkan akun lagi. Belum ada data kesehatan yang dibaca atau dikirim."))
+
+
+def bootstrap(flow, kind):
+    """Pair once through URL input; both shortcuts reuse the same private file."""
+    incoming = wire.attachment({"Type": "ExtensionInput"})
+    branch = kind + "-received-pairing"
+    flow.begin(branch, incoming)
+    parsed = flow.add("detect.dictionary", kind + "-pairing-input", WFInput=incoming)
+    flow.set("RedeemURL", flow.key(kind + "-pairing-url", "redeemUrl", parsed), kind + "-set-pairing-url")
+    flow.set("PairCode", flow.key(kind + "-pairing-code", "code", parsed), kind + "-set-pairing-code")
+    flow.begin(kind + "-pairing-insecure", wire.variable("RedeemURL"), 5,
+               WFConditionalActionString=PRODUCTION_ORIGIN + "/api/health-pairing/redeem")
+    flow.stop(kind + "-invalid-pairing-url", "Alamat koneksi belum sesuai. Buka Slothly → Profil → Data kesehatan, lalu pilih Hubungkan akun lagi.")
+    flow.end(kind + "-pairing-insecure")
+    flow.begin(kind + "-missing-code", wire.variable("PairCode"), 101)
+    flow.stop(kind + "-pairing-empty", "Kode koneksi belum diterima. Kembali ke Slothly dan pilih Hubungkan akun lagi.")
+    flow.end(kind + "-missing-code")
+    public_headers = wire.dictionary([
+        wire.field("Content-Type", 0, wire.text("application/json")),
+        wire.field("Accept", 0, wire.text("application/json")),
+    ])
+    paired = flow.add("downloadurl", kind + "-redeem", WFURL=wire.text(wire.variable("RedeemURL")),
+                      WFHTTPMethod="POST", WFHTTPBodyType="JSON", WFHTTPHeaders=public_headers,
+                      WFJSONValues=wire.dictionary([wire.field("code", 0, wire.text(wire.variable("PairCode")))]))
+    require_status(flow, kind + "-redeem", paired, "paired",
+                   "Koneksi belum tersambung. Kode mungkin sudah digunakan atau kedaluwarsa. Kembali ke Slothly dan pilih Hubungkan akun lagi. Konfigurasi sebelumnya belum diganti.")
+    configure(flow, kind + "-new-config", paired)
+    require_production_endpoint(flow, kind + "-new-endpoint")
+    account = flow.key(kind + "-account-name", "accountName", paired)
+    flow.begin(kind + "-account-name-missing", account, 101)
+    flow.stop(kind + "-account-unknown", "Nama akun belum diterima. Kembali ke Slothly dan pilih Hubungkan akun lagi. Konfigurasi sebelumnya belum diganti.")
+    flow.end(kind + "-account-name-missing")
+    flow.add("alert", kind + "-confirm-account", WFAlertActionTitle="Hubungkan Slothly",
+             WFAlertActionMessage=wire.text("Hubungkan iPhone ini ke akun ", account,
+                 " di Slothly? Lanjutkan hanya jika ini akunmu."), WFAlertActionCancelButtonShown=True)
+    tested = flow.add("downloadurl", kind + "-test", WFURL=wire.text(wire.variable("Endpoint")),
+                      WFHTTPMethod="POST", WFHTTPBodyType="JSON", WFHTTPHeaders=wire.dictionary([
+                          wire.field("Authorization", 0, wire.text("Bearer ", wire.variable("Token"))),
+                          wire.field("Content-Type", 0, wire.text("application/json")),
+                          wire.field("Accept", 0, wire.text("application/json")),
+                      ]), WFJSONValues=wire.dictionary([
+                          wire.field("provider", 0, wire.text("apple_health")),
+                          wire.field("test", 4, wire.boolean(True)),
+                      ]))
+    require_status(flow, kind + "-test", tested, "tested",
+                   "Koneksi belum dapat diuji. Periksa internet, lalu pilih Hubungkan akun lagi di Slothly. Konfigurasi sebelumnya belum diganti.")
+    # Do not persist the redemption status, input code, or arbitrary response
+    # fields. Dictionary -> Text serializes JSON without manual string escaping.
+    config = flow.add("dictionary", kind + "-private-config", WFItems=wire.dictionary([
+        wire.field("endpoint", 0, wire.text(wire.variable("Endpoint"))),
+        wire.field("token", 0, wire.text(wire.variable("Token"))),
+    ]))
+    config_text = flow.add("gettext", kind + "-private-json", WFTextActionText=wire.text(config))
+    flow.add("file.createfolder", kind + "-create-config-folder", WFFilePath="Slothly", WFFolder=wire.SHORTCUTS_FOLDER)
+    named = flow.add("setitemname", kind + "-name-config", WFInput=config_text, WFName="connection.json", WFDontIncludeFileExtension=False)
+    flow.add("documentpicker.save", kind + "-save-config", WFInput=named, WFFolder=wire.SHORTCUTS_FOLDER,
+             WFAskWhereToSave=False, WFFileDestinationPath="/Slothly/", WFSaveFileOverwrite=True)
+    flow.otherwise(branch)
+    saved = flow.add("documentpicker.open", kind + "-read-config", WFFile=wire.SHORTCUTS_FOLDER,
+                     WFGetFilePath="/Slothly/connection.json", WFFileErrorIfNotFound=False)
+    flow.begin(kind + "-saved-config-missing", saved, 101)
+    flow.stop(kind + "-needs-pairing", "Belum terhubung. Buka Slothly → Profil → Data kesehatan, lalu pilih Hubungkan akun. Setelah tersambung sekali, Berat dan Watch menggunakan koneksi yang sama.")
+    flow.end(kind + "-saved-config-missing")
+    configure(flow, kind + "-saved-config", saved)
+    require_production_endpoint(flow, kind + "-saved-endpoint")
+    flow.end(branch)
+
+
 def build(kind):
     workflow = copy.deepcopy(native(kind))
     source = workflow.pop("WFWorkflowActions")
@@ -77,11 +172,9 @@ def build(kind):
                "Untuk otomatisasi setelah menimbang, pilih aplikasi timbangan digital milikmu saat ditutup.") if kind == "berat" else (
                "Membaca denyut istirahat, VO2 max, dan jumlah energi aktif hari ini yang tersedia di Apple Health. "
                "Otomatisasi opsional: setiap hari pukul 21.30.")
-    flow.add("comment", kind + "-intro", WFCommentActionText=name + " v1. " + details +
-             " Tempel konfigurasi JSON pribadi dari Slothly saat memasang. Jangan bagikan konfigurasi atau Shortcut yang sudah diisi. Tidak menulis ke Apple Health.")
-    config_index = len(flow.actions)
-    config = flow.add("gettext", kind + "-configuration", WFTextActionText="{}")
-    flow.config(kind + "-config", config)
+    flow.add("comment", kind + "-intro", WFCommentActionText=name + " v2. " + details +
+             " Setelah memasang, pilih Hubungkan akun di Slothly sekali. Berat dan Watch memakai konfigurasi bersama di Shortcuts/Slothly/connection.json. Berkas dapat tersinkron lewat iCloud sesuai pengaturan perangkat; jangan bagikan berkas ini. Tidak menulis ke Apple Health.")
+    bootstrap(flow, kind)
     latest_find = None
     for index, original in enumerate(source):
         action = copy.deepcopy(original)
@@ -128,32 +221,29 @@ def build(kind):
             label = f"{kind}-{metric}-failed"
             flow.begin(label, status, 5, WFConditionalActionString="ok")
             flow.add("alert", label + "-alert", WFAlertActionTitle=name,
-                     WFAlertActionMessage=wire.text("Data belum tersimpan. Periksa koneksi internet. Jika masih gagal, pasang ulang Shortcut dengan konfigurasi terbaru dari Slothly → Profil → Data kesehatan."),
+                     WFAlertActionMessage=wire.text("Data belum tersimpan. Periksa koneksi internet. Jika masih gagal, pilih Hubungkan akun lagi di Slothly → Profil → Data kesehatan."),
                      WFAlertActionCancelButtonShown=False)
             flow.add("exit", label + "-stop")
             flow.end(label)
         else:
             flow.actions.append(action)
-    workflow.update(WFWorkflowName=name, WFWorkflowInputContentItemClasses=[],
-                    WFWorkflowOutputContentItemClasses=[], WFWorkflowHasShortcutInputVariables=False,
-                    WFWorkflowImportQuestions=[{"ParameterKey": "WFTextActionText", "Category": "Parameter",
-                        "ActionIndex": config_index, "Text": "Tempel konfigurasi JSON pribadi dari Slothly → Profil → Data kesehatan. Jangan bagikan konfigurasi ini.", "DefaultValue": "{}"}],
+    workflow.update(WFWorkflowName=name, WFWorkflowInputContentItemClasses=["WFStringContentItem"],
+                    WFWorkflowOutputContentItemClasses=[], WFWorkflowHasShortcutInputVariables=True,
+                    WFWorkflowImportQuestions=[],
                     WFWorkflowActions=flow.actions)
     return workflow
 
 
 def validate(workflow, kind):
     actions = workflow["WFWorkflowActions"]
-    assert len(actions) < 80, "Keep the automation workflow small"
-    assert workflow["WFWorkflowInputContentItemClasses"] == []
-    questions = workflow["WFWorkflowImportQuestions"]
-    assert len(questions) == 1 and questions[0]["ParameterKey"] == "WFTextActionText"
-    config = actions[questions[0]["ActionIndex"]]
-    assert config["WFWorkflowActionIdentifier"].endswith(".gettext")
-    assert config["WFWorkflowActionParameters"]["WFTextActionText"] == "{}"
+    assert len(actions) < 160, "Keep native workflows and pairing small"
+    assert workflow["WFWorkflowInputContentItemClasses"] == ["WFStringContentItem"]
+    assert workflow["WFWorkflowHasShortcutInputVariables"] is True
+    assert workflow["WFWorkflowImportQuestions"] == []
     allowed = {"comment", "gettext", "detect.dictionary", "getvalueforkey", "setvariable", "text.match", "text.combine",
                "conditional", "alert", "exit", "nothing", "filter.health.quantity", "count",
-               "properties.health.quantity", "format.date", "downloadurl", "statistics"}
+               "properties.health.quantity", "format.date", "downloadurl", "statistics", "dictionary",
+               "file.createfolder", "setitemname", "documentpicker.save", "documentpicker.open"}
     seen, stack = set(), []
 
     def refs(value):
@@ -173,14 +263,15 @@ def validate(workflow, kind):
             for child in value:
                 refs(child)
         elif isinstance(value, str):
-            assert "slothly.u1." not in value and "slothly.u2." not in value, "Embedded credential"
+            import re
+            assert not re.search(r"(?:slothly|hp1)\.u\d+\.", value), "Embedded credential or pairing code"
             assert "Bearer" not in value or value in ("Bearer ", "Bearer \ufffc"), "Embedded Bearer value"
 
     preserved = []
     for index, action in enumerate(actions):
         ident, params = action["WFWorkflowActionIdentifier"], action["WFWorkflowActionParameters"]
         kind_name = ident.removeprefix("is.workflow.actions.")
-        assert kind_name in allowed, "No clipboard, files, selection prompt, or Health write actions"
+        assert kind_name in allowed, "No clipboard, selection prompt, or Health write actions"
         refs(params)
         if kind_name == "conditional":
             mode, group = params["WFControlFlowMode"], params["GroupingIdentifier"]
@@ -200,16 +291,25 @@ def validate(workflow, kind):
         if kind_name == "downloadurl":
             headers = params["WFHTTPHeaders"]["Value"]["WFDictionaryFieldValueItems"]
             keys = [item["WFKey"]["Value"]["string"] for item in headers]
-            assert keys == ["Authorization", "Content-Type", "Accept"]
-            assert headers[0]["WFValue"] == wire.text("Bearer ", wire.variable("Token"))
-            assert params["WFURL"] == wire.text(wire.variable("Endpoint"))
+            if params["UUID"] == wire.uid(kind + "-redeem"):
+                assert keys == ["Content-Type", "Accept"], "Redeem must not transmit a previous Bearer"
+                assert params["WFURL"] == wire.text(wire.variable("RedeemURL"))
+            else:
+                assert keys == ["Authorization", "Content-Type", "Accept"]
+                assert headers[0]["WFValue"] == wire.text("Bearer ", wire.variable("Token"))
+                assert params["WFURL"] == wire.text(wire.variable("Endpoint"))
+        if kind_name == "documentpicker.save":
+            assert params["WFAskWhereToSave"] is False and params["WFFileDestinationPath"] == "/Slothly/"
+            assert params["WFSaveFileOverwrite"] is True
+        if kind_name == "documentpicker.open":
+            assert params["WFGetFilePath"] == "/Slothly/connection.json" and params["WFFileErrorIfNotFound"] is False
     assert not stack
     # Native branches/queries and numeric extraction remain byte-for-byte equal.
     native_actions = native(kind)["WFWorkflowActions"]
     expected = [a for a in native_actions if not a["WFWorkflowActionIdentifier"].endswith(".downloadurl")]
     for action in expected:
         assert action in preserved, "Changed native query, extraction, count, or branch"
-    assert sum(a["WFWorkflowActionIdentifier"].endswith(".downloadurl") for a in actions) == (2 if kind == "berat" else 3)
+    assert sum(a["WFWorkflowActionIdentifier"].endswith(".downloadurl") for a in actions) == (4 if kind == "berat" else 5)
     assert sum(a["WFWorkflowActionIdentifier"].endswith(".filter.health.quantity") for a in actions) == (2 if kind == "berat" else 3)
 
 
@@ -240,7 +340,7 @@ def main():
     args = parser.parse_args()
     manifest_path = OUTPUT / "native-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if args.check else {
-        "version": 1, "generatorSha256": source_hash(), "wireHelpersSha256": sha(Path(wire.__file__).read_bytes().replace(b"\r\n", b"\n")),
+        "version": 2, "generatorSha256": source_hash(), "wireHelpersSha256": sha(Path(wire.__file__).read_bytes().replace(b"\r\n", b"\n")),
         "signingFormat": "AEA1", "signingMode": "anyone", "signingService": args.signing_server,
         "deviceVerification": "Native query actions supplied and tested by user; generic installer and automation pending physical iPhone validation",
         "shortcuts": {}}

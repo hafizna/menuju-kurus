@@ -1,35 +1,73 @@
 # Slothly Berat dan Slothly Watch
 
 Halaman **Profil → Data kesehatan → Hubungkan Apple Health** menyediakan dua
-templat bertanda tangan, berdasarkan aksi pembacaan Health dari Shortcut native
-yang dikirim pengguna. Ekspor pribadi tidak dipublikasikan: semua kunci akun
-dihapus sebelum fixture dan paket generik disimpan.
+templat v2 bertanda tangan, berdasarkan aksi pembacaan Health dari Shortcut
+native yang dikirim pengguna. Pasang templat generik, lalu hubungkan akun lewat
+tombol di app. Browser tidak menerima token akses Health.
 
 ## Pasang di iPhone
 
-1. Pilih **Siapkan koneksi**, lalu **Salin konfigurasi** di Slothly.
-2. Pilih **Pasang Slothly Berat** atau **Pasang Slothly Watch**. Buka unduhan di
-   iPhone, pilih **Set Up Shortcut / Atur Pintasan**, dan tempel seluruh JSON
-   konfigurasi pada pertanyaan pemasangan. Gunakan konfigurasi yang sama untuk
-   keduanya jika memasang dua Shortcut.
-3. Jalankan masing-masing sekali di Shortcuts. Izinkan akses membaca jenis Health
-   yang diminta dan koneksi ke alamat Slothly. Kembali ke app dan pilih
-   **Periksa status**. Bandingkan hasilnya dengan Apple Health di Perjalanan.
-4. Jika nama instalasi berbeda, isi **Nama Shortcut di iPhone berbeda?** sesuai
+1. Buka **Profil → Data kesehatan → Hubungkan Apple Health** di Slothly.
+2. Pilih **Pasang Slothly Berat** atau **Pasang Slothly Watch**, buka unduhan di
+   iPhone, lalu pilih **Tambah Shortcut**. Pasang keduanya jika memakai kedua
+   jenis sinkronisasi. Tidak ada pertanyaan impor atau isian konfigurasi.
+3. Kembali ke Slothly dan pilih **Hubungkan lewat Slothly Berat** atau
+   **Hubungkan lewat Slothly Watch**, sesuai Shortcut yang sudah dipasang.
+   Cukup pilih salah satunya sekali pada iPhone ini; keduanya memakai koneksi
+   bersama.
+4. Di Shortcuts, periksa nama akun pada dialog **Hubungkan Slothly**. Nama ini
+   berasal dari server Slothly. Lanjutkan hanya jika itu akunmu. Setelah
+   persetujuan, Shortcut menguji koneksi, menyimpan koneksi pribadi, lalu
+   membaca metrik Health miliknya. Izinkan koneksi ke Slothly, akses berkas, dan
+   pembacaan Health saat iPhone meminta.
+5. Kembali ke app dan pilih **Periksa status**. Bandingkan tanggal dan hasil
+   pengukuran dengan Apple Health di Perjalanan. Status uji koneksi bukan bukti
+   bahwa pengukuran sudah diterima.
+6. Jika nama instalasi berbeda, isi **Nama Shortcut di iPhone berbeda?** sesuai
    nama yang terlihat di Shortcuts. Nama ini juga dipakai dalam panduan automasi.
 
 File publik bernama **Slothly Berat.shortcut** dan **Slothly Watch.shortcut**.
 Nama berkas dan header unduhannya sengaja sama dengan nama Shortcut agar iPhone
 tidak memasang nama lowercase yang berbeda dari tombol Buka.
 
-Konfigurasi disimpan sebagai aksi Text pada setiap Shortcut, tanpa dialog
-pilihan metrik setiap kali berjalan. Setelah diisi, Shortcut menjadi pribadi;
-jangan bagikan ulang. Konfigurasi tidak dimasukkan ke URL Buka, localStorage,
-sessionStorage, atau database dalam bentuk token mentah. Browser menyimpan
-pilihan nama Shortcut saja. Jika Clipboard API gagal, gunakan **Salin manual**.
-Konfigurasi yang hilang dapat dibuat ulang melalui **Sambungkan ulang**, yang
-menonaktifkan kunci lama: kedua Shortcut yang dipakai perlu dipasang ulang
-dengan konfigurasi baru. Shortcut yang sudah bekerja tidak perlu dihubungkan ulang.
+Setelah tersambung, gunakan **Buka Slothly Berat** atau **Buka Slothly Watch**
+untuk menjalankan sinkronisasi berikutnya. Keduanya membaca koneksi dari
+`Shortcuts/Slothly/connection.json`; tidak perlu menghubungkan ulang untuk
+menjalankan Shortcut yang satunya. Jalankan masing-masing sekali untuk
+memberikan izin Health yang dibutuhkan sebelum membuat automasi.
+
+Jika nama akun salah atau pengujian koneksi gagal, berkas koneksi sebelumnya
+tidak diganti dan belum ada data Health yang dibaca. Kembali ke Slothly untuk
+menghubungkan lagi. Jika berkas koneksi hilang atau mengganti iPhone, pilih
+**Hubungkan lewat …** kembali. Shortcut yang sudah berfungsi tidak perlu
+dihubungkan ulang.
+
+## Koneksi akun dan privasi
+
+App menyiapkan kode sekali pakai yang berlaku hingga lima menit setelah status akun
+berhasil dimuat. Tombol **Hubungkan lewat …** adalah tautan
+`shortcuts://run-shortcut` dengan input teks berisi kode sementara dan alamat
+penukarannya. Kode diperbarui saat kembali ke app atau mendekati kedaluwarsa.
+Menyiapkan kode tidak menerbitkan atau merotasi token akses yang sudah bekerja.
+
+Shortcut menukar kode langsung ke server Slothly. Server mengembalikan token
+akses dan nama akun; setelah konfirmasi akun dan pengujian berhasil, Shortcut
+menyimpan hanya endpoint dan token dalam `Shortcuts/Slothly/connection.json`.
+Server menyimpan hash token. Browser tidak menerima Bearer token dan tidak
+menaruhnya di DOM, URL, clipboard, localStorage, atau sessionStorage. Kode
+sementara hanya disimpan dalam state halaman dan tautan pembuka; pilihan nama
+Shortcut boleh disimpan di localStorage.
+
+Berkas koneksi bersifat pribadi dan dapat tersinkron melalui iCloud sesuai
+pengaturan perangkat. Jangan bagikan berkas tersebut atau tautan penghubung.
+Menghubungkan instalasi baru menambah akses tanpa merotasi akses instalasi lain.
+**Putuskan koneksi** mencabut seluruh akses Shortcut dan membatalkan kode
+penghubung sebelumnya; pengukuran yang sudah diterima tetap tersimpan.
+
+Templat publik dikunci ke `https://menuju-kurus.vercel.app`, baik untuk penukaran
+kode maupun endpoint Health. Alamat lain ditolak sebelum pembacaan Health.
+Deployment lain atau preview memerlukan templat yang dibangun dan ditandatangani
+untuk origin yang sesuai; mengganti domain web saja tidak mengubah file Shortcut.
 
 ## Automasi Watch: harian 21.30
 
@@ -84,8 +122,9 @@ Panduan Apple: [membuat personal automation](https://support.apple.com/guide/sho
   menjadi `Authorization`. Setiap metrik dikirim terpisah; status Health
   menampilkan pengiriman terakhir, bukan daftar gabungan seluruh permintaan.
 - Tidak menulis ke Apple Health, tidak membaca clipboard saat sinkronisasi,
-  dan tidak meminta langkah atau tidur. Shortcut gabungan v5 masih tersedia
-  sebagai pilihan lama, dengan [dokumentasi terpisah](health-shortcut.md).
+  dan tidak meminta langkah atau tidur. Shortcut gabungan v5 yang sudah
+  tersambung tetap dapat dipakai; [dokumentasi arsipnya](health-shortcut.md)
+  menjelaskan alur sebelumnya, bukan pemasangan v2.
 
 ## Build dan verifikasi
 
@@ -98,12 +137,15 @@ npm test
 ```
 
 Generator mengambil fixture yang sudah dibersihkan di
-`scripts/shortcut-templates/`. `--sign` mengirim templat generik ke layanan
-penandatanganan; token pribadi maupun hasil pengukuran tidak ikut dikirim.
-Manifest mencatat hash fixture, generator, unsigned, dan signed AEA1.
+`scripts/shortcut-templates/`. Ekspor pribadi asli tidak dipublikasikan.
+`--sign` mengirim templat generik ke layanan penandatanganan; tidak ada token,
+kode penghubung, nama akun pribadi, atau hasil pengukuran yang ikut dikirim.
+Manifest mencatat hash fixture, generator, unsigned, dan signed AEA1. Berkas
+publik tidak berisi konfigurasi akun dan tidak memakai pertanyaan impor.
 
 Tes lokal memeriksa format, alur, payload numerik/tanggal, kredensial, dan
 unduhan publik. Pembacaan asli sudah dicoba pengguna, tetapi **pemasangan
 templat generik baru beserta automasinya belum diverifikasi di iPhone fisik**.
-Verifikasi perangkat harus meliputi pertanyaan impor, nama terpasang, izin,
-satuan, tanggal, penerimaan server, dan pemicu automasi.
+Verifikasi perangkat harus meliputi nama terpasang, pembukaan tautan dari Safari,
+konfirmasi akun, pengujian koneksi, izin berkas/Health, penggunaan berkas bersama
+oleh kedua Shortcut, satuan, tanggal, penerimaan server, dan pemicu automasi.
