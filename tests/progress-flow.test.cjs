@@ -69,14 +69,14 @@ const store = new Map();
 const redisPath = require.resolve('../lib/redis');
 require.cache[redisPath] = { id: redisPath, filename: redisPath, loaded: true, exports: {
   redis: { async get(key) { return structuredClone(store.get(key) ?? null); }, async set(key, value) { store.set(key, structuredClone(value)); return 'OK'; } },
-  keys: { settings: (user) => `mk:${user}:settings`, day: (user, date) => `mk:${user}:day:${date}`, weight: (user) => `mk:${user}:weight`, body: (user) => `mk:${user}:body`, weeklySummary: (user) => `mk:${user}:weeklySummary` },
+  keys: { settings: (user) => `mk:${user}:settings`, day: (user, date) => `mk:${user}:day:${date}`, weight: (user) => `mk:${user}:weight`, body: (user) => `mk:${user}:body`, weeklySummary: (user) => `mk:${user}:weeklySummary`, fitnessHistory: (user) => `mk:${user}:fitnessHistory` },
 } };
 const focusRoute = require('../app/api/weekly-focus/route');
 const summaryRoute = require('../app/api/weekly-summary/route');
 function request(url, method = 'GET', body, user = 'u1') {
   return new NextRequest(`http://localhost${url}`, { method, headers: { 'content-type': 'application/json', ...(user ? { 'x-user-id': user } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
 }
-beforeEach(() => { store.clear(); delete process.env.DEEPSEEK_API_KEY; });
+beforeEach(() => { store.clear(); delete process.env.DEEPSEEK_API_KEY; delete process.env.GEMINI_API_KEY; delete process.env.TEXT_AI_PROVIDER; });
 test('weekly focus requires auth, validates choices, persists across reads and isolates users', async () => {
   assert.equal((await focusRoute.GET(request('/api/weekly-focus', 'GET', undefined, null))).status, 401);
   assert.equal((await focusRoute.POST(request('/api/weekly-focus', 'POST', { action: 'select', id: 'arbitrary' }))).status, 400);

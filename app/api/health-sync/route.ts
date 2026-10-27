@@ -6,6 +6,7 @@ import { dateKeyFor, todayKey } from "@/lib/dates";
 import { findHealthSyncUser, recordHealthSync, recordHealthTest } from "@/lib/healthConnection";
 import { getWeightEntries, upsertWeightEntryResult } from "@/lib/weight";
 import { upsertFitnessMeasurement } from "@/lib/fitnessMeasurements";
+import { recordFitnessHistory } from "@/lib/fitnessHistory";
 
 const METRICS = ["calories", "weightKg", "bodyFatPercent", "vo2Max", "restingHeartRate", "cardioMinutesWeekly"] as const;
 type Metric = (typeof METRICS)[number];
@@ -72,6 +73,10 @@ async function receive(req: NextRequest) {
   const settings = await getSettings(user.id);
   const today = todayKey(settings.timezone);
   const samples: Sample[] = [];
+  // A provider marks the body as Apple Health data, whether it arrives as a
+  // samples array or as flat fields. Without one, the older profile-update
+  // behavior below applies.
+  const fromHealth = body.samples !== undefined || body.provider === "apple_health";
   if (body.samples !== undefined) {
     if (body.provider !== "apple_health" || !Array.isArray(body.samples) || !body.samples.length || body.samples.length > 200) return failure("request_invalid");
     for (const sample of body.samples) {
@@ -87,15 +92,30 @@ async function receive(req: NextRequest) {
       samples.push({ metric, value: sample.value, measuredAt, date });
     }
   } else {
-    // Keep installed, environment-token Shortcuts working while users migrate.
-    const date = body.date === undefined ? today : body.date;
+    // A timestamp without a provider would be ignored silently and the data
+    // dated "today"; reject it so a Shortcut missing the provider field is caught.
+    if (!fromHealth && body.measuredAt !== undefined) return failure("request_invalid");
+    let date: unknown = body.date === undefined ? today : body.date;
+    let measuredAt = new Date().toISOString();
+    if (fromHealth) {
+      // Flat form for hand-built Shortcuts: typed fields plus an optional
+      // original timestamp, treated like Apple Health samples. The date is
+      // derived from the timestamp, so a separate date field is not accepted.
+      if (body.date !== undefined) return failure("request_invalid");
+      if (body.measuredAt !== undefined) {
+        if (!validTimestamp(body.measuredAt)) return failure("request_invalid");
+        measuredAt = new Date(body.measuredAt).toISOString();
+      }
+      date = dateKeyFor(new Date(measuredAt), settings.timezone);
+    }
+    // Without a provider this keeps installed, environment-token Shortcuts working.
     if (!validMeasurementDate(date, today)) return failure("request_invalid");
     for (const metric of METRICS) {
       if (body[metric] === undefined || body[metric] === null || body[metric] === "") continue;
       const value = parseNumber(body[metric]);
       const [min, max] = ranges[metric];
       if (value === null || value < min || value > max) return failure("request_invalid");
-      samples.push({ metric, value, date, measuredAt: new Date().toISOString() });
+      samples.push({ metric, value, date, measuredAt });
     }
     if (!samples.length) return failure("request_invalid");
   }
@@ -122,9 +142,14 @@ async function receive(req: NextRequest) {
       if (previousTime && Date.parse(previousTime) > Date.parse(sample.measuredAt)) { ignored++; continue; }
       const result = await upsertBodyCheckInResult(user.id, sample.date, { bodyFatPercent: sample.value }, "shortcuts", heightCm, sample.measuredAt);
       if (!result.appliedFields.includes("bodyFatPercent")) { ignored++; continue; }
-    } else if (body.samples !== undefined && (sample.metric === "vo2Max" || sample.metric === "restingHeartRate")) {
+    } else if (fromHealth && (sample.metric === "vo2Max" || sample.metric === "restingHeartRate")) {
       const applied = await upsertFitnessMeasurement(user.id, sample.metric, {
         value: sample.value, date: sample.date, recordedAt: sample.measuredAt, source: "apple_health",
+      });
+      // The daily point is kept even when a newer reading already exists, so
+      // trends can use every date; the latest-reading guard stays separate.
+      await recordFitnessHistory(user.id, sample.metric, {
+        date: sample.date, value: sample.value, recordedAt: sample.measuredAt,
       });
       if (!applied) { ignored++; continue; }
     } else if (sample.metric === "calories") {

@@ -7,20 +7,23 @@ import { computeFitnessIntelligence } from "@/lib/fitnessIntelligence";
 import { generateFitnessSummary } from "@/lib/fitnessSummaryAi";
 import { getUserId } from "@/lib/session";
 import { getFitnessMeasurements } from "@/lib/fitnessMeasurements";
+import { getFitnessHistory } from "@/lib/fitnessHistory";
+import { buildFitnessTrends } from "@/lib/fitnessTrends";
+import { todayKey } from "@/lib/dates";
 
 export const maxDuration = 30;
 
 async function buildIntelligence(userId: string) {
   const settings = await getSettings(userId);
-  const [entries, checkIns, fitnessMeasurements] = await Promise.all([
+  const [entries, checkIns, fitnessMeasurements, history] = await Promise.all([
     getWeightEntries(userId),
     getBodyCheckIns(userId),
     getFitnessMeasurements(userId),
+    getFitnessHistory(userId),
   ]);
-  const bodyFat = latestReading(
-    mergeBodySnapshots(entries, checkIns),
-    "bodyFatPercent",
-  );
+  const snapshots = mergeBodySnapshots(entries, checkIns);
+  const bodyFat = latestReading(snapshots, "bodyFatPercent");
+  const trends = buildFitnessTrends({ snapshots, history, today: todayKey(settings.timezone) });
   const trend = computeWeightTrend(entries, settings.timezone);
   return {
     settings,
@@ -36,6 +39,7 @@ async function buildIntelligence(userId: string) {
           }
         : null,
       fitnessMeasurements,
+      trends,
     ),
   };
 }

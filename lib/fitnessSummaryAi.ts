@@ -1,5 +1,5 @@
 import type { FitnessIntelligence } from "./fitnessIntelligence";
-import { generateDeepseekJson } from "./deepseekClient";
+import { generateTextJson, SUMMARY_RESPONSE_SCHEMA, textAiProvider } from "./textAi";
 
 export interface FitnessSummaryResult {
   summary: string;
@@ -12,11 +12,17 @@ Gunakan HANYA data JSON yang diberikan. Jangan mengarang makanan, latihan, diagn
 VO2 max dan body fat dari perangkat adalah estimasi; jangan perlakukan sebagai hasil laboratorium.
 Jangan mendorong body fat ekstrem, defisit agresif, puasa kompensasi, atau olahraga sebagai hukuman.
 Sesuaikan interpretasi dengan goal pengguna: weight loss, very lean, athletic, atau muscle gain.
-Berikan ringkasan Bahasa Indonesia 80-120 kata dan tepat 3 rekomendasi singkat yang actionable.`;
+
+Bidang hasil perhitungan aplikasi pada data:
+- signals: pengamatan deterministik dari riwayat berat, body fat, detak istirahat, dan VO2 max. Jadikan ini sumber utama penjelasan; jangan menghitung ulang angka dan jangan menambah sebab baru.
+- composition: perubahan rata-rata berat, massa lemak, dan massa bebas lemak (estimasi dari timbangan impedansi). Massa bebas lemak mencakup air, glikogen, organ, dan tulang, BUKAN otot saja; jangan menyebut kehilangan atau penambahan otot. Jika ready=false, katakan datanya belum cukup (lihat needs) dan jangan menyimpulkan pola. confidence "low" berarti sampel masih sedikit.
+- restingHeartRateTrend dan vo2MaxTrend: stale=true berarti pembacaan lama, jadi sebutkan umurnya (ageDays) dan jangan menyebutnya kondisi terkini. Detak istirahat lebih tinggi dari baseline hanya boleh dikaitkan dengan kemungkinan tidur, stres, kafein, latihan berat, atau kurang sehat, dan bukan diagnosis.
+- Nilai null atau ready=false berarti belum ada data: lewati atau sebut "belum cukup data", jangan berasumsi.
+Berikan ringkasan Bahasa Indonesia 80-120 kata dan tepat 3 rekomendasi singkat yang actionable, berdasarkan priorities dan signals.`;
 
 const JSON_SHAPE_HINT = `{"summary": "string, 80-120 kata", "recommendations": ["string", "string", "string"]}`;
 
-// Zero-cost fallback for when DEEPSEEK_API_KEY isn't configured. The
+// Zero-cost fallback for when no text AI key (Gemini or DeepSeek) is configured. The
 // underlying engine (lib/fitnessIntelligence.ts) already computes a
 // deterministic one-line `recap` and ranked `priorities` — this just
 // repackages that existing output instead of calling any model, so there's
@@ -33,19 +39,21 @@ function templateFitnessSummary(input: FitnessIntelligence): FitnessSummaryResul
     if (recommendations.length >= 3) break;
     if (!recommendations.includes(generic)) recommendations.push(generic);
   }
-  return { summary: input.recap, recommendations, source: "template" };
+  const summary = [input.recap, ...input.signals.slice(0, 2)].join(" ");
+  return { summary, recommendations, source: "template" };
 }
 
 export async function generateFitnessSummary(input: FitnessIntelligence): Promise<FitnessSummaryResult> {
-  if (!process.env.DEEPSEEK_API_KEY) {
+  if (!textAiProvider()) {
     return templateFitnessSummary(input);
   }
 
-  const parsed = await generateDeepseekJson<Omit<FitnessSummaryResult, "source">>({
+  const parsed = await generateTextJson<Omit<FitnessSummaryResult, "source">>({
     systemPrompt: SYSTEM_PROMPT,
     userContent: `Data:\n${JSON.stringify(input, null, 2)}`,
     jsonShapeHint: JSON_SHAPE_HINT,
-    emptyResponseMessage: "DeepSeek returned no summary",
+    responseSchema: SUMMARY_RESPONSE_SCHEMA,
+    emptyResponseMessage: "The AI provider returned no summary",
   });
 
   return {

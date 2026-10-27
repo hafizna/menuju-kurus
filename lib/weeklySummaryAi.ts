@@ -1,4 +1,4 @@
-import { generateDeepseekJson } from "./deepseekClient";
+import { generateTextJson, SUMMARY_RESPONSE_SCHEMA, textAiProvider } from "./textAi";
 import type { FitnessGoal } from "./types";
 
 export interface WeeklySummaryInput {
@@ -17,6 +17,9 @@ export interface WeeklySummaryInput {
   proteinTargetG: number;
   periodStart: string | null;
   periodEnd: string | null;
+  // Deterministic observations from imported history (body composition,
+  // resting heart rate, VO2 max). Same sentences as the Fitness tab.
+  signals?: string[];
 }
 
 export interface WeeklySummaryResult {
@@ -33,6 +36,7 @@ ATURAN PENTING:
 - weeklyCalories adalah rata-rata asupan dari hari dengan catatan lengkap, bukan kalori bersih atau total mingguan. Hari yang belum lengkap tidak dianggap asupan nol. Sebutkan cakupan completedFoodDays/totalDays. Aktivitas tidak menambah budget makan dan tidak perlu ditebus.
 - belowRangeDays, withinRangeDays, aboveRangeDays adalah jumlah hari lengkap dengan asupan di bawah 80%, 80–100%, atau di atas target. incompleteDays tidak boleh dinilai. successRate rendah tidak berarti kebanyakan hari kelebihan makan; jelaskan penyebab dari jumlah hari aktual. Rentang ini heuristik aplikasi, bukan batas kecukupan medis.
 - Sesuaikan interpretasi arah berat dengan fitnessGoal. Kenaikan berat bukan otomatis masalah pada muscle_gain. Gunakan proteinTargetG, jangan buat target protein sendiri. Jangan mengklaim persentase di bawah 50% sebagai mayoritas.
+- signals (bila ada) adalah pengamatan hasil perhitungan aplikasi dari riwayat berat, body fat, detak istirahat, dan VO2 max. Gunakan hanya sebagai konteks tambahan, jangan hitung ulang atau tambah sebab baru. Massa bebas lemak mencakup air, glikogen, organ, dan tulang, bukan otot saja; jangan menyebut kehilangan atau penambahan otot. Detak istirahat yang lebih tinggi bukan diagnosis.
 - Nada: suportif tapi jujur. Kalau datanya kurang baik, katakan apa adanya, jangan hanya memuji.
 
 Tugas:
@@ -41,8 +45,8 @@ Tugas:
 
 const JSON_SHAPE_HINT = `{"summary": "string, 80-100 kata", "recommendations": ["string", "string", "string"]}`;
 
-// Pure, deterministic, zero-cost fallback used whenever DEEPSEEK_API_KEY isn't
-// configured — same input/output shape as the AI path, just template
+// Pure, deterministic, zero-cost fallback used whenever no text AI key (Gemini
+// or DeepSeek) is configured — same input/output shape as the AI path, just template
 // sentences instead of a model call. Lets the feature work for free (no AI
 // spend at all) until/unless DeepSeek is turned on later.
 export function templateWeeklySummary(input: WeeklySummaryInput): WeeklySummaryResult {
@@ -84,6 +88,7 @@ export function templateWeeklySummary(input: WeeklySummaryInput): WeeklySummaryR
   if (input.exercise > 0) {
     sentences.push(`Tercatat aktivitas di ${input.exercise} hari, tidak menambah budget makan.`);
   }
+  if (input.signals?.length) sentences.push(input.signals[0]);
 
   const recs: { text: string; priority: number }[] = [];
   if (input.totalDays > 0 && input.completedFoodDays < input.totalDays * 0.5) {
@@ -125,15 +130,16 @@ export function templateWeeklySummary(input: WeeklySummaryInput): WeeklySummaryR
 }
 
 export async function generateWeeklySummary(input: WeeklySummaryInput): Promise<WeeklySummaryResult> {
-  if (!process.env.DEEPSEEK_API_KEY) {
+  if (!textAiProvider()) {
     return templateWeeklySummary(input);
   }
 
-  const parsed = await generateDeepseekJson<Omit<WeeklySummaryResult, "source">>({
+  const parsed = await generateTextJson<Omit<WeeklySummaryResult, "source">>({
     systemPrompt: SYSTEM_PROMPT,
     userContent: `Data:\n${JSON.stringify(input, null, 2)}`,
     jsonShapeHint: JSON_SHAPE_HINT,
-    emptyResponseMessage: "DeepSeek returned no summary",
+    responseSchema: SUMMARY_RESPONSE_SCHEMA,
+    emptyResponseMessage: "The AI provider returned no summary",
   });
 
   if (typeof parsed.summary !== "string" || !parsed.summary.trim() ||
