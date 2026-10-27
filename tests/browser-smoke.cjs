@@ -240,6 +240,7 @@ let child, browser;
   await page.setViewportSize({ width: 390, height: 844 });
 
   await require("./mascot-browser.cjs")({ page, base, projectRoot, today });
+  await require("./loader-browser.cjs")({ page, base, projectRoot });
   await require("./activity-browser.cjs")({ page, base, store, today });
   await require("./meal-correction-browser.cjs")({ page, base, store, today, offset });
 

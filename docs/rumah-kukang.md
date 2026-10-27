@@ -32,6 +32,8 @@ Melihat rekomendasi pada Profil menghitung preview lokal. Menyimpan program atau
 
 Pengaturan Kurangi animasi memakai preferensi browser lokal; preferensi reduced motion perangkat tetap dihormati. Maskot juga berhenti bergerak di luar layar dan ketika tab tidak aktif. Mobile mempertahankan empat destinasi bawah, desktop memakai navigasi samping dan ruang konten lebih lebar.
 
+Layar memuat data menampilkan kukang di tengah layar dengan kegiatan yang dipilih acak: memantulkan bola tenis di raket, menyundul bola sepak, atau berjalan membawa tas. Kegiatan berikutnya tidak sama dengan yang terakhir tampil. Halaman penuh (Hari ini, Progress, Profil, Rencana) memakai versi besar, tab di dalam Progress memakai versi kecil. Gambar hanya dekorasi, jadi pembaca layar hanya membaca teks "Memuat …". Dengan Kurangi animasi, kukang berhenti dalam pose diam dan teksnya tetap tampil.
+
 ## Validasi
 
 `npm test`, `npm run typecheck`, dan `npm run build` memeriksa logika, kontrak tipe, dan build produksi. `npm run test:browser` menggunakan akun serta Redis REST sintetis; `PLAYWRIGHT_EXECUTABLE_PATH` dapat menunjuk Chromium lokal. Pemeriksaan ini tidak membuktikan konfigurasi layanan Upstash, Gemini, atau DeepSeek produksi.

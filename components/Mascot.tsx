@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export type MascotMood = "happy" | "neutral" | "worried" | "cheer" | "full" | "dance" | "thinking" | "protein" | "sugar" | "exercise" | "hustle" | "work";
+export type MascotMood = "happy" | "neutral" | "worried" | "cheer" | "full" | "dance" | "thinking" | "protein" | "sugar" | "exercise" | "hustle" | "work" | "juggle" | "header";
 
 const LABELS: Record<MascotMood, string> = {
   happy: "menyapa", neutral: "tidur bergelantungan", worried: "khawatir", cheer: "bersorak",
   full: "sedang beristirahat", dance: "bergoyang", thinking: "sedang berpikir",
   protein: "mengunyah paha ayam", sugar: "mengunyah dengan pipi penuh sambil memegang es krim",
   exercise: "olahraga ringan dengan dumbel", hustle: "melangkah membawa tas", work: "duduk mengetik di laptop",
+  juggle: "memantulkan bola tenis di raket", header: "menyundul bola sepak",
 };
 
 function Hand({ x, y, angle = 0 }: { x: number; y: number; angle?: number }) {
@@ -51,6 +52,12 @@ function Arm({ side, mood }: { side: "left" | "right"; mood: MascotMood }) {
   } else if (mood === "work") {
     d = left ? "M0 0C-16 22-20 33-7 39" : "M0 0C16 22 20 33 7 39";
     hand = left ? [-7, 39, 12] : [7, 39, -12];
+  } else if (mood === "juggle") {
+    d = left ? "M0 0C-30 6-50 2-58-14" : "M0 0C27 8 46-6 50-34";
+    hand = left ? [-58, -14, -20] : [50, -34, 165];
+  } else if (mood === "header") {
+    d = left ? "M0 0C-26 0-46 12-54 30" : "M0 0C26 0 46 12 54 30";
+    hand = left ? [-54, 30, 15] : [54, 30, -15];
   }
   return (
     <g transform={`translate(${left ? -36 : 36} 0)`}>
@@ -58,7 +65,44 @@ function Arm({ side, mood }: { side: "left" | "right"; mood: MascotMood }) {
         <path d={d} className="kukang-arm-outline" />
         <path d={d} className="kukang-arm-fill" />
         {mood === "exercise" && <Dumbbell x={hand[0]} y={hand[1]} angle={hand[2]} />}
+        {mood === "juggle" && !left && <Racket x={hand[0]} y={hand[1]} />}
         <Hand x={hand[0]} y={hand[1]} angle={hand[2]} />
+      </g>
+    </g>
+  );
+}
+
+/** Held flat like a tray, with the ball resting on it. The ball sits in the same
+ * group as the racket, so it follows the racket when the arm gives a little. */
+function Racket({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x} ${y})`} data-prop="racket" stroke="var(--kukang-ink)" strokeWidth="2.8">
+      <rect x="-3.5" y="-34" width="7" height="42" rx="3" fill="#8a6a4a" />
+      <path d="M-4-33L-14-43M4-33L14-43" fill="none" strokeWidth="3" />
+      <g transform="translate(0 -53)">
+        <ellipse rx="34" ry="12.5" fill="#709181" />
+        <ellipse rx="30" ry="9.5" fill="#f4f0dc" stroke="none" />
+        <path d="M-23-5V5M-12-8V8M0-9V9M12-8V8M23-5V5M-28 0H28" fill="none" stroke="#9bb7ab" strokeWidth="1.4" />
+      </g>
+      <g transform="translate(0 -75.5)" data-prop="tennis-ball">
+        <g className="kukang-motion kukang-ball">
+          <circle r="10.5" fill="#d8e25a" />
+          <path d="M-8.5-5.5Q-2 0-8.5 5.5M8.5-5.5Q2 0 8.5 5.5" fill="none" stroke="#fffdf0" strokeWidth="1.9" />
+        </g>
+      </g>
+    </g>
+  );
+}
+
+/** Rests on the crown of the head and hops straight up from it. */
+function Football() {
+  return (
+    <g transform="translate(0 -140)" data-prop="football" stroke="var(--kukang-ink)" strokeWidth="2.6">
+      <g className="kukang-motion kukang-ball">
+        <circle r="19" fill="#fbf8ee" />
+        <path d="M0-8L7.6-2.5L4.7 6.5H-4.7L-7.6-2.5Z" fill="var(--kukang-ink)" />
+        <path d="M0-8V-18.5M7.6-2.5L17.5-6M4.7 6.5L10.5 15M-4.7 6.5L-10.5 15M-7.6-2.5L-17.5-6" fill="none" strokeWidth="2" />
+        <path d="M-8-17Q0-21 8-17L5-12.5Q0-14-5-12.5ZM15 2L18 8L12.5 13.5L10.5 9ZM-15 2L-18 8L-12.5 13.5L-10.5 9Z" fill="var(--kukang-ink)" stroke="none" />
       </g>
     </g>
   );
@@ -259,6 +303,7 @@ export default function Mascot({ mood = "happy", className = "", animated = true
           {mood === "hustle" && <Satchel />}
           <Arm side="left" mood={mood} />{!eating && <Arm side="right" mood={mood} />}
           <Head mood={mood} />
+          {mood === "header" && <Football />}
           {eating && <FeedingArm mood={mood} />}
           {mood === "work" && <Laptop />}
         </g>
