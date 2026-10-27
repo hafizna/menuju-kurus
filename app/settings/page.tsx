@@ -140,8 +140,9 @@ export default function SettingsPage() {
         <button type="submit" disabled={saving} className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">{saving ? "Menyimpan..." : saved ? "Tersimpan ✓" : "Simpan Program"}</button>
       </form>
 
-      <Section title="Data kesehatan" description="Masukkan hasil pengukuran dari Apple Health lewat Shortcut di iPhone.">
-        <p className="text-sm text-neutral-500">Hubungkan berat badan dan persentase lemak, lalu periksa kapan data terakhir masuk.</p>
+      <Section title="Data kesehatan (opsional)" description="Untuk yang punya iPhone dengan Apple Watch atau timbangan pintar.">
+        <p className="text-sm text-neutral-500">Hubungkan agar berat, persentase lemak, VO₂ max, dan detak istirahat masuk otomatis dari Apple Health.</p>
+        <p className="mt-2 text-sm text-neutral-500">Tidak punya atau tidak mau menghubungkan? Tidak masalah, semuanya tetap bisa dicatat sendiri: berat dan ukuran tubuh di Perjalanan → Tubuh, aktivitas di Home, VO₂ max dan detak istirahat di bagian Aktivitas &amp; fitness di atas.</p>
         <Link href="/settings/health" className="mt-3 inline-flex rounded-xl bg-brand-700 px-4 py-3 text-sm font-medium text-white">Hubungkan Apple Health →</Link>
       </Section>
       <Section title="Tampilan" description="Otomatis mengikuti pengaturan HP-mu."><DisplaySettings /></Section>

@@ -2,12 +2,33 @@
 
 import { avatarHalfWidth, avatarHeight, type BodySnapshot } from "@/lib/body";
 
+export type AvatarRegion = "waistCm" | "hipCm" | "thighCm";
+const REGIONS = [
+  ["waistCm", "1. Pinggang"],
+  ["hipCm", "2. Pinggul"],
+  ["thighCm", "3. Paha"],
+] as const;
+// Where each region sits in the 180x270 drawing, for the highlight band.
+const BANDS: Record<AvatarRegion, [number, number]> = {
+  waistCm: [94, 122],
+  hipCm: [122, 156],
+  thighCm: [156, 200],
+};
+
 export default function BodyAvatar({
   snapshot,
   referenceHeightCm,
+  previous,
+  focus = null,
+  onFocus,
 }: {
   snapshot: BodySnapshot;
   referenceHeightCm: number | null;
+  /** The earlier snapshot, so each measurement can show how much it changed. */
+  previous?: BodySnapshot;
+  /** The region being looked at; the same one is highlighted on both figures. */
+  focus?: AvatarRegion | null;
+  onFocus?: (region: AvatarRegion) => void;
 }) {
   const height = avatarHeight(snapshot);
   const waist =
@@ -23,8 +44,16 @@ export default function BodyAvatar({
       ? avatarHalfWidth(snapshot.thighCm.value, height) / 2
       : 8;
   const scale = height && referenceHeightCm ? height / referenceHeightCm : 1;
-  const known = (field: "waistCm" | "hipCm" | "thighCm") =>
-    !!height && !!snapshot[field];
+  const known = (field: AvatarRegion) => !!height && !!snapshot[field];
+  const weight = (field: AvatarRegion) => (focus === field ? 4 : 2);
+  const change = (field: AvatarRegion) => {
+    const now = snapshot[field];
+    const before = previous?.[field];
+    if (!now || !before || !previous || previous.date >= snapshot.date) return null;
+    const delta = Math.round((now.value - before.value) * 10) / 10;
+    return delta === 0 ? "tidak berubah" : `${delta > 0 ? "+" : "−"}${Math.abs(delta)} cm`;
+  };
+  const band = focus ? BANDS[focus] : null;
   return (
     <figure className="min-w-0 rounded-2xl bg-neutral-50 p-3 dark:bg-neutral-950">
       <figcaption className="text-center text-xs font-medium">
@@ -44,6 +73,20 @@ export default function BodyAvatar({
           strokeLinecap="round"
           strokeLinejoin="round"
         >
+          {band && (
+            <rect
+              x={34}
+              y={band[0]}
+              width={112}
+              height={band[1] - band[0]}
+              rx={8}
+              fill="currentColor"
+              stroke="none"
+              opacity={0.14}
+              className="text-brand-600 dark:text-brand-400"
+              data-focus={focus}
+            />
+          )}
           <g
             className="text-neutral-300 dark:text-neutral-700"
             strokeDasharray="4 4"
@@ -58,6 +101,7 @@ export default function BodyAvatar({
                 ? "text-brand-600 dark:text-brand-400"
                 : "text-neutral-300 dark:text-neutral-700"
             }
+            strokeWidth={weight("waistCm")}
             strokeDasharray={known("waistCm") ? undefined : "4 4"}
           />
           <path
@@ -67,6 +111,7 @@ export default function BodyAvatar({
                 ? "text-brand-600 dark:text-brand-400"
                 : "text-neutral-300 dark:text-neutral-700"
             }
+            strokeWidth={weight("hipCm")}
             strokeDasharray={known("hipCm") ? undefined : "4 4"}
           />
           <g
@@ -75,6 +120,7 @@ export default function BodyAvatar({
                 ? "text-brand-600 dark:text-brand-400"
                 : "text-neutral-300 dark:text-neutral-700"
             }
+            strokeWidth={weight("thighCm")}
             strokeDasharray={known("thighCm") ? undefined : "4 4"}
           >
             <path
@@ -109,18 +155,33 @@ export default function BodyAvatar({
         </g>
       </svg>
       <ul className="space-y-1 text-xs text-neutral-500">
-        {(
-          [
-            ["waistCm", "1. Pinggang"],
-            ["hipCm", "2. Pinggul"],
-            ["thighCm", "3. Paha"],
-          ] as const
-        ).map(([field, label]) => (
-          <li key={field}>
-            {label}:{" "}
-            {snapshot[field] ? `${snapshot[field]!.value} cm` : "Belum diukur"}
-          </li>
-        ))}
+        {REGIONS.map(([field, label]) => {
+          const reading = snapshot[field];
+          const delta = change(field);
+          const text = `${label}: ${reading ? `${reading.value} cm` : "Belum diukur"}`;
+          const active = focus === field;
+          return (
+            <li key={field}>
+              {onFocus ? (
+                <button
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onFocus(field)}
+                  className={`flex min-h-9 w-full flex-col items-start justify-center rounded-lg px-2 py-1 text-left transition-colors ${
+                    active
+                      ? "bg-brand-100 font-medium text-brand-800 dark:bg-brand-900 dark:text-brand-200"
+                      : "hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                  }`}
+                >
+                  <span>{text}</span>
+                  {delta && <span className="font-medium tabular-nums text-brand-700 dark:text-brand-300">{delta}</span>}
+                </button>
+              ) : (
+                <span>{delta ? `${text} (${delta})` : text}</span>
+              )}
+            </li>
+          );
+        })}
       </ul>
       <p className="mt-2 text-xs text-neutral-500">
         {height

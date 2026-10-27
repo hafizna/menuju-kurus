@@ -240,6 +240,7 @@ let child, browser;
   await page.setViewportSize({ width: 390, height: 844 });
 
   await require("./mascot-browser.cjs")({ page, base, projectRoot, today });
+  await require("./activity-browser.cjs")({ page, base, store, today });
 
   // A draft survives the recommendation mode, other meal routes and a reload.
   await page.goto(`${base}/makan`);
@@ -501,6 +502,27 @@ let child, browser;
     true,
     "mobile horizontal overflow",
   );
+  // The change summary leads the tab: values, direction and real days, with a
+  // period switch, before the two-date comparison below it.
+  const changeCard = page.getByRole("region", { name: "Perubahanmu", exact: true });
+  await changeCard.waitFor();
+  assert.match(await changeCard.innerText(), /Pinggang[\s\S]*92 → 90 cm · 21 hari[\s\S]*↓ 2/);
+  assert.equal(await changeCard.getByRole("radio", { name: "Sejak mulai", exact: true }).isChecked(), true);
+  await changeCard.locator("label").filter({ hasText: "30 hari" }).click();
+  assert.equal(await changeCard.getByRole("radio", { name: "30 hari", exact: true }).isChecked(), true);
+  assert.match(await changeCard.innerText(), /Pinggang/);
+  await changeCard.locator("label").filter({ hasText: "Sejak mulai" }).click();
+  // The illustration opens on the area that changed most and follows taps.
+  const afterFigure = page.locator("figure").nth(1);
+  assert.equal(await page.locator('rect[data-focus="waistCm"]').count(), 2, "biggest change was not highlighted by default");
+  assert.match(await page.getByRole("status").filter({ hasText: "Pinggang" }).innerText(), /92 → 90 cm \(−2 cm\)/);
+  const hip = afterFigure.getByRole("button", { name: /^2\. Pinggul/ });
+  await hip.click();
+  assert.equal(await hip.getAttribute("aria-pressed"), "true");
+  assert.equal(await page.locator('rect[data-focus="hipCm"]').count(), 2, "tapped area was not highlighted on both figures");
+  assert.match(await page.getByRole("status").filter({ hasText: "Pinggul" }).innerText(), /100 → 99 cm \(−1 cm\)/);
+  await hip.click();
+  assert.equal(await page.locator('rect[data-focus="waistCm"]').count(), 2, "second tap did not return to the default");
   await page.screenshot({
     path: path.join(projectRoot, ".next/validation/progress-body-mobile.png"),
     fullPage: true,
