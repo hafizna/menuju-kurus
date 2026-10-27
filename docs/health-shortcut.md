@@ -15,7 +15,7 @@ Slothly's web app cannot read HealthKit directly. The included **Slothly Health 
 3. In Slothly, create the connection and choose **Salin konfigurasi**.
 4. Choose **Buka Shortcut**. With the default installed name, this opens `shortcuts://run-shortcut?name=slothly-health-sync&input=clipboard`; the bearer token is transferred through the clipboard, not embedded in a URL. The URL follows the editable Shortcut name.
 5. Verify the destination shown by the Shortcut. Allow the connection request and saving its configuration. The Shortcut tests the token before saving its configuration. In **Pilih data yang ingin dibaca**, choose only the types you want to read; allow those Health read permissions when iOS asks. Weight, body fat, VO2 max, and resting heart rate are all optional. The choices appear again on each run and are not stored in the account configuration.
-6. Return to **Hubungkan Apple Health** and choose **Periksa status**. Check the last received measurement dates and data types against Apple Health, then open **Perjalanan** to compare the saved values.
+6. Return to **Hubungkan Apple Health** and choose **Periksa status**. Check the last received measurement dates and data types against Apple Health, then open **Progress** to compare the saved values.
 
 Subsequent **Sinkronkan sekarang** runs use the same selected Shortcut name without input. They reuse the saved configuration. The Shortcut does not read unrelated clipboard content in this mode.
 

@@ -21,7 +21,7 @@ tombol di app. Browser tidak menerima token akses Health.
    membaca metrik Health miliknya. Izinkan koneksi ke Slothly, akses berkas, dan
    pembacaan Health saat iPhone meminta.
 5. Kembali ke app dan pilih **Periksa status**. Bandingkan tanggal dan hasil
-   pengukuran dengan Apple Health di Perjalanan. Status uji koneksi bukan bukti
+   pengukuran dengan Apple Health di Progress. Status uji koneksi bukan bukti
    bahwa pengukuran sudah diterima.
 6. Jika nama instalasi berbeda, isi **Nama Shortcut di iPhone berbeda?** sesuai
    nama yang terlihat di Shortcuts. Nama ini juga dipakai dalam panduan automasi.

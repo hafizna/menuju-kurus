@@ -134,7 +134,7 @@ export default function SettingsPage() {
 
         <Section title="Aktivitas & fitness">
           <div className="grid grid-cols-2 gap-3"><Field label="VO₂ max"><input type="number" step="0.1" value={settings.vo2Max ?? ""} onChange={(e) => setSettings({ ...settings, vo2Max: e.target.value ? Number(e.target.value) : null })} placeholder="Opsional" className={inputClass} /></Field><Field label="Resting HR"><input type="number" value={settings.restingHeartRate ?? ""} onChange={(e) => setSettings({ ...settings, restingHeartRate: e.target.value ? Number(e.target.value) : null })} placeholder="bpm" className={inputClass} /></Field><Field label="Kardio / minggu"><input type="number" value={settings.cardioMinutesWeekly} onChange={(e) => setSettings({ ...settings, cardioMinutesWeekly: Number(e.target.value) })} className={inputClass} /></Field><Field label="Strength days"><input type="number" min="0" max="7" value={settings.strengthDaysWeekly} onChange={(e) => setSettings({ ...settings, strengthDaysWeekly: Number(e.target.value) })} className={inputClass} /></Field></div>
-          <p className="mt-3 text-xs leading-relaxed text-neutral-500">VO₂ max dan resting HR dari Apple Health ditampilkan bersama tanggalnya di Perjalanan → Kebugaran. Isian manual di sini dipakai jika belum ada pengukuran impor untuk metrik tersebut.</p>
+          <p className="mt-3 text-xs leading-relaxed text-neutral-500">VO₂ max dan resting HR dari Apple Health ditampilkan bersama tanggalnya di Progress → Kebugaran. Isian manual di sini dipakai jika belum ada pengukuran impor untuk metrik tersebut.</p>
         </Section>
 
         <button type="submit" disabled={saving} className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">{saving ? "Menyimpan..." : saved ? "Tersimpan ✓" : "Simpan Program"}</button>
@@ -142,7 +142,7 @@ export default function SettingsPage() {
 
       <Section title="Data kesehatan (opsional)" description="Untuk yang punya iPhone dengan Apple Watch atau timbangan pintar.">
         <p className="text-sm text-neutral-500">Hubungkan agar berat, persentase lemak, VO₂ max, dan detak istirahat masuk otomatis dari Apple Health.</p>
-        <p className="mt-2 text-sm text-neutral-500">Tidak punya atau tidak mau menghubungkan? Tidak masalah, semuanya tetap bisa dicatat sendiri: berat dan ukuran tubuh di Perjalanan → Tubuh, aktivitas di Home, VO₂ max dan detak istirahat di bagian Aktivitas &amp; fitness di atas.</p>
+        <p className="mt-2 text-sm text-neutral-500">Tidak punya atau tidak mau menghubungkan? Tidak masalah, semuanya tetap bisa dicatat sendiri: berat dan ukuran tubuh di Progress → Tubuh, aktivitas di Home, VO₂ max dan detak istirahat di bagian Aktivitas &amp; fitness di atas.</p>
         <Link href="/settings/health" className="mt-3 inline-flex rounded-xl bg-brand-700 px-4 py-3 text-sm font-medium text-white">Hubungkan Apple Health →</Link>
       </Section>
       <Section title="Tampilan" description="Otomatis mengikuti pengaturan HP-mu."><DisplaySettings /></Section>

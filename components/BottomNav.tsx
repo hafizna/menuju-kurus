@@ -8,7 +8,7 @@ import Mascot from "@/components/Mascot";
 const ITEMS = [
   { href: "/", label: "Hari ini", icon: IconHome },
   { href: "/makan", label: "Makan", icon: IconBowl },
-  { href: "/progress", label: "Perjalanan", icon: IconChartBar },
+  { href: "/progress", label: "Progress", icon: IconChartBar },
   { href: "/settings", label: "Profil", icon: IconUser },
 ];
 

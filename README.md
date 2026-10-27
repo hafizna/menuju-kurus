@@ -274,7 +274,7 @@ Langkah, tidur, dan konektor Android Health Connect belum disertakan.
 Permintaan body/fitness memakai
 `{provider:"apple_health",samples:[{metric,value,measuredAt}]}` dengan nama metrik
 `weightKg`, `bodyFatPercent`, `vo2Max`, dan `restingHeartRate`. Tanggal pengukuran
-asli dipertahankan; pengukuran lama tidak menimpa yang lebih baru. Perjalanan →
+asli dipertahankan; pengukuran lama tidak menimpa yang lebih baru. Progress →
 Kebugaran menampilkan VO₂ max dan denyut istirahat terbaru beserta sumber/tanggal;
 isian Profil menjadi cadangan jika belum ada hasil impor. Ini belum berupa
 riwayat atau grafik VO₂ max. Kalori aktif harian memakai payload
