@@ -6,6 +6,7 @@ import { RESPONSE_PERIODS, type ResponsePeriod, type BodyResponseReport } from "
 import type { BodyResponse } from "./BodyTab";
 import CalibrationPanel from "./CalibrationPanel";
 import BodyResponsePanel from "./BodyResponsePanel";
+import WeeklyTab from "./WeeklyTab";
 
 export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
   const [data, setData] = useState<BodyResponse | null>(null);
@@ -64,7 +65,7 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
   const waistDue = checkInDue(data.snapshots, "waistCm", data.today);
   const analysisReady = !!report && report.current.food.ready && report.current.weight.ready;
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {error && (
         <p role="alert" className="text-sm text-red-500">
           {error}
@@ -87,8 +88,14 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
           {waistDue.due ? "Check-in tubuh jika berkenan" : "Lihat ukuran tubuh"}
         </button>
       </section>
+      <section id="minggu-ini" aria-labelledby="week-title" className="scroll-mt-4 space-y-3">
+        <h2 id="week-title" className="px-1 text-sm font-semibold text-neutral-500">Minggu ini</h2>
+        <WeeklyTab />
+      </section>
+      <section aria-labelledby="pattern-title" className="space-y-4">
+      <h2 id="pattern-title" className="px-1 text-sm font-semibold text-neutral-500">Pola jangka panjang</h2>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">Periode pengukuran</h2>
+        <h3 className="text-sm font-semibold">Periode pengukuran</h3>
         <div
           className="flex rounded-xl bg-neutral-100 p-1 dark:bg-neutral-900"
           role="group"
@@ -108,7 +115,7 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
         </div>
       </div>
       <section className="rounded-2xl border border-neutral-100 bg-white p-4 text-sm text-neutral-600 shadow-xs dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-        <h2 className="font-semibold text-neutral-900 dark:text-neutral-100">{analysisReady ? "Pola mulai bisa dibaca" : "Bangun catatan sedikit demi sedikit"}</h2>
+        <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">{analysisReady ? "Pola mulai bisa dibaca" : "Bangun catatan sedikit demi sedikit"}</h3>
         {report ? <>
           <p className="mt-1">{report.current.start} — {report.current.end} · {report.current.food.observedDays}/{days} hari asupan lengkap · {report.current.weight.observedDays} ukuran berat.</p>
           {analysisReady ? <p className="mt-2">Data cukup untuk deskripsi terbatas. Lihat detail bila ingin meninjau grafik dan sumber angkanya.</p> : <>
@@ -125,6 +132,7 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
         <summary className="cursor-pointer text-sm font-medium">Evaluasi target · periode terpisah 28 hari</summary>
         <div className="mt-4"><CalibrationPanel /></div>
       </details>
+      </section>
     </div>
   );
 }

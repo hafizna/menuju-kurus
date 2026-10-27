@@ -507,6 +507,7 @@ let child, browser;
   const changeCard = page.getByRole("region", { name: "Perubahanmu", exact: true });
   await changeCard.waitFor();
   assert.match(await changeCard.innerText(), /Pinggang[\s\S]*92 → 90 cm · 21 hari[\s\S]*↓ 2/);
+  await page.getByRole("heading", { name: "Body fat & komposisi", exact: true }).waitFor();
   assert.equal(await changeCard.getByRole("radio", { name: "Sejak mulai", exact: true }).isChecked(), true);
   await changeCard.locator("label").filter({ hasText: "30 hari" }).click();
   assert.equal(await changeCard.getByRole("radio", { name: "30 hari", exact: true }).isChecked(), true);
@@ -610,10 +611,17 @@ let child, browser;
   await page
     .getByRole("heading", { name: "Lihat pola, beri tubuh waktu" })
     .waitFor();
-  await page.getByRole("tab", { name: "Fitness", exact: true }).click();
+  await page.getByRole("tab", { name: "Kebugaran", exact: true }).click();
   await page.getByText("Prioritas berikutnya", { exact: true }).waitFor();
-  await page.getByRole("tab", { name: "Mingguan", exact: true }).click();
+  await page.getByRole("tab", { name: "Ringkasan", exact: true }).click();
   await page.getByText("Review 7 hari terakhir", { exact: true }).waitFor();
+  // Three tabs by question; the weekly review sits on Ringkasan above the long-term pattern.
+  assert.deepEqual(await page.getByRole("tab").allInnerTexts(), ["Ringkasan", "Tubuh", "Kebugaran"]);
+  await page.getByRole("heading", { name: "Minggu ini", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Pola jangka panjang", exact: true }).waitFor();
+  await page.goto(`http://127.0.0.1:${appPort}/progress?tab=weekly`);
+  await page.getByText("Review 7 hari terakhir", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("tab", { name: "Ringkasan", exact: true }).getAttribute("aria-selected"), "true", "old weekly link did not open Ringkasan");
   await page.route("**/api/body", (route) =>
     route.fulfill({
       status: 500,
@@ -1083,6 +1091,14 @@ let child, browser;
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "fitness units overflow at 320px");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: path.join(projectRoot, ".next/validation/health-fitness-mobile.png"), fullPage: true });
+  // Sessions logged on Home count in Kebugaran next to the Profil routine; Apple Watch energy does not.
+  const loggedRun = await page.evaluate(async () => (await fetch("/api/log", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "burn", calories: 300, label: "Lari", kind: "run", durationMin: 40, source: "manual" }),
+  })).json());
+  await page.reload();
+  await page.getByText("40 menit", { exact: true }).waitFor();
+  await page.evaluate((id) => fetch(`/api/log?type=burn&id=${id}`, { method: "DELETE" }), loggedRun.entry.id);
   await page.goto(`${base}/settings/health`);
   await page.reload();
   await page.getByRole("heading", { name: "Data sudah diterima", exact: true }).waitFor();

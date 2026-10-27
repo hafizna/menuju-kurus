@@ -42,17 +42,17 @@ export default function WeeklyFocusCard({ editable = false }: { editable?: boole
           <p className="font-medium">{option.label}</p>
           <p className="text-sm text-neutral-600 dark:text-neutral-300">{option.detail}</p>
           <p className="text-xs text-neutral-500">Dipilih {data.focus.selectedOn} · tinjau {data.focus.reviewOn}</p>
-          {data.reviewDue ? <Link href="/progress?tab=weekly" className="inline-block rounded-lg bg-brand-600 px-3 py-2 text-sm text-white">Saatnya tinjau fokus</Link> : data.focus.completedOn ? (
+          {data.reviewDue ? <Link href="/progress?tab=overview#minggu-ini" className="inline-block rounded-lg bg-brand-600 px-3 py-2 text-sm text-white">Saatnya tinjau fokus</Link> : data.focus.completedOn ? (
             <p role="status" className="text-sm text-brand-700 dark:text-brand-300">Sudah kamu tandai tercapai pada {data.focus.completedOn}. Lanjutkan ritme yang terasa cocok.</p>
           ) : <div className="flex flex-wrap gap-2">
             <Link href={option.href} className="rounded-lg bg-brand-600 px-3 py-2 text-sm text-white">{option.actionLabel}</Link>
             <button type="button" disabled={saving} onClick={() => void save("complete")} className="rounded-lg border border-brand-200 px-3 py-2 text-sm disabled:opacity-50">{saving ? "Menyimpan..." : "Tandai tercapai"}</button>
           </div>}
-          {editable ? <button type="button" onClick={() => setChoosing(!choosing)} className="text-xs font-medium underline">{choosing ? "Tutup pilihan" : data.reviewDue ? "Pilih fokus berikutnya" : "Ubah fokus"}</button> : <Link href="/progress?tab=weekly" className="inline-block text-xs font-medium underline">Lihat review mingguan</Link>}
+          {editable ? <button type="button" onClick={() => setChoosing(!choosing)} className="text-xs font-medium underline">{choosing ? "Tutup pilihan" : data.reviewDue ? "Pilih fokus berikutnya" : "Ubah fokus"}</button> : <Link href="/progress?tab=overview#minggu-ini" className="inline-block text-xs font-medium underline">Lihat review mingguan</Link>}
         </>
       ) : <>
         <p className="text-sm text-neutral-600 dark:text-neutral-300">Pilih satu kebiasaan kecil untuk dicoba selama 7 hari. Fokusmu akan muncul di Home.</p>
-        {!editable && <Link href="/progress?tab=weekly" className="inline-block rounded-lg bg-brand-600 px-3 py-2 text-sm text-white">Pilih fokus</Link>}
+        {!editable && <Link href="/progress?tab=overview#minggu-ini" className="inline-block rounded-lg bg-brand-600 px-3 py-2 text-sm text-white">Pilih fokus</Link>}
       </>}
       {editable && data && (!option || choosing) && <div className="grid gap-2">
         {WEEKLY_FOCUS_OPTIONS.map((item) => <button type="button" key={item.id} disabled={saving} onClick={() => void save("select", item.id)} className="rounded-xl border border-brand-100 bg-white px-3 py-3 text-left text-sm disabled:opacity-50 dark:border-brand-900 dark:bg-neutral-900">{item.label}</button>)}

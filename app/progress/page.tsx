@@ -5,24 +5,25 @@ import { useRouter, useSearchParams } from "next/navigation";
 import BodyTab from "@/components/progress/BodyTab";
 import OverviewTab from "@/components/progress/OverviewTab";
 import FitnessTab from "@/components/progress/FitnessTab";
-import WeeklyTab from "@/components/progress/WeeklyTab";
 import JournalHeader from "@/components/JournalHeader";
 
 const TABS = [
   { id: "overview", label: "Ringkasan" },
   { id: "body", label: "Tubuh" },
-  { id: "fitness", label: "Fitness" },
-  { id: "weekly", label: "Mingguan" },
+  { id: "fitness", label: "Kebugaran" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 function ProgressContent() {
   const router = useRouter();
   const params = useSearchParams();
   const requested = params.get("tab");
+  // Older links: weight is now Tubuh, and the weekly review is part of Ringkasan.
   const tab: Tab =
     requested === "weight"
       ? "body"
-      : (TABS.find((entry) => entry.id === requested)?.id ?? "overview");
+      : requested === "weekly"
+        ? "overview"
+        : (TABS.find((entry) => entry.id === requested)?.id ?? "overview");
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   function selectTab(next: Tab) {
     const query = new URLSearchParams(params.toString());
@@ -31,9 +32,9 @@ function ProgressContent() {
   }
   return (
     <div className="journal-page journal-page--progress space-y-4 p-4">
-      <JournalHeader scene="progress" kicker="Jejak kecilmu" title="Progress" description="Perubahan tubuh, aktivitas, dan kebiasaan dari waktu ke waktu." />
+      <JournalHeader scene="progress" kicker="Jejak kecilmu" title="Progress" description="Minggu ini, tubuhmu, dan kebugaranmu dari waktu ke waktu." />
       <div
-        className="journal-tabs grid grid-cols-4 gap-1 rounded-2xl p-1"
+        className="journal-tabs grid grid-cols-3 gap-1 rounded-2xl p-1"
         role="tablist"
         aria-label="Bagian Progress"
       >
@@ -82,7 +83,6 @@ function ProgressContent() {
         )}
         {tab === "body" && <BodyTab />}
         {tab === "fitness" && <FitnessTab />}
-        {tab === "weekly" && <WeeklyTab />}
       </div>
     </div>
   );

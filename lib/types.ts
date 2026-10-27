@@ -28,6 +28,8 @@ export interface BurnEntry {
   label: string;
   /** Minutes of activity, when it was logged by kind and duration. */
   durationMin?: number;
+  /** Activity kind id (see lib/activity.ts); older entries only have the label. */
+  kind?: string;
   source: "manual" | "shortcuts";
 }
 export interface DayLog {

@@ -16,6 +16,7 @@ import WeightForecastCard from "@/components/WeightForecastCard";
 import BodyAvatar, { type AvatarRegion } from "./BodyAvatar";
 import MetricChart from "./MetricChart";
 import BodyChangeCard from "./BodyChangeCard";
+import BodyCompositionSection from "./BodyCompositionSection";
 
 export interface BodyResponse {
   snapshots: BodySnapshot[];
@@ -431,6 +432,7 @@ export default function BodyTab() {
       ) : (
         <>
           <BodyChangeCard snapshots={snapshots} today={data.today} />
+          <BodyCompositionSection />
           <section className="space-y-4 rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
             <h2 className="font-semibold">Bandingkan dua tanggal</h2>
             {comparable ? (

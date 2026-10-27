@@ -10,7 +10,7 @@ Pengguna dapat menjawab: apa yang berubah, cukupkah datanya, dan apa langkah ber
 
 ```text
 Progress                       [14 | 28 | 56 hari]
-Ringkasan     Tubuh     Fitness     Mingguan
+Ringkasan     Tubuh     Kebugaran
 
 Perubahan selama periode ini
 Berat rata-rata   −0,6 kg     Pinggang   −2 cm
@@ -114,6 +114,6 @@ Ringkasan menyediakan periode 14/28/56 hari, coverage/kesiapan per metrik, dan p
 
 Panel terpisah memakai 28 hari tertutup sampai kemarin, terlepas dari pilihan grafik. Menampilkan target aktif, maintenance profil, estimasi maintenance beserta rentang sensitivitas, coverage, alasan penundaan/usulan, dan dua keputusan: terapkan atau tetap. Konfirmasi konteks diperlukan untuk menerapkan; target protein tetap. Periode, riwayat keputusan terbaru, dan tanggal evaluasi ulang terlihat. Tidak memakai diagram yang menyiratkan presisi metabolisme.
 
-## Panel Komposisi di tab Fitness
+## Panel Komposisi di tab Tubuh
 
 Kartu "Komposisi tubuh (estimasi)" membandingkan rata-rata 14 hari terakhir dengan 14 hari sebelumnya untuk berat, body fat, massa lemak, dan massa bebas lemak, hanya dari tanggal yang punya berat dan body fat. Tabel menampilkan nilai kedua periode, selisih bertanda, dan jumlah hari berpasangan; sebelum syarat minimal terpenuhi kartu hanya menjelaskan data yang masih kurang, tanpa angka selisih. Kalimat penjelasnya berasal dari server (`signals`) dan selalu menyebut bahwa ini estimasi timbangan impedansi, bahwa massa bebas lemak bukan otot, dan bahwa tren lebih berarti daripada satu angka. VO₂ max dan detak istirahat memakai baris tambahan "rata-rata terbaru vs sebelumnya" atau "Data lama: N hari lalu"; tidak ada warna sukses/gagal untuk naik atau turun. Aturan lengkap ada di [kebijakan komposisi dan tren](body-response-data-policy.md#komposisi-tubuh-dan-tren-fitness).

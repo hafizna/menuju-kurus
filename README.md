@@ -29,7 +29,7 @@ Empat tab di bottom nav, disusun sebagai alur keputusan harian, bukan daftar fit
 
 - **Home** (`/`) — status hari ini dan Personal Adaptive Coach dengan konteks Sekarang, Lapar, Sangat lapar, Craving, atau Makan di luar.
 - **Makan** (`/makan`) — tiga konteks: Catat (foto + Nutrition Intelligence), Restoran (menu Indonesia tanpa foto), dan Kebiasaan (quick add + pola 28 hari), plus riwayat makan hari ini.
-- **Progress** (`/progress`) — Ringkasan, Tubuh (check-in, riwayat, grafik, dan avatar skematis), Fitness, dan Mingguan (weekly review + AI summary). Tautan lama `?tab=weight` membuka Tubuh.
+- **Progress** (`/progress`) — tiga tab menurut pertanyaannya. **Ringkasan**: review 7 hari dengan ringkasan AI dan fokus mingguan, lalu pola jangka panjang dan evaluasi target. **Tubuh**: check-in, perubahan, body fat dan komposisi, riwayat, grafik, dan avatar skematis. **Kebugaran**: VO₂ max, detak istirahat, serta kardio dan latihan beban dari catatan Gerak hari ini. Tautan lama `?tab=weight` membuka Tubuh dan `?tab=weekly` membuka Ringkasan.
 - **Profil** (`/settings`) — "Program Saya": Program & target, Data tubuh, Aktivitas & fitness, Integrasi, Akun.
 
 Rencana harian (`/plan`, pilih Intermittent Fasting atau Defisit Kalori berdasarkan jam bangun) diakses kontekstual dari Home, bukan sebagai tab tersendiri.
@@ -190,7 +190,7 @@ npm run build
 
 - Target harian adalah **asupan makan**. Sisa budget = target − asupan; kalori aktivitas tidak dikurangkan dan tidak otomatis menjadi tambahan makanan. Estimasi maintenance sudah memasukkan aktivitas rutin.
 - Active Energy tetap disimpan dan ditampilkan sebagai konteks terpisah. Tidak ada saran olahraga berdurasi tertentu untuk menebus surplus.
-- Catatan makan memiliki status belum dicatat, parsial, atau lengkap. Konfirmasi seluruh asupan di Home atau per tanggal pada Progress → Mingguan. Menambah/menghapus makanan membuka kembali status; mengubah aktivitas tidak.
+- Catatan makan memiliki status belum dicatat, parsial, atau lengkap. Konfirmasi seluruh asupan di Home atau per tanggal pada Progress → Ringkasan → Rincian per hari. Menambah/menghapus makanan membuka kembali status; mengubah aktivitas tidak.
 - Data lama tanpa `foodLogComplete` tetap tersimpan dan dianggap parsial, bukan asupan nol atau otomatis lengkap. Tidak ada reset data atau perubahan target tersimpan. Interpretasi budget berubah dari net menjadi intake.
 - Rata-rata mingguan hanya memakai hari yang dikonfirmasi lengkap, dengan jumlah hari sumber terlihat. Tanpa hari lengkap hasilnya belum ada data (`null`), bukan nol.
 - Budget rolling 7 hari memakai semua asupan yang sudah dicatat dan berlabel sementara bila belum seluruh hari lengkap. Nilai tersisa bukan estimasi defisit atau bonus makan.
@@ -210,7 +210,7 @@ npm run build
 - Avatar 2D bersifat ilustratif dan bisa disembunyikan. Pinggang/pinggul/paha memengaruhi bagian terkait bila tinggi referensinya tersedia dan konsisten. BMI tidak menentukan bentuk. Bagian tanpa ukuran memakai garis putus-putus; tanpa referensi tinggi tampil sebagai diagram titik ukur tanpa skala.
 - Grafik memakai tanggal kalender, titik pengukuran, tabel alternatif, dan rata-rata berat kalender 7 hari bila tersedia minimal dua sampel. Tidak menghubungkan tanggal yang kosong. Perubahan angka bukan otomatis sukses/gagal.
 - Pengingat pinggang mingguan serta pinggul/paha dua mingguan opsional, dan bisa disembunyikan. Ukur pada posisi, sisi, serta kondisi yang konsisten.
-- Data berat lama dan Apple Health tetap terintegrasi. Sinkronisasi berat saja mempertahankan body fat yang sudah ada. Body fat juga dapat dikirim sendiri, tanpa berat, dan tersedia di Fitness dengan tanggal/sumbernya.
+- Data berat lama dan Apple Health tetap terintegrasi. Sinkronisasi berat saja mempertahankan body fat yang sudah ada. Body fat juga dapat dikirim sendiri, tanpa berat, dan tersedia di Tubuh dengan tanggal/sumbernya.
 - Belum ada analisis hubungan energi–tubuh atau Adaptive TDEE; fitur tersebut tetap Sprint 13–14. Avatar tidak memperkirakan struktur rangka, massa otot, atau lemak visceral.
 
 ## Apple Health Sync
@@ -247,7 +247,7 @@ dari Shortcut yang dibangun sendiri; panduannya ada di
 [docs/health-shortcut-manual.md](docs/health-shortcut-manual.md). Browser tidak
 menampilkan token, jadi cara ini hanya untuk token koneksi yang sudah dimiliki.
 Dengan `provider` (termasuk Shortcut v2), `vo2Max` dan `restingHeartRate` tersimpan
-sebagai data Apple Health beserta riwayat harian untuk tren di tab Fitness. Tanpa
+sebagai data Apple Health beserta riwayat harian untuk tren di tab Kebugaran. Tanpa
 `provider`, bentuk lama (hanya mengisi Profil) tetap berlaku.
 
 Kode penghubung berlaku hingga lima menit dan dipakai sekali. Menyiapkan kode tidak
@@ -275,7 +275,7 @@ Permintaan body/fitness memakai
 `{provider:"apple_health",samples:[{metric,value,measuredAt}]}` dengan nama metrik
 `weightKg`, `bodyFatPercent`, `vo2Max`, dan `restingHeartRate`. Tanggal pengukuran
 asli dipertahankan; pengukuran lama tidak menimpa yang lebih baru. Perjalanan →
-Fitness menampilkan VO₂ max dan denyut istirahat terbaru beserta sumber/tanggal;
+Kebugaran menampilkan VO₂ max dan denyut istirahat terbaru beserta sumber/tanggal;
 isian Profil menjadi cadangan jika belum ada hasil impor. Ini belum berupa
 riwayat atau grafik VO₂ max. Kalori aktif harian memakai payload
 `{provider:"apple_health",calories:<sum>}` dan mengganti jumlah aktivitas Health
