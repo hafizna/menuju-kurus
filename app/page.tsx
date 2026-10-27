@@ -251,17 +251,17 @@ export default function DashboardPage() {
           {!evening && closeDay}
         </div>
 
-        <aside className="min-w-0 space-y-5" aria-label="Fokus dan perjalanan">
+        <aside className="min-w-0 space-y-5" aria-label="Fokus dan progress">
           <ActivityCard burns={log.burns} date={data.date} weightKg={weightTrend.today ?? settings.weightKg} onChanged={load} />
           <WeeklyFocusCard />
 
           <section className={card} aria-labelledby="body-title">
-            <h2 id="body-title" className="font-semibold">Tubuh &amp; perjalanan</h2>
+            <h2 id="body-title" className="font-semibold">Tubuh &amp; progress</h2>
             <div className="mt-4 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs text-neutral-500">Berat hari ini</p><p className="mt-1 font-display text-xl">{weightTrend.today !== null ? `${formatMeasure(weightTrend.today)} kg` : "Belum ditimbang"}</p></div><button type="button" onClick={() => setShowWeightForm(value => !value)} aria-expanded={showWeightForm} aria-controls="quick-weight-form" className="flex items-center gap-1.5 rounded-xl border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700"><IconScaleWeight className="h-4 w-4" />Catat berat</button></div>
               {showWeightForm && <form id="quick-weight-form" onSubmit={saveWeight} className="scroll-mb-24 space-y-2"><label className="block text-xs text-neutral-500" htmlFor="quick-weight">Berat badan (kg)</label><div className="flex gap-2"><input id="quick-weight" autoFocus value={weightInput} onChange={event => setWeightInput(event.target.value)} inputMode="decimal" placeholder="78,4" className="min-w-0 flex-1 rounded-xl border border-neutral-300 bg-transparent px-3 py-2 dark:border-neutral-700" /><button type="submit" disabled={savingWeight || !weightInput} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingWeight ? "Menyimpan..." : "Simpan"}</button></div>{weightError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{weightError}</p>}</form>}
               <div className="flex items-center justify-between gap-2 text-sm"><span className="text-neutral-500">Lingkar pinggang terakhir</span><span>{data.bodyResponse?.current.waist.last ? `${formatMeasure(data.bodyResponse.current.waist.last.value)} cm` : "Belum dicatat"}</span></div>
-              <Link href="/progress?tab=body" className="inline-flex text-sm font-semibold text-brand-700 dark:text-brand-300">Lihat perjalanan tubuh →</Link>
+              <Link href="/progress?tab=body" className="inline-flex text-sm font-semibold text-brand-700 dark:text-brand-300">Lihat progress tubuh →</Link>
             </div>
           </section>
 

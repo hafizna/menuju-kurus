@@ -188,7 +188,7 @@ export default function HealthConnectionPage() {
         <p className="text-xs font-medium uppercase tracking-wide text-brand-700 dark:text-brand-300">Data kesehatan · iPhone</p>
         <h1 className="mt-1 text-2xl font-bold">Hubungkan Apple Health</h1>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Pasang Shortcut yang dibutuhkan, hubungkan akun lewat salah satunya, lalu izinkan pembacaan Apple Health. Setelah itu kamu bisa menjalankan keduanya atau mengatur automasi.</p>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Halaman ini opsional dan hanya untuk iPhone. Tanpa koneksi, Slothly tetap lengkap: berat dan ukuran tubuh dicatat di Perjalanan → Tubuh, aktivitas di Home.</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Halaman ini opsional dan hanya untuk iPhone. Tanpa koneksi, Slothly tetap lengkap: berat dan ukuran tubuh dicatat di Progress → Tubuh, aktivitas di Home.</p>
       </header>
 
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
@@ -212,7 +212,7 @@ export default function HealthConnectionPage() {
             <div><dt className="text-neutral-500">Data pada pengiriman terakhir</dt><dd>{state.lastSync.fields.map(field => fieldLabels[field] ?? field).join(", ")}</dd></div>
           </dl>
         )}
-        {state?.lastSync && <p className="mt-3 text-xs leading-relaxed text-neutral-500">Setiap metrik dikirim terpisah. Lihat seluruh hasil di <Link href="/progress?tab=body" className="font-semibold text-brand-700 underline dark:text-brand-300">Perjalanan tubuh</Link> dan <Link href="/progress?tab=fitness" className="font-semibold text-brand-700 underline dark:text-brand-300">Fitness</Link>.</p>}
+        {state?.lastSync && <p className="mt-3 text-xs leading-relaxed text-neutral-500">Setiap metrik dikirim terpisah. Lihat seluruh hasil di <Link href="/progress?tab=body" className="font-semibold text-brand-700 underline dark:text-brand-300">Progress tubuh</Link> dan <Link href="/progress?tab=fitness" className="font-semibold text-brand-700 underline dark:text-brand-300">Fitness</Link>.</p>}
         <p className="mt-3 text-xs leading-relaxed text-neutral-500">Status ini menunjukkan aktivitas akun. Untuk iPhone yang baru dipasang, tetap lakukan Hubungkan akun sekali.</p>
       </section>
 
