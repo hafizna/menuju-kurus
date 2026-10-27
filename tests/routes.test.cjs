@@ -426,6 +426,139 @@ test('Apple Health float noise is rounded to two decimals before it is stored or
   assert.equal(over.status, 400);
 });
 
+const analyzeRoute = require('../app/api/analyze-food/route');
+const refineRoute = require('../app/api/refine-food/route');
+const eggAnalysis = () => ({
+  foodName: 'Telur dadar + nasi', portionNote: '1 piring', confidence: 'medium', kcalLow: 400, kcalHigh: 600,
+  components: [
+    { name: 'Nasi putih', role: 'staple', grams: 150, calories: 195, protein_g: 4, carbs_g: 43, fat_g: 0, sugar_g: 0 },
+    { name: 'Telur dadar', role: 'other', grams: 60, calories: 140, protein_g: 7, carbs_g: 1, fat_g: 11, sugar_g: 0 },
+  ],
+});
+const breakdownBody = () => ({ analysis: eggAnalysis(), adjust: { stapleDeltaG: 0, oil: 'normal', eaten: 1, scales: [1, 3] }, kcalEdit: null, proteinEdit: 19, note: 'telur 3 butir' });
+const dayBefore = (n) => new Date(Date.parse(todayKey(DEFAULT_SETTINGS.timezone)) - n * 86400000).toISOString().slice(0, 10);
+
+test('a photo meal keeps its breakdown; a malformed one is dropped without losing the meal', async () => {
+  const date = todayKey(DEFAULT_SETTINGS.timezone);
+  const good = await logRoute.POST(request('/api/log', 'POST', { type: 'meal', foodName: 'Telur dadar 3 butir', calories: 520, protein_g: 19, source: 'photo', breakdown: breakdownBody() }));
+  assert.equal(good.status, 200);
+  const bad = await logRoute.POST(request('/api/log', 'POST', { type: 'meal', foodName: 'Rusak', calories: 100, source: 'photo', breakdown: { analysis: 'x' } }));
+  assert.equal(bad.status, 200);
+  const [first, second] = store.get(keys.day('u3', date)).meals;
+  assert.deepEqual(first.breakdown.adjust, { stapleDeltaG: 0, oil: 'normal', eaten: 1, scales: [1, 3] });
+  assert.equal(first.breakdown.proteinEdit, 19);
+  assert.equal(first.breakdown.note, 'telur 3 butir');
+  assert.equal(second.foodName, 'Rusak');
+  assert.equal('breakdown' in second, false);
+});
+
+test('a day from the last week can be read; anything else is refused', async () => {
+  for (const [n, status] of [[0, 200], [3, 200], [6, 200], [7, 400]]) {
+    assert.equal((await logRoute.GET(request(`/api/log?date=${dayBefore(n)}`))).status, status, `${n} days ago`);
+  }
+  for (const query of ['', '?date=besok', `?date=${dayBefore(-1)}`, '?date=2026-02-30']) assert.equal((await logRoute.GET(request(`/api/log${query}`))).status, 400, query);
+  assert.equal((await logRoute.GET(request(`/api/log?date=${dayBefore(0)}`, 'GET', undefined, null))).status, 401);
+  const past = dayBefore(2);
+  store.set(keys.day('u3', past), { date: past, meals: [{ id: 'old', time: `${past}T05:00:00.000Z`, foodName: 'Nasi', calories: 300, protein_g: 5, carbs_g: 50, fat_g: 2, source: 'manual' }], burns: [] });
+  const body = await (await logRoute.GET(request(`/api/log?date=${past}`))).json();
+  assert.equal(body.log.meals[0].id, 'old');
+  const other = await (await logRoute.GET(request(`/api/log?date=${past}`, 'GET', undefined, 'u1'))).json();
+  assert.deepEqual(other.log.meals, [], 'another account never sees this day');
+});
+
+test('a saved meal can be corrected in place without reopening the day or touching other meals', async () => {
+  const date = dayBefore(1);
+  const meal = (id, name) => ({ id, time: `${date}T05:00:00.000Z`, foodName: name, calories: 300, protein_g: 10, carbs_g: 30, fat_g: 8, source: 'photo' });
+  store.set(keys.day('u3', date), { date, foodLogComplete: true, meals: [meal('a', 'Telur dadar'), meal('b', 'Teh')], burns: [] });
+  const patch = (body, user = 'u3') => logRoute.PATCH(request('/api/log', 'PATCH', body, user));
+  const done = await patch({ mealId: 'a', date, foodName: 'Telur dadar 3 butir', calories: 520, protein_g: 19, breakdown: breakdownBody() });
+  assert.equal(done.status, 200);
+  const stored = store.get(keys.day('u3', date));
+  assert.equal(stored.foodLogComplete, true, 'a correction must not reopen a confirmed day');
+  assert.equal(stored.meals[0].calories, 520);
+  assert.equal(stored.meals[0].protein_g, 19);
+  assert.equal(stored.meals[0].breakdown.adjust.scales[1], 3);
+  assert.equal(typeof stored.meals[0].editedAt, 'string');
+  assert.equal(stored.meals[1].foodName, 'Teh');
+  assert.equal('editedAt' in stored.meals[1], false);
+  assert.equal(stored.meals.length, 2);
+
+  assert.equal((await patch({ mealId: 'zzz', date, calories: 100 })).status, 404);
+  assert.equal((await patch({ mealId: 'a', date, calories: 0 })).status, 400);
+  assert.equal((await patch({ mealId: 'a', date })).status, 400);
+  assert.equal((await patch({ mealId: 'a', date, calories: 100 }, null)).status, 401);
+  assert.equal((await patch({ mealId: 'a', date, calories: 100 }, 'u1')).status, 404, 'another account cannot correct this meal');
+  assert.equal(store.get(keys.day('u3', date)).meals[0].calories, 520);
+});
+
+test('a meal older than the editing window cannot be corrected', async () => {
+  const date = dayBefore(7);
+  store.set(keys.day('u3', date), { date, meals: [{ id: 'old', time: `${date}T05:00:00.000Z`, foodName: 'Nasi', calories: 300, protein_g: 5, carbs_g: 50, fat_g: 2, source: 'manual' }], burns: [] });
+  const response = await logRoute.PATCH(request('/api/log', 'PATCH', { mealId: 'old', date, calories: 400 }));
+  assert.equal(response.status, 400);
+  assert.equal(store.get(keys.day('u3', date)).meals[0].calories, 300);
+});
+
+async function withGemini(reply, run) {
+  const realFetch = global.fetch; const realKey = process.env.GEMINI_API_KEY;
+  const calls = [];
+  process.env.GEMINI_API_KEY = 'synthetic-key';
+  global.fetch = async (url, init) => {
+    calls.push({ url: String(url), body: JSON.parse(init.body) });
+    return reply.ok
+      ? { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: JSON.stringify(reply.json) }] } }] }), text: async () => '' }
+      : { ok: false, status: reply.status, json: async () => ({}), text: async () => 'boom' };
+  };
+  try { return await run(calls); } finally { global.fetch = realFetch; if (realKey === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = realKey; }
+}
+
+test('refine recalculates from the note alone and needs a note, an estimate and a session', async () => {
+  const revised = { ...eggAnalysis(), components: [eggAnalysis().components[0], { name: 'Telur dadar', role: 'other', grams: 180, calories: 420, protein_g: 21, carbs_g: 3, fat_g: 33, sugar_g: 0 }] };
+  const post = (body, user = 'u3') => refineRoute.POST(request('/api/refine-food', 'POST', body, user));
+  await withGemini({ ok: true, json: revised }, async (calls) => {
+    const response = await post({ analysis: eggAnalysis(), note: '  telur 3 butir ' });
+    assert.equal(response.status, 200);
+    const { analysis } = await response.json();
+    assert.equal(analysis.components[1].protein_g, 21);
+    assert.equal(analysis.protein_g, 25);
+    assert.equal(calls.length, 1);
+    const sent = calls[0].body.contents[0].parts;
+    assert.equal(sent.length, 1, 'no photo is sent');
+    assert.match(sent[0].text, /"telur 3 butir"/);
+    assert.match(sent[0].text, /"name":"Telur dadar"/);
+    for (const body of [{ analysis: eggAnalysis() }, { analysis: eggAnalysis(), note: '   ' }, { note: 'telur 3 butir' }, { analysis: { foodName: 'x', components: [] }, note: 'telur' }, { analysis: 'x', note: 'telur' }]) {
+      assert.equal((await post(body)).status, 400, JSON.stringify(body).slice(0, 60));
+    }
+    assert.equal((await post({ analysis: eggAnalysis(), note: 'telur 3 butir' }, null)).status, 401);
+    assert.equal(calls.length, 1, 'rejected requests never reach the model');
+  });
+  await withGemini({ ok: false, status: 500 }, async () => {
+    const failed = await post({ analysis: eggAnalysis(), note: 'telur 3 butir' });
+    assert.equal(failed.status, 502);
+    assert.match((await failed.json()).error, /sendiri/);
+  });
+  await withGemini({ ok: true, json: { ...eggAnalysis(), components: [] } }, async () => {
+    assert.equal((await post({ analysis: eggAnalysis(), note: 'telur 3 butir' })).status, 502, 'an empty revision is not accepted');
+  });
+});
+
+test('a note given with the photo reaches the prompt; without one the prompt is unchanged', async () => {
+  const form = (note) => {
+    const data = new FormData();
+    data.append('photo', new File([new Uint8Array([1, 2, 3])], 'photo.jpg', { type: 'image/jpeg' }));
+    if (note !== undefined) data.append('note', note);
+    return new NextRequest('http://localhost/api/analyze-food', { method: 'POST', headers: { 'x-user-id': 'u3' }, body: data });
+  };
+  await withGemini({ ok: true, json: eggAnalysis() }, async (calls) => {
+    assert.equal((await analyzeRoute.POST(form('telur 3 butir'))).status, 200);
+    assert.equal((await analyzeRoute.POST(form())).status, 200);
+    const [withNote, without] = calls.map((call) => call.body.contents[0].parts[0].text);
+    assert.match(withNote, /"telur 3 butir"/);
+    assert.doesNotMatch(without, /added a note/);
+    assert.equal(calls[0].body.contents[0].parts[1].inline_data.mime_type, 'image/jpeg');
+  });
+});
+
 test('logged activity keeps its kind, rejects unknown kinds, and reaches the Kebugaran summary', async () => {
   const fitnessRoute = require('../app/api/fitness-intelligence/route');
   const date = todayKey(DEFAULT_SETTINGS.timezone);

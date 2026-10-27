@@ -5,6 +5,8 @@ import { BurnEntry, MealEntry } from "@/lib/types";
 import { getUserId } from "@/lib/session";
 import { parseSugarInput } from "@/lib/sugar";
 import { MAX_ACTIVITY_KCAL, activityKind, validDurationMin } from "@/lib/activity";
+import { sanitizeBreakdown } from "@/lib/mealBreakdown";
+import { applyMealEdit, isEditableDate, MEAL_EDIT_DAYS } from "@/lib/mealEdit";
 
 export async function POST(req: NextRequest) {
   const userId = getUserId(req);
@@ -45,6 +47,8 @@ export async function POST(req: NextRequest) {
       portionNote: typeof body.portionNote === "string" ? body.portionNote : undefined,
       source: body.source === "photo" ? "photo" : "manual",
     };
+    const breakdown = body.breakdown === undefined ? null : sanitizeBreakdown(body.breakdown);
+    if (breakdown) entry.breakdown = breakdown;
     log.meals.push(entry);
     log.foodLogComplete = false;
     savedEntry = entry;
@@ -77,6 +81,18 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ log, entry: savedEntry });
 }
 
+// One day's log, for reviewing and correcting meals from the last week.
+export async function GET(req: NextRequest) {
+  const userId = getUserId(req);
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const settings = await getSettings(userId);
+  const date = new URL(req.url).searchParams.get("date");
+  if (!isEditableDate(date, todayKey(settings.timezone))) {
+    return NextResponse.json({ error: `Hanya ${MEAL_EDIT_DAYS} hari terakhir yang bisa dibuka.` }, { status: 400 });
+  }
+  return NextResponse.json({ log: await getDayLog(userId, date) });
+}
+
 export async function DELETE(req: NextRequest) {
   const userId = getUserId(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -103,10 +119,13 @@ export async function DELETE(req: NextRequest) {
 }
 
 // Confirmation concerns food intake only; changing activity does not reopen it.
+// A meal correction (mealId) changes amounts, not completeness, so it leaves
+// the confirmation as it was.
 export async function PATCH(req: NextRequest) {
   const userId = getUserId(req);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => null);
+  if (body && typeof body === "object" && body.mealId !== undefined) return correctMeal(userId, body);
   if (!body || typeof body.foodLogComplete !== "boolean") {
     return NextResponse.json({ error: "foodLogComplete must be a boolean" }, { status: 400 });
   }
@@ -121,4 +140,21 @@ export async function PATCH(req: NextRequest) {
   log.foodLogComplete = body.foodLogComplete;
   await saveDayLog(userId, log);
   return NextResponse.json({ log });
+}
+
+async function correctMeal(userId: string, body: Record<string, unknown>) {
+  const settings = await getSettings(userId);
+  const today = todayKey(settings.timezone);
+  if (!isEditableDate(body.date, today)) {
+    return NextResponse.json({ error: `Hanya ${MEAL_EDIT_DAYS} hari terakhir yang bisa dikoreksi.` }, { status: 400 });
+  }
+  const log = await getDayLog(userId, body.date);
+  const index = log.meals.findIndex((meal) => meal.id === body.mealId);
+  if (index === -1) return NextResponse.json({ error: "Catatan makanan ini sudah tidak ada." }, { status: 404 });
+
+  const result = applyMealEdit(log.meals[index], body, { date: body.date, timezone: settings.timezone, now: new Date() });
+  if ("error" in result) return NextResponse.json({ error: result.error }, { status: 400 });
+  log.meals[index] = result.meal;
+  await saveDayLog(userId, log);
+  return NextResponse.json({ log, entry: result.meal });
 }

@@ -35,3 +35,11 @@ Pengaturan Kurangi animasi memakai preferensi browser lokal; preferensi reduced 
 ## Validasi
 
 `npm test`, `npm run typecheck`, dan `npm run build` memeriksa logika, kontrak tipe, dan build produksi. `npm run test:browser` menggunakan akun serta Redis REST sintetis; `PLAYWRIGHT_EXECUTABLE_PATH` dapat menunjuk Chromium lokal. Pemeriksaan ini tidak membuktikan konfigurasi layanan Upstash, Gemini, atau DeepSeek produksi.
+
+## Koreksi makanan yang sudah tersimpan
+
+- Makanan dari foto menyimpan rinciannya: bahan beserta gram, kalori, dan makro, koreksi nasi, minyak/saus, dan porsi yang dimakan, jumlah tiap bahan lain (mis. telur 1 menjadi 3), kalori atau protein yang diketik sendiri, dan keterangan untuk AI. Foto tidak pernah disimpan. Makanan manual dan makanan yang disimpan sebelum fitur ini hanya punya angka total.
+- Riwayat di halaman Makan bisa dibuka per makanan dan per hari untuk 7 hari terakhir (hari ini dan enam hari sebelumnya, sama dengan jendela review mingguan). Mengetuk makanan menampilkan rincian bahan; **Koreksi** membuka peninjauan yang sama seperti setelah memotret.
+- Makanan dengan rincian dikoreksi lewat bahan: jumlah tiap bahan, nasi, minyak/saus, porsi yang dimakan, serta kalori dan protein yang bisa diketik. Mengubah salah satu jumlah mengembalikan angka ketikan ke estimasi. Makanan tanpa rincian dikoreksi lewat nama, jam, kalori, protein, karbo, lemak, dan gula tambahan.
+- **Keterangan untuk AI** (mis. "telur 3 butir") bisa diisi sebelum foto dikirim, atau setelahnya dengan tombol **Hitung ulang**. Hitung ulang tidak memakai foto: AI menerima rincian bahan yang tersimpan dan keterangannya, lalu mengembalikan rincian baru. Keterangan dikirim ke Gemini sebagai teks dalam tanda kutip dan diperlakukan sebagai fakta tentang makanan itu, bukan perintah; panjangnya dibatasi 200 karakter. Pada batas gratis Google, teks ini dapat dipakai Google untuk meningkatkan produknya, jadi jangan menulis data pribadi.
+- Koreksi mengubah angka dan jam di tanggal yang sama; tidak memindahkan makanan ke hari lain. Koreksi tidak membuka kembali hari yang sudah dikonfirmasi lengkap, dan makanan yang dikoreksi diberi tanda dikoreksi beserta waktunya. Tanggal di luar 7 hari ditolak server.

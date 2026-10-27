@@ -3,16 +3,18 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { IconCamera, IconSparkle, IconBowl, IconBolt } from "@/components/icons";
+import { IconCamera, IconSparkle, IconBowl } from "@/components/icons";
 import type { DayLog } from "@/lib/types";
 import type { DaySummary } from "@/lib/day";
 import AnalysisSheet, { type SheetPhase } from "@/components/AnalysisSheet";
 import { compressImage, postPhoto, UploadAborted } from "@/lib/clientImage";
 import type { FoodAnalysis } from "@/lib/gemini";
-import { adjustMeal, hasOil, stapleOf, NO_ADJUST, STAPLE_STEP_G, CENTONG_G, type MealAdjust, type OilLevel, type EatenFraction } from "@/lib/mealMath";
-import { emptyMealDraft, formatMealTime, hasMealDraft, mealDraftKey, mealDraftUserPrefix, mealTimeIso, priorMealDraft, readMealDraft, recentMealChoices, serializeMealDraft, type ManualMealDraft, type MealDraft, type RepeatMeal } from "@/lib/mealDraft";
+import { mealTotals, portionSummary, NO_ADJUST, type MealAdjust } from "@/lib/mealMath";
+import MealReview from "@/components/meal/MealReview";
+import MealHistory from "@/components/meal/MealHistory";
+import { MealTimeField, nowHHMM } from "@/components/meal/MealFields";
+import { emptyMealDraft, hasMealDraft, mealDraftKey, mealDraftUserPrefix, mealTimeIso, priorMealDraft, readMealDraft, recentMealChoices, serializeMealDraft, type ManualMealDraft, type MealDraft, type RepeatMeal } from "@/lib/mealDraft";
 import type { HabitStrategy } from "@/lib/habits";
-import { describeActivity } from "@/lib/activity";
 import Mascot from "@/components/Mascot";
 import JournalHeader from "@/components/JournalHeader";
 
@@ -61,7 +63,7 @@ function MakanContent() {
       {!today && !loadError && <p role="status" className="p-4 text-sm text-neutral-500">Menyiapkan catatanmu…</p>}
       {tab === "cari" && <CariTab />}
 
-      <MealHistory log={today?.log ?? null} timezone={today?.settings.timezone ?? "Asia/Jakarta"} onChanged={reload} />
+      <MealHistory todayDate={today?.date ?? null} todayLog={today?.log ?? null} timezone={today?.settings.timezone ?? "Asia/Jakarta"} onChanged={reload} />
     </div>
   );
 }
@@ -125,33 +127,6 @@ const QUICK_ITEMS: QuickItem[] = [
   { name: "Tambah nasi", kcal: 130, protein: 3, sugar: 0, portion: "1 centong" },
   { name: "Buah", kcal: 70, protein: 1, sugar: 0, portion: "1 porsi" },
 ];
-
-const CONFIDENCE_LABEL = { low: "rendah", medium: "sedang", high: "tinggi" } as const;
-
-function nowHHMM(timezone?: string): string {
-  const d = new Date();
-  if (timezone) return new Intl.DateTimeFormat("en-GB", { timeZone: timezone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
-function MealTimeField({ value, onChange, timezone }: { value: string; onChange: (v: string) => void; timezone?: string }) {
-  return (
-    <label className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-neutral-500">Jam makan{timezone && <span className="block text-[10px]">{timezone}</span>}</span>
-      <span className="flex items-center gap-2">
-        <input
-          type="time"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 tabular-nums dark:border-neutral-700 dark:bg-neutral-800"
-        />
-        <button type="button" onClick={() => onChange(nowHHMM(timezone))} className="text-xs font-medium text-brand-600">
-          Sekarang
-        </button>
-      </span>
-    </label>
-  );
-}
 
 async function postMeal(body: Record<string, unknown>): Promise<string | null> {
   const res = await fetch("/api/log", {
@@ -224,6 +199,8 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
   const [name, setName] = useState(initial.name);
   const [adj, setAdj] = useState<MealAdjust>(initial.adjust);
   const [kcalEdit, setKcalEdit] = useState<string | null>(initial.kcalEdit);
+  const [proteinEdit, setProteinEdit] = useState<string | null>(initial.proteinEdit);
+  const [note, setNote] = useState(initial.note);
   const [mealTime, setMealTime] = useState(initial.time);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState("");
@@ -240,7 +217,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
   const [previous, setPrevious] = useState<{ date: string; draft: MealDraft } | null>(() => {
     try { return previousDraftFor(today.userId, today.date, currentTime()); } catch { return null; }
   });
-  const draft: MealDraft = { result, name, adjust: adj, kcalEdit, time: mealTime, manualOpen, manual, quick, quickPortion, quickTime };
+  const draft: MealDraft = { result, name, adjust: adj, kcalEdit, proteinEdit, note, time: mealTime, manualOpen, manual, quick, quickPortion, quickTime };
   const dirty = hasMealDraft(draft) || Boolean(preview);
   const busy = saving || pending;
   const rollover = draftDate !== today.date;
@@ -270,7 +247,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
     keyRef.current = nextKey;
     draftRef.current = next;
     setDraftDate(date); setAllowPreviousDate(reviewed);
-    setResult(next.result); setName(next.name); setAdj(next.adjust); setKcalEdit(next.kcalEdit);
+    setResult(next.result); setName(next.name); setAdj(next.adjust); setKcalEdit(next.kcalEdit); setProteinEdit(next.proteinEdit); setNote(next.note);
     setMealTime(next.time); setManual(next.manual); setManualOpen(next.manualOpen);
     setQuick(next.quick); setQuickPortion(next.quickPortion); setQuickTime(next.quickTime);
     setPreview(photoDrafts.get(nextKey)?.preview || null);
@@ -311,7 +288,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
 
   useEffect(() => {
     persist(draft);
-  }, [key, result, name, adj, kcalEdit, mealTime, manualOpen, manual, quick, quickPortion, quickTime]);
+  }, [key, result, name, adj, kcalEdit, proteinEdit, note, mealTime, manualOpen, manual, quick, quickPortion, quickTime]);
 
   useEffect(() => {
     mounted.current = true;
@@ -356,6 +333,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
     setUndoId(null);
     setAdj(NO_ADJUST);
     setKcalEdit(null);
+    setProteinEdit(null);
     setManualOpen(false);
     setSeconds(0);
     const old = photoDrafts.get(key);
@@ -375,7 +353,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
         register: (xhr) => {
           xhrRef.current = xhr;
         },
-      });
+      }, note.trim());
       clearTimeout(nudge);
       if (status < 200 || status >= 300 || !data?.analysis) {
         throw new Error(data?.error || "Foto belum bisa dibaca. Coba lagi atau isi manual.");
@@ -406,11 +384,13 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
   }
 
   function reset() {
-    persist({ ...draftRef.current, result: null, name: "", adjust: NO_ADJUST, kcalEdit: null });
+    persist({ ...draftRef.current, result: null, name: "", adjust: NO_ADJUST, kcalEdit: null, proteinEdit: null, note: "" });
     setResult(null);
     setPreview(null);
     setAdj(NO_ADJUST);
     setKcalEdit(null);
+    setProteinEdit(null);
+    setNote("");
     setError("");
     setName("");
     const photo = photoDrafts.get(key);
@@ -480,10 +460,13 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
 
   async function saveMeal() {
     if (!result || busy || reviewPrevious) return;
-    const meal = adjustMeal(result, adj);
-    const kcal = kcalEdit !== null ? Number(kcalEdit) : meal.calories;
+    const { meal, calories: kcal, protein_g: protein } = mealTotals(result, adj, kcalEdit, proteinEdit);
     if (!Number.isFinite(kcal) || kcal <= 0) {
       setError("Isi kalorinya dulu, harus lebih dari 0.");
+      return;
+    }
+    if (!Number.isFinite(protein) || protein < 0) {
+      setError("Isi protein dengan angka 0 atau lebih.");
       return;
     }
     const time = mealTimeIso(mealTime, draftDate, timezone, new Date(), allowPreviousDate);
@@ -501,11 +484,18 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
         time,
         foodName: name.trim() || result.foodName,
         calories: Math.round(kcal),
-        protein_g: meal.protein_g,
+        protein_g: Math.round(protein),
         carbs_g: meal.carbs_g,
         fat_g: meal.fat_g,
         sugar_g: meal.sugar_g,
-        portionNote: `${result.portionNote}${stapleOf(result) ? ` · ${stapleOf(result)?.name} ${meal.stapleGrams} g di piring` : ""}${hasOil(result) ? ` · minyak/saus ${{ less: "sedikit", normal: "biasa", more: "banyak" }[adj.oil]}` : ""} · dimakan ${adj.eaten * 100}%${kcalEdit !== null ? " · kalori dikoreksi manual; makro tetap estimasi porsi" : ""}`,
+        portionNote: portionSummary(result, adj, meal, { kcal: kcalEdit !== null, protein: proteinEdit !== null }),
+        breakdown: {
+          analysis: result,
+          adjust: adj,
+          kcalEdit: kcalEdit === null ? null : Number(kcalEdit),
+          proteinEdit: proteinEdit === null ? null : Number(proteinEdit),
+          note: note.trim() || undefined,
+        },
         source: "photo",
       });
       notice.saved = `${name.trim() || result.foodName} · ${Math.round(kcal)} kcal`;
@@ -523,15 +513,6 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
       setSaving(false);
       finishMealSave(notice);
     }
-  }
-
-  const meal = result ? adjustMeal(result, adj) : null;
-  const kcalShown = meal ? (kcalEdit ?? String(meal.calories)) : "";
-  const staple = result ? stapleOf(result) : undefined;
-
-  function change(next: Partial<MealAdjust>) {
-    setAdj((current) => ({ ...current, ...next }));
-    setKcalEdit(null);
   }
 
   return (
@@ -572,6 +553,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
       {!preview && !result && (
         <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
           <div><h2 className="font-semibold">Apa yang kamu makan?</h2><p className="mt-1 text-xs text-neutral-500">Mulai dari foto atau isi sendiri, lalu cek sebelum menyimpan.</p></div>
+          <label className="block text-xs text-neutral-500">Keterangan untuk AI (opsional)<input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Mis. telur 3 butir" className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800" /></label>
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => cameraRef.current?.click()}
@@ -672,126 +654,30 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
 
       {result && (
         <section ref={resultRef} className="scroll-mt-4 space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
-          <div className="flex gap-3">
-            {preview && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="Foto makanan" className="h-20 w-20 shrink-0 rounded-xl object-cover" />
-            )}
-            <div className="min-w-0 flex-1">
-              <label className="mb-1 block text-xs text-neutral-500" htmlFor="meal-name">Nama makanan</label>
-              <textarea
-                id="meal-name"
-                rows={name.length > 40 ? 3 : 2}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-[15px] font-semibold leading-snug dark:border-neutral-700 dark:bg-neutral-800"
-              />
-            </div>
-          </div>
-          <div>
-            <div className="text-xs text-neutral-500">
-              {result.portionNote} · keyakinan {CONFIDENCE_LABEL[result.confidence]}
-            </div>
-            {result.confidence === "low" && (
-              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                Tebakannya masih kasar. Cek nama dan kalorinya dulu sebelum disimpan.
-              </p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-4 items-end gap-2 text-center text-sm">
-            <div>
-              <input
-                inputMode="numeric"
-                value={kcalShown}
-                onChange={(e) => setKcalEdit(e.target.value.replace(/\D/g, ""))}
-                aria-label="Kalori"
-                className="w-full rounded-lg border border-neutral-300 px-1 py-1.5 text-center font-semibold dark:border-neutral-700 dark:bg-neutral-800"
-              />
-              <div className="mt-0.5 text-xs text-neutral-500">kcal</div>
-            </div>
-            <div>
-              <div className="font-semibold">{meal?.protein_g ?? 0}g</div>
-              <div className="text-xs text-neutral-500">protein</div>
-            </div>
-            <div>
-              <div className="font-semibold">{meal?.carbs_g ?? 0}g</div>
-              <div className="text-xs text-neutral-500">karbo</div>
-            </div>
-            <div>
-              <div className="font-semibold">{meal?.fat_g ?? 0}g</div>
-              <div className="text-xs text-neutral-500">lemak</div>
-            </div>
-          </div>
-
-          {kcalEdit !== null && <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">Kalori memakai angka yang kamu isi. Makro dan rincian di bawah tetap estimasi porsi, bukan perhitungan ulang dari kalori ini. <button type="button" onClick={() => setKcalEdit(null)} className="font-semibold underline">Kembali ke estimasi porsi</button></p>}
-          {meal && kcalEdit === null && (
-            <p className="text-xs text-neutral-500">
-              Perkiraan kasar, bisa sekitar {meal.low}–{meal.high} kcal. Koreksi di bawah kalau porsimu beda.
-            </p>
-          )}
-          {meal && (meal.sugar_g ?? 0) > 0 && <p className="text-xs text-neutral-500">Gula tambahan sekitar {meal.sugar_g} g.</p>}
-
-          {meal && result.components.length > 0 && (
-            <ul className="space-y-1 rounded-xl bg-neutral-50 p-3 text-xs dark:bg-neutral-800/60">
-              <li className="pb-1 font-semibold text-neutral-500">{kcalEdit !== null ? "Rincian estimasi porsi (sebelum koreksi kalori manual)" : "Rincian yang kamu makan"}</li>
-              {meal.components.map((c, i) => (
-                <li key={i} className="flex justify-between gap-3">
-                  <span className="min-w-0 truncate text-neutral-600 dark:text-neutral-300">
-                    {c.name}
-                    {c.grams > 0 && <span className="text-neutral-400"> · ±{c.grams} g</span>}
-                  </span>
-                  <span className="shrink-0 tabular-nums text-neutral-500">{c.calories} kcal</span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {staple && (
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-neutral-500">
-                {staple.name} di piring ≈ {(Math.max(0, staple.grams + adj.stapleDeltaG) / CENTONG_G).toLocaleString("id-ID", { maximumFractionDigits: 1 })} centong
-              </span>
-              <span className="flex items-center gap-1">
-                <button
-                  type="button"
-                  aria-label={`Kurangi ${staple.name}`}
-                  disabled={staple.grams + adj.stapleDeltaG - STAPLE_STEP_G < 0}
-                  onClick={() => change({ stapleDeltaG: adj.stapleDeltaG - STAPLE_STEP_G })}
-                  className="h-9 w-9 rounded-lg border border-neutral-300 text-lg disabled:opacity-30 dark:border-neutral-700"
-                >
-                  −
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Tambah ${staple.name}`}
-                  disabled={staple.grams + adj.stapleDeltaG + STAPLE_STEP_G > 800}
-                  onClick={() => change({ stapleDeltaG: adj.stapleDeltaG + STAPLE_STEP_G })}
-                  className="h-9 w-9 rounded-lg border border-neutral-300 text-lg disabled:opacity-30 dark:border-neutral-700"
-                >
-                  +
-                </button>
-              </span>
-            </div>
-          )}
-
-          {hasOil(result) && (
-            <Segmented<OilLevel>
-              label="Minyak / saus"
-              value={adj.oil}
-              onChange={(oil) => change({ oil })}
-              options={[["less", "Sedikit"], ["normal", "Biasa"], ["more", "Banyak"]]}
-            />
-          )}
-
-          <Segmented<`${EatenFraction}`>
-            label="Yang kamu makan"
-            value={`${adj.eaten}`}
-            onChange={(v) => change({ eaten: Number(v) as EatenFraction })}
-            options={[["1", "Habis"], ["0.75", "¾"], ["0.5", "½"], ["0.25", "¼"]]}
+          <MealReview
+            analysis={result}
+            name={name}
+            onName={setName}
+            adjust={adj}
+            onAdjust={setAdj}
+            kcalEdit={kcalEdit}
+            onKcalEdit={setKcalEdit}
+            proteinEdit={proteinEdit}
+            onProteinEdit={setProteinEdit}
+            note={note}
+            onNote={setNote}
+            onRefined={(next) => {
+              if (name.trim() === result.foodName) setName(next.foodName);
+              setResult(next);
+              setAdj(NO_ADJUST);
+              setKcalEdit(null);
+              setProteinEdit(null);
+            }}
+            time={mealTime}
+            onTime={setMealTime}
+            timezone={timezone}
+            photo={preview}
           />
-
-          <MealTimeField value={mealTime} onChange={setMealTime} timezone={timezone} />
 
           <div className="flex gap-2">
             <button
@@ -812,40 +698,6 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
         </section>
       )}
       </fieldset>
-    </div>
-  );
-}
-
-function Segmented<T extends string>({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: T;
-  onChange: (value: T) => void;
-  options: Array<[T, string]>;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-neutral-500">{label}</span>
-      <div className="flex gap-1 rounded-xl bg-neutral-100 p-1 dark:bg-neutral-800" role="radiogroup" aria-label={label}>
-        {options.map(([optionValue, text]) => (
-          <button
-            key={optionValue}
-            type="button"
-            role="radio"
-            aria-checked={value === optionValue}
-            onClick={() => onChange(optionValue)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              value === optionValue ? "bg-white text-brand-700 shadow-xs dark:bg-neutral-700 dark:text-brand-300" : "text-neutral-500"
-            }`}
-          >
-            {text}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -1061,64 +913,5 @@ function CariTab() {
         </>
       )}
     </div>
-  );
-}
-
-// ---------- Today's meal/burn history ----------
-
-function MealHistory({ log, timezone, onChanged }: { log: DayLog | null; timezone: string; onChanged: () => void }) {
-  const [removing, setRemoving] = useState<string | null>(null);
-  const [failed, setFailed] = useState<{ type: "meal" | "burn"; id: string; message: string } | null>(null);
-  async function removeEntry(type: "meal" | "burn", id: string) {
-    if (!log || removing) return;
-    setRemoving(id);
-    setFailed(null);
-    try {
-      const response = await fetch(`/api/log?type=${type}&id=${encodeURIComponent(id)}&date=${log.date}`, { method: "DELETE" });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Catatan belum terhapus. Coba lagi.");
-      onChanged();
-    } catch (cause) { setFailed({ type, id, message: cause instanceof Error ? cause.message : "Catatan belum terhapus. Coba lagi." }); }
-    finally { setRemoving(null); }
-  }
-
-  if (!log) return null;
-
-  return (
-    <section id="riwayat" className="scroll-mt-4 space-y-2">
-      <h2 className="px-1 text-sm font-medium text-neutral-500">Riwayat hari ini</h2>
-      {failed && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{failed.message} <button type="button" disabled={Boolean(removing)} onClick={() => removeEntry(failed.type, failed.id)} className="font-semibold underline">Coba hapus lagi</button></p>}
-      {log.meals.length === 0 && log.burns.length === 0 && <p className="rounded-2xl border border-dashed border-neutral-200 p-4 text-sm text-neutral-500 dark:border-neutral-700">Belum ada catatan hari ini. Mulai dengan satu makanan saja.</p>}
-      {[...log.meals.map((m) => ({ ...m, kind: "meal" as const })), ...log.burns.map((b) => ({ ...b, kind: "burn" as const }))]
-        .sort((a, b) => a.time.localeCompare(b.time))
-        .map((entry) => (
-          <div key={entry.id} className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
-            <div className="flex items-center gap-3">
-              <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                  entry.kind === "meal" ? "bg-brand-50 text-brand-600 dark:bg-brand-950/40" : "bg-orange-50 text-orange-600 dark:bg-orange-950/40"
-                }`}
-              >
-                {entry.kind === "meal" ? <IconBowl className="h-4 w-4" /> : <IconBolt className="h-4 w-4" />}
-              </span>
-              <div>
-                <div className="text-sm font-medium">{entry.kind === "meal" ? entry.foodName : describeActivity(entry.label, entry.durationMin)}</div>
-                <div className="text-xs text-neutral-500">
-                  {formatMealTime(entry.time, timezone)}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={entry.kind === "meal" ? "text-sm font-medium tabular-nums" : "text-sm font-medium tabular-nums text-brand-600"}>
-                {entry.kind === "meal" ? "+" : "-"}
-                {entry.calories} kcal
-              </span>
-              <button onClick={() => removeEntry(entry.kind, entry.id)} disabled={Boolean(removing)} className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50" aria-label={`Hapus ${entry.kind === "meal" ? entry.foodName : entry.label}`}>
-                {removing === entry.id ? "…" : "✕"}
-              </button>
-            </div>
-          </div>
-        ))}
-    </section>
   );
 }
