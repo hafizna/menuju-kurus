@@ -24,7 +24,7 @@ const positive = (value: number) => Number.isFinite(value) && value > 0;
 const happyScene = (): MascotScene => ({
   mood: "happy",
   badge: "Pelan-pelan, tetap jalan",
-  caption: "Lanjutkan mencatat sesuai ritmemu. Kukang menemani.",
+  caption: "Catat sesuai ritmemu. Kukang menemani.",
 });
 
 const thinkingScene = (): MascotScene => ({
@@ -37,7 +37,7 @@ const restScene = (night = false): MascotScene => ({
   mood: "full",
   badge: night ? "Kukang rebahan malam" : "Kukang rehat sebentar",
   caption: night
-    ? "Kukang sudah nyaman rebahan. Catatanmu bisa dilanjutkan saat kamu siap."
+    ? "Kukang sudah nyaman rebahan. Kamu juga boleh beristirahat."
     : "Kukang merebahkan diri sejenak. Ada ruang untuk jeda di tengah hari.",
 });
 
@@ -59,14 +59,21 @@ function routineScenes(localHour: number): MascotScene[] {
     return [{
       mood: "hustle",
       badge: "Kukang bergegas pagi",
-      caption: "Tas sudah siap, kukang bergegas memulai harinya.",
+      caption: "Pagi lagi sibuk? Kalau sudah sarapan atau ngopi, catat sebentar ya.",
     }, happyScene(), thinkingScene()];
   }
   if (localHour >= 9 && localHour < 17) {
+    // The mascot acts as a partner at the desk: a gentle reminder worded as
+    // "if", so it never assumes the viewer ate and never tells them to wait.
+    const reminder = localHour < 12
+      ? "Lagi banyak kerjaan? Kalau sudah minum atau ngemil, jangan lupa dicatat ya."
+      : localHour < 14
+        ? "Lagi banyak meeting? Jangan lupa catat makan siang atau cemilanmu ya."
+        : "Masih sibuk? Cemilan atau minuman sore juga jangan lupa dicatat ya.";
     const scenes: MascotScene[] = [{
       mood: "work",
-      badge: "Kukang lagi fokus",
-      caption: "Kukang lagi fokus di meja. Catatan makanmu bisa dilanjutkan saat ada jeda.",
+      badge: "Kukang menemani kerjamu",
+      caption: reminder,
     }, thinkingScene()];
     if (localHour >= 12 && localHour < 14) scenes.push(restScene());
     return scenes;
@@ -95,7 +102,7 @@ export function buildMascotScenes(input: MascotSceneInput): MascotScene[] {
     return [{
       mood: "neutral",
       badge: "Kukang ikut istirahat",
-      caption: "Malam sudah larut. Catatanmu bisa dilanjutkan saat kamu siap.",
+      caption: "Malam sudah larut dan kukang mulai mengantuk.",
     }, restScene(true)];
   }
 
@@ -150,4 +157,20 @@ export function buildMascotScenes(input: MascotSceneInput): MascotScene[] {
 /** The first pose remains useful for static rendering and existing callers. */
 export function resolveMascotScene(input: MascotSceneInput): MascotScene {
   return buildMascotScenes(input)[0];
+}
+
+/**
+ * The home mascot changes pose on its own: any other scene in the sequence,
+ * chosen at random, and never the one already on screen. `random` is injectable
+ * so the choice can be tested.
+ */
+export function pickNextScene(
+  scenes: MascotScene[],
+  currentMood: MascotMood | undefined,
+  random: () => number = Math.random,
+): MascotScene {
+  const others = scenes.filter((scene) => scene.mood !== currentMood);
+  const pool = others.length ? others : scenes;
+  const index = Math.floor(random() * pool.length);
+  return pool[Math.min(pool.length - 1, Math.max(0, Number.isFinite(index) ? index : 0))];
 }

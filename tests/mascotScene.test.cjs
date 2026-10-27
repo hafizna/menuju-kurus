@@ -197,3 +197,38 @@ test('scene lists are deterministic, do not mutate inputs, and contain one entry
   assert.equal(new Set(first.map(({ mood }) => mood)).size, first.length);
   assert.equal(resolveMascotScene(input).mood, first[0].mood);
 });
+
+test('the workday pose is a gentle logging reminder that never assumes a meal or asks to wait', () => {
+  for (const [localHour, pattern] of [[9, /minum atau ngemil/], [12, /makan siang atau cemilan/], [15, /sore/]]) {
+    const work = buildMascotScenes({ ...base, localHour }).find(({ mood }) => mood === 'work');
+    assert.ok(work, `work pose at ${localHour}`);
+    assert.match(work.caption, pattern);
+    assert.match(work.caption, /dicatat|catat/);
+    assert.doesNotMatch(work.caption, /dilanjutkan|nanti|saat ada jeda|sudah makan/i);
+  }
+  const morning = buildMascotScenes({ ...base, localHour: 8 }).find(({ mood }) => mood === 'hustle');
+  assert.match(morning.caption, /catat/);
+});
+
+test('automatic rotation picks another scene and never repeats the one on screen', () => {
+  const { pickNextScene } = require('../lib/mascotScene');
+  const scenes = buildMascotScenes({ ...base, localHour: 12, mealCount: 3, caloriesIn: 1850 });
+  assert.ok(scenes.length >= 3);
+  for (const current of scenes) {
+    for (const roll of [0, 0.25, 0.5, 0.999999, 1, NaN]) {
+      const next = pickNextScene(scenes, current.mood, () => roll);
+      assert.notEqual(next.mood, current.mood);
+      assert.ok(scenes.includes(next));
+    }
+  }
+  // Every other scene is reachable, so the rotation is genuinely random.
+  const reachable = new Set([0, 0.34, 0.67, 0.99].map((roll) => pickNextScene(scenes, scenes[0].mood, () => roll).mood));
+  assert.equal(reachable.size, scenes.length - 1);
+});
+
+test('rotation copes with a single scene or an unknown current mood', () => {
+  const { pickNextScene } = require('../lib/mascotScene');
+  const [only] = buildMascotScenes({ ...base, localHour: 12 });
+  assert.equal(pickNextScene([only], only.mood, () => 0.9), only);
+  assert.ok(pickNextScene([only], undefined, () => 0.9));
+});

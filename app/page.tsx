@@ -18,7 +18,10 @@ import WeeklyFocusCard from "@/components/WeeklyFocusCard";
 import { skyForHour } from "@/lib/skyTheme";
 import RecoveryMode from "@/components/RecoveryMode";
 import { sugarNote, type DaySugar, type WeekSugar } from "@/lib/sugar";
-import { buildMascotScenes } from "@/lib/mascotScene";
+import { buildMascotScenes, pickNextScene, type MascotScene } from "@/lib/mascotScene";
+import type { MascotMood } from "@/components/Mascot";
+import { buildHomeHero } from "@/lib/homeHero";
+import ActivityCard from "@/components/ActivityCard";
 
 interface TodayResponse {
   date: string;
@@ -60,13 +63,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<TodayResponse | null>(null);
   const [now, setNow] = useState(() => new Date());
-  const [poseIndex, setPoseIndex] = useState(0);
+  const [activeMood, setActiveMood] = useState<MascotMood | null>(null);
   const heroRef = useRef<HTMLElement>(null);
-  const [burnLabel, setBurnLabel] = useState("");
-  const [burnKcal, setBurnKcal] = useState("");
-  const [savingBurn, setSavingBurn] = useState(false);
-  const [burnError, setBurnError] = useState("");
-  const [showBurnForm, setShowBurnForm] = useState(false);
+  // The rotation timer reads the current scenes without being recreated.
+  const stage = useRef<{ scenes: MascotScene[]; shown: MascotMood | undefined }>({ scenes: [], shown: undefined });
   const [showWeightForm, setShowWeightForm] = useState(false);
   const [weightInput, setWeightInput] = useState("");
   const [savingWeight, setSavingWeight] = useState(false);
@@ -99,14 +99,17 @@ export default function DashboardPage() {
   }, []);
 
   const hour = zonedHour(now, data?.settings.timezone ?? "Asia/Jakarta");
+  // A change in context starts over from the first scene, which leads with food
+  // context; afterwards the pose rotates on its own.
   useEffect(() => {
-    setPoseIndex(0);
+    setActiveMood(null);
   }, [hour, data?.proteinToday, data?.sugarToday.grams, data?.log.meals.length, data?.summary.foodLogStatus]);
   useEffect(() => {
     const id = setInterval(() => {
       const bounds = heroRef.current?.getBoundingClientRect();
       if (document.hidden || document.documentElement.dataset.motion === "off" || !bounds || bounds.bottom <= 0 || bounds.top >= innerHeight) return;
-      setPoseIndex(index => index + 1);
+      const { scenes, shown } = stage.current;
+      if (scenes.length > 1) setActiveMood(pickNextScene(scenes, shown).mood);
     }, 20_000);
     return () => clearInterval(id);
   }, []);
@@ -143,23 +146,6 @@ export default function DashboardPage() {
     finally { setSavingChallenge(false); }
   }
 
-  async function addBurn(event: FormEvent) {
-    event.preventDefault();
-    const calories = Number(burnKcal);
-    if (!Number.isFinite(calories) || calories <= 0) { setBurnError("Isi estimasi aktivitas lebih dari 0 kcal."); return; }
-    setSavingBurn(true); setBurnError(""); setNotice("");
-    try {
-      const response = await fetch("/api/log", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "burn", calories, label: burnLabel.trim() || "Aktivitas", source: "manual" }),
-      });
-      await checkSaved(response, "Aktivitas belum tersimpan. Isianmu tetap di sini.");
-      setBurnLabel(""); setBurnKcal(""); setShowBurnForm(false); setNotice("Aktivitas tersimpan.");
-      await load();
-    } catch (error) { setBurnError(error instanceof Error ? error.message : "Aktivitas belum tersimpan. Coba lagi."); }
-    finally { setSavingBurn(false); }
-  }
-
   async function saveWeight(event: FormEvent) {
     event.preventDefault();
     const weightKg = Number(weightInput.replace(",", "."));
@@ -194,7 +180,9 @@ export default function DashboardPage() {
   const intakePct = summary.target > 0 ? Math.min(100, Math.max(0, summary.caloriesIn / summary.target * 100)) : 0;
   const proteinPct = settings.proteinTargetG > 0 ? Math.min(100, Math.max(0, proteinToday / settings.proteinTargetG * 100)) : 0;
   const scenes = buildMascotScenes({ localHour: hour, mealCount: log.meals.length, caloriesIn: summary.caloriesIn, calorieTarget: summary.target, proteinToday, proteinTarget: settings.proteinTargetG, sugar: sugarToday, foodLogComplete: complete });
-  const scene = scenes[poseIndex % scenes.length];
+  const scene = scenes.find(item => item.mood === activeMood) ?? scenes[0];
+  stage.current = { scenes, shown: scene.mood };
+  const hero = buildHomeHero({ localHour: hour, mealCount: log.meals.length, foodLogComplete: complete, firstRun: fresh });
   const recent = [...log.meals].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 3);
   const card = "home-card rounded-2xl border border-neutral-200/70 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900";
 
@@ -219,19 +207,18 @@ export default function DashboardPage() {
         <div className="home-greeting">
           <div className="min-w-0 py-2">
             <p className="break-words text-sm text-neutral-600 dark:text-neutral-300">{greeting}{data.userName ? `, ${data.userName}` : ""}.</p>
-            <h1 className="mt-1 text-xl font-medium leading-tight sm:text-3xl">{complete ? "Catatanmu sudah lengkap." : fresh && !log.meals.length ? "Mulai dari satu catatan." : "Hari ini masih jalan."}</h1>
-            <p className="mt-2 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">{complete ? "Terima kasih sudah meluangkan waktu untuk dirimu." : "Nggak perlu sempurna. Catat yang kamu ingat, pelan-pelan."}</p>
+            <h1 className="mt-1 text-xl font-medium leading-tight sm:text-3xl">{hero.headline}</h1>
+            <p className="mt-2 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">{hero.support}</p>
             {streak > 0 && <p className="mt-2 text-xs font-semibold text-brand-700 dark:text-brand-300">{streak} hari tercatat lengkap</p>}
           </div>
-          <button type="button" onClick={() => setPoseIndex(index => index + 1)} className="home-mascot" aria-label="Ganti pose kukang" aria-describedby="kukang-scene-caption" title="Ketuk untuk ganti pose">
+          <div className="home-mascot">
             <Mascot key={scene.mood} mood={scene.mood} className="home-mascot-art" decorative />
-            <span className="home-mascot-switch" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><path d="M15.7 7A6 6 0 0 0 5.2 5.8L3 8m0 0V3.5M3 8h4.5M4.3 13a6 6 0 0 0 10.5 1.2L17 12m0 0v4.5m0-4.5h-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
-          </button>
+          </div>
         </div>
         <div className="home-scene-stage">
           {scenes.map(item => <div key={item.mood} className="home-scene-note" data-scene={item.mood} data-active={item.mood === scene.mood} aria-hidden={item.mood !== scene.mood}>
             <span className="home-scene-dot" aria-hidden="true" />
-            <div><p className="home-scene-badge">{item.badge}</p><p id={item.mood === scene.mood ? "kukang-scene-caption" : undefined} className="home-scene-caption">{item.caption}</p></div>
+            <div><p className="home-scene-badge">{item.badge}</p><p className="home-scene-caption">{item.caption}</p></div>
           </div>)}
         </div>
         <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
@@ -264,17 +251,18 @@ export default function DashboardPage() {
         </div>
 
         <aside className="min-w-0 space-y-5" aria-label="Fokus dan perjalanan">
+          <ActivityCard burns={log.burns} date={data.date} weightKg={weightTrend.today ?? settings.weightKg} onChanged={load} />
           <WeeklyFocusCard />
 
-          <details className={card}>
-            <summary className="cursor-pointer font-semibold">Tubuh &amp; perjalanan</summary>
+          <section className={card} aria-labelledby="body-title">
+            <h2 id="body-title" className="font-semibold">Tubuh &amp; perjalanan</h2>
             <div className="mt-4 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs text-neutral-500">Berat terakhir</p><p className="mt-1 font-display text-xl">{weightTrend.today !== null ? `${weightTrend.today} kg` : "Belum dicatat"}</p></div><button type="button" onClick={() => setShowWeightForm(value => !value)} aria-expanded={showWeightForm} aria-controls="quick-weight-form" className="flex items-center gap-1.5 rounded-xl border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700"><IconScaleWeight className="h-4 w-4" />Catat berat</button></div>
-              {showWeightForm && <form id="quick-weight-form" onSubmit={saveWeight} className="space-y-2"><label className="block text-xs text-neutral-500" htmlFor="quick-weight">Berat badan (kg)</label><div className="flex gap-2"><input id="quick-weight" autoFocus value={weightInput} onChange={event => setWeightInput(event.target.value)} inputMode="decimal" placeholder="78,4" className="min-w-0 flex-1 rounded-xl border border-neutral-300 bg-transparent px-3 py-2 dark:border-neutral-700" /><button type="submit" disabled={savingWeight || !weightInput} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingWeight ? "Menyimpan..." : "Simpan"}</button></div>{weightError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{weightError}</p>}</form>}
+              <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs text-neutral-500">Berat hari ini</p><p className="mt-1 font-display text-xl">{weightTrend.today !== null ? `${weightTrend.today} kg` : "Belum ditimbang"}</p></div><button type="button" onClick={() => setShowWeightForm(value => !value)} aria-expanded={showWeightForm} aria-controls="quick-weight-form" className="flex items-center gap-1.5 rounded-xl border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700"><IconScaleWeight className="h-4 w-4" />Catat berat</button></div>
+              {showWeightForm && <form id="quick-weight-form" onSubmit={saveWeight} className="scroll-mb-24 space-y-2"><label className="block text-xs text-neutral-500" htmlFor="quick-weight">Berat badan (kg)</label><div className="flex gap-2"><input id="quick-weight" autoFocus value={weightInput} onChange={event => setWeightInput(event.target.value)} inputMode="decimal" placeholder="78,4" className="min-w-0 flex-1 rounded-xl border border-neutral-300 bg-transparent px-3 py-2 dark:border-neutral-700" /><button type="submit" disabled={savingWeight || !weightInput} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingWeight ? "Menyimpan..." : "Simpan"}</button></div>{weightError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{weightError}</p>}</form>}
               <div className="flex items-center justify-between gap-2 text-sm"><span className="text-neutral-500">Lingkar pinggang terakhir</span><span>{data.bodyResponse?.current.waist.last ? `${data.bodyResponse.current.waist.last.value} cm` : "Belum dicatat"}</span></div>
               <Link href="/progress?tab=body" className="inline-flex text-sm font-semibold text-brand-700 dark:text-brand-300">Lihat perjalanan tubuh →</Link>
             </div>
-          </details>
+          </section>
 
           <details className={card}>
             <summary className="cursor-pointer font-semibold">Pelengkap hari ini</summary>
@@ -282,7 +270,6 @@ export default function DashboardPage() {
               <div><div className="flex items-start justify-between gap-3"><div className="flex items-start gap-2"><IconTarget className="mt-0.5 h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" /><div><h3 className="text-sm font-semibold">Misi hari ini</h3><p className="mt-1 text-sm text-neutral-500">{challenge.label}</p></div></div><button type="button" role="checkbox" aria-checked={Boolean(log.challengeDone)} aria-label={log.challengeDone ? "Batalkan misi selesai" : "Tandai misi selesai"} onClick={toggleChallenge} disabled={savingChallenge} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-lg disabled:opacity-50 ${log.challengeDone ? "border-brand-600 bg-brand-600 text-white" : "border-neutral-300 text-transparent dark:border-neutral-700"}`}>✓</button></div>{challengeError && <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-300">{challengeError}</p>}</div>
               <div className="grid gap-3 border-t border-neutral-200 pt-4 text-sm dark:border-neutral-800"><Link href="/plan" className="font-semibold text-brand-700 dark:text-brand-300">{log.plan ? "Lihat rencana harian" : "Atur rencana harian"} →</Link><Link href="/makan/habits">Makanan yang sering dicatat →</Link><Link href="/makan/restaurant">Ide saat makan di luar →</Link></div>
               {log.plan === "if" && log.eatingWindowHours && <p className="text-xs text-neutral-500">Rencana saat ini: jendela makan {log.eatingWindowHours} jam sejak bangun.</p>}
-              <div className="border-t border-neutral-200 pt-4 dark:border-neutral-800"><button type="button" onClick={() => setShowBurnForm(value => !value)} aria-expanded={showBurnForm} aria-controls="manual-activity-form" className="flex w-full items-center justify-between gap-2 py-1 text-left text-sm font-semibold">Catat aktivitas manual<span aria-hidden="true">{showBurnForm ? "−" : "+"}</span></button>{showBurnForm && <form id="manual-activity-form" onSubmit={addBurn} className="mt-3 space-y-2"><label className="block text-xs text-neutral-500" htmlFor="activity-name">Aktivitas (opsional)</label><input id="activity-name" value={burnLabel} onChange={event => setBurnLabel(event.target.value)} placeholder="Mis. jalan sore" className="w-full rounded-xl border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700" /><label className="block text-xs text-neutral-500" htmlFor="activity-kcal">Estimasi aktivitas (kcal)</label><div className="flex gap-2"><input id="activity-kcal" value={burnKcal} onChange={event => setBurnKcal(event.target.value)} inputMode="numeric" placeholder="kcal" className="min-w-0 flex-1 rounded-xl border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700" /><button type="submit" disabled={savingBurn} className="rounded-xl bg-brand-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingBurn ? "Menyimpan..." : "Simpan"}</button></div>{burnError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{burnError}</p>}</form>}</div>
               {summary.caloriesIn > summary.target && <details><summary className="cursor-pointer text-sm text-neutral-500">Setelah makan lebih banyak dari rencana</summary><div className="mt-3"><RecoveryMode surplusKcal={Math.max(0, summary.caloriesIn - summary.target)} /></div></details>}
             </div>
           </details>

@@ -188,6 +188,7 @@ export default function HealthConnectionPage() {
         <p className="text-xs font-medium uppercase tracking-wide text-brand-700 dark:text-brand-300">Data kesehatan · iPhone</p>
         <h1 className="mt-1 text-2xl font-bold">Hubungkan Apple Health</h1>
         <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Pasang Shortcut yang dibutuhkan, hubungkan akun lewat salah satunya, lalu izinkan pembacaan Apple Health. Setelah itu kamu bisa menjalankan keduanya atau mengatur automasi.</p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">Halaman ini opsional dan hanya untuk iPhone. Tanpa koneksi, Slothly tetap lengkap: berat dan ukuran tubuh dicatat di Perjalanan → Tubuh, aktivitas di Home.</p>
       </header>
 
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}

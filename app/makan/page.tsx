@@ -12,6 +12,7 @@ import type { FoodAnalysis } from "@/lib/gemini";
 import { adjustMeal, hasOil, stapleOf, NO_ADJUST, STAPLE_STEP_G, CENTONG_G, type MealAdjust, type OilLevel, type EatenFraction } from "@/lib/mealMath";
 import { emptyMealDraft, formatMealTime, hasMealDraft, mealDraftKey, mealDraftUserPrefix, mealTimeIso, priorMealDraft, readMealDraft, recentMealChoices, serializeMealDraft, type ManualMealDraft, type MealDraft, type RepeatMeal } from "@/lib/mealDraft";
 import type { HabitStrategy } from "@/lib/habits";
+import { describeActivity } from "@/lib/activity";
 import Mascot from "@/components/Mascot";
 import JournalHeader from "@/components/JournalHeader";
 
@@ -1101,7 +1102,7 @@ function MealHistory({ log, timezone, onChanged }: { log: DayLog | null; timezon
                 {entry.kind === "meal" ? <IconBowl className="h-4 w-4" /> : <IconBolt className="h-4 w-4" />}
               </span>
               <div>
-                <div className="text-sm font-medium">{entry.kind === "meal" ? entry.foodName : entry.label}</div>
+                <div className="text-sm font-medium">{entry.kind === "meal" ? entry.foodName : describeActivity(entry.label, entry.durationMin)}</div>
                 <div className="text-xs text-neutral-500">
                   {formatMealTime(entry.time, timezone)}
                 </div>

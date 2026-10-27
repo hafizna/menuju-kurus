@@ -26,6 +26,8 @@ export interface BurnEntry {
   time: string;
   calories: number;
   label: string;
+  /** Minutes of activity, when it was logged by kind and duration. */
+  durationMin?: number;
   source: "manual" | "shortcuts";
 }
 export interface DayLog {

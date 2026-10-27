@@ -13,8 +13,9 @@ import {
 } from "@/lib/body";
 import type { WeightTrend } from "@/lib/weight";
 import WeightForecastCard from "@/components/WeightForecastCard";
-import BodyAvatar from "./BodyAvatar";
+import BodyAvatar, { type AvatarRegion } from "./BodyAvatar";
 import MetricChart from "./MetricChart";
+import BodyChangeCard from "./BodyChangeCard";
 
 export interface BodyResponse {
   snapshots: BodySnapshot[];
@@ -42,6 +43,7 @@ export default function BodyTab() {
   const [beforeDate, setBeforeDate] = useState("");
   const [afterDate, setAfterDate] = useState("");
   const [showAvatar, setShowAvatar] = useState(true);
+  const [manualFocus, setManualFocus] = useState<AvatarRegion | null>(null);
   const [showReminder, setShowReminder] = useState(true);
   const [notice, setNotice] = useState("");
 
@@ -207,6 +209,25 @@ export default function BodyTab() {
       after ? (avatarHeight(after) ?? 0) : 0,
     ) || null;
   const ratios = after ? bodyRatios(after) : null;
+  // Two dates are needed to compare, and the illustration only says something
+  // once at least one tape measurement exists on a chosen date.
+  const comparable = snapshots.length > 1;
+  // The illustration opens on the area that changed most between the two dates,
+  // since that is what the eye should go to; tapping a measurement overrides it.
+  const regionRows = comparisonRows(before, after).filter(
+    (row): row is typeof row & { field: AvatarRegion } =>
+      row.field === "waistCm" || row.field === "hipCm" || row.field === "thighCm",
+  );
+  const biggestChange = regionRows
+    .filter((row) => row.delta !== null && row.delta !== 0)
+    .sort((a, b) => Math.abs(b.delta!) - Math.abs(a.delta!))[0];
+  const focus: AvatarRegion | null = manualFocus ?? biggestChange?.field ?? null;
+  const focusRow = regionRows.find((row) => row.field === focus);
+  const toggleFocus = (region: AvatarRegion) =>
+    setManualFocus((current) => (current === region ? null : region));
+  const hasCircumference = [before, after].some(
+    (entry) => entry && (entry.waistCm || entry.hipCm || entry.thighCm),
+  );
   const waistDue = checkInDue(snapshots, "waistCm", data.today);
   const hipDue = checkInDue(snapshots, "hipCm", data.today);
   const thighDue = checkInDue(snapshots, "thighCm", data.today);
@@ -409,8 +430,11 @@ export default function BodyTab() {
         </section>
       ) : (
         <>
+          <BodyChangeCard snapshots={snapshots} today={data.today} />
           <section className="space-y-4 rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
             <h2 className="font-semibold">Bandingkan dua tanggal</h2>
+            {comparable ? (
+              <>
             <div className="grid grid-cols-2 gap-3">
               {(
                 [
@@ -482,6 +506,15 @@ export default function BodyTab() {
                 </tbody>
               </table>
             </div>
+              </>
+            ) : (
+              <p className="text-sm leading-relaxed text-neutral-500">
+                Baru satu tanggal tercatat. Perbandingan dua tanggal muncul
+                setelah catatan kedua; rasio di bawah sudah bisa dilihat.
+              </p>
+            )}
+            {hasCircumference ? (
+              <>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -503,12 +536,35 @@ export default function BodyTab() {
                 <BodyAvatar
                   snapshot={before}
                   referenceHeightCm={referenceHeight}
+                  focus={focus}
+                  onFocus={toggleFocus}
                 />
                 <BodyAvatar
                   snapshot={after}
+                  previous={before}
                   referenceHeightCm={referenceHeight}
+                  focus={focus}
+                  onFocus={toggleFocus}
                 />
               </div>
+            )}
+            {showAvatar && focusRow && (
+              <p
+                role="status"
+                className="rounded-xl bg-brand-50 px-3 py-2 text-xs leading-relaxed text-brand-800 dark:bg-brand-950/40 dark:text-brand-200"
+              >
+                <span className="font-semibold">
+                  {BODY_LABELS[focusRow.field].label}
+                </span>
+                {focusRow.before && focusRow.after
+                  ? focusRow.delta === null
+                    ? `: ${focusRow.after.value} cm. Pilih tanggal awal yang lebih lama untuk melihat perubahan.`
+                    : focusRow.delta === 0
+                      ? `: tetap ${focusRow.after.value} cm.`
+                      : `: ${focusRow.before.value} → ${focusRow.after.value} cm (${focusRow.delta > 0 ? "+" : "−"}${Math.abs(focusRow.delta)} cm).`
+                  : ": belum diukur di kedua tanggal, jadi belum ada perubahan untuk ditunjukkan."}
+                {" "}Ketuk ukuran lain untuk menyorot area itu.
+              </p>
             )}
             {showAvatar && (
               <p className="text-xs leading-relaxed text-neutral-500">
@@ -517,6 +573,13 @@ export default function BodyTab() {
                 yang belum diukur. Lingkar tubuh tidak menentukan lebar
                 penampang, struktur rangka, lemak visceral, atau massa otot. BMI
                 tidak mengubah bentuk avatar.
+              </p>
+            )}
+              </>
+            ) : (
+              <p className="text-xs leading-relaxed text-neutral-500">
+                Ilustrasi tubuh muncul setelah ada ukuran pinggang, pinggul, atau
+                paha pada tanggal yang dibandingkan.
               </p>
             )}
             {ratios && (

@@ -85,7 +85,7 @@ export function computeFitnessIntelligence(
   const baselineReasons: string[] = [];
   if (settings.fitnessGoal === "athletic") {
     if (settings.vo2Max === null && settings.restingHeartRate === null)
-      baselineReasons.push("Tambahkan VO₂ max atau resting HR jika tersedia.");
+      baselineReasons.push("Isi VO₂ max atau detak jantung istirahat di Profil. Detak istirahat bisa dihitung sendiri dari nadi saat bangun tidur, tanpa jam tangan.");
     if (settings.cardioMinutesWeekly === 0 && settings.strengthDaysWeekly === 0)
       baselineReasons.push("Lengkapi profil latihan mingguan untuk mulai membaca fokus fitness.");
   } else {

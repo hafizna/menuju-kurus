@@ -10,7 +10,6 @@ module.exports = async function verifyMascot({ page, base, projectRoot, today })
   await page.route("**/api/today", todayRoute);
   const hero = page.getByRole("region", { name: "Sapaan harian", exact: true });
   const mascot = hero.locator(".kukang");
-  const nextPose = hero.getByRole("button", { name: "Ganti pose kukang", exact: true });
   const capture = name => hero.screenshot({ path: path.join(projectRoot, `.next/validation/mascot-${name}.png`) });
   const setTheme = async theme => page.evaluate(theme => { localStorage.setItem("mk_theme", theme); window.dispatchEvent(new Event("mk-theme")); }, theme);
   async function scenario(hour, { meals = 0, calories = 0, protein = 0, sugar = 0, knownSugar = 0, complete = false, timezone = "Asia/Jakarta" } = {}) {
@@ -47,15 +46,9 @@ module.exports = async function verifyMascot({ page, base, projectRoot, today })
     assert.equal(await mascot.locator('[data-prop="dumbbell"]').count(), 2);
     await expectMovement(".kukang-arm--left");
     await capture("morning-light");
-    const action = hero.getByRole("link", { name: "Catat makan", exact: true });
-    const actionY = (await action.boundingBox()).y;
-    await nextPose.click();
-    await expectMood("happy");
-    assert.equal((await action.boundingBox()).y, actionY, "changing pose shifted the meal action");
-    await nextPose.click();
-    await expectMood("dance");
-    await nextPose.click();
-    await expectMood("exercise");
+    // Poses change by themselves, so there is nothing to tap.
+    assert.equal(await hero.getByRole("button", { name: "Ganti pose kukang" }).count(), 0, "pose toggle should be gone");
+    assert.equal(await page.locator(".home-mascot").evaluate(node => node.tagName), "DIV", "mascot is decoration, not a control");
     await scenario(8);
     await expectMood("hustle");
     assert.equal(await mascot.locator('[data-prop="satchel"]').count(), 1);
@@ -97,21 +90,39 @@ module.exports = async function verifyMascot({ page, base, projectRoot, today })
 
     // Clock timers let us check the automatic rotation and off-screen/motion
     // pauses without waiting 20 seconds for each interval.
+    // The next pose is random, so assert the rules rather than a fixed order:
+    // it changes, stays within the 18:00 scenes, and never repeats the pose on
+    // screen. At 18:00 the sequence is happy, dance and rest ("full").
+    const evening = ["happy", "dance", "full"];
+    const currentMood = () => page.evaluate(() => document.querySelector(".home-mascot .kukang")?.dataset.mood);
+    const expectNewMood = async previous => {
+      await page.waitForFunction(previous => {
+        const mood = document.querySelector(".home-mascot .kukang")?.dataset.mood;
+        return mood && mood !== previous;
+      }, previous);
+      const mood = await currentMood();
+      assert.ok(evening.includes(mood), `unexpected pose ${mood}`);
+      return mood;
+    };
     await page.clock.install({ time: new Date(`${today}T18:00:00+07:00`) });
     await scenario(18);
     await expectMood("happy");
+    const action = hero.getByRole("link", { name: "Catat makan", exact: true });
+    const actionY = (await action.boundingBox()).y;
     await page.clock.fastForward(20_100);
-    await expectMood("dance");
+    const second = await expectNewMood("happy");
+    assert.equal((await action.boundingBox()).y, actionY, "changing pose shifted the meal action");
     await page.evaluate(() => { localStorage.setItem("mk_motion", "off"); window.dispatchEvent(new Event("mk-motion")); });
     await page.clock.fastForward(20_100);
-    await expectMood("dance");
+    await expectMood(second);
     await page.evaluate(() => { localStorage.removeItem("mk_motion"); window.dispatchEvent(new Event("mk-motion")); });
     await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
     await page.clock.fastForward(20_100);
-    await expectMood("dance");
+    await expectMood(second);
     await page.evaluate(() => scrollTo(0, 0));
     await page.clock.fastForward(20_100);
-    await expectMood("full");
+    const third = await expectNewMood(second);
+    assert.notEqual(third, second);
     await page.clock.resume();
   } finally {
     await page.unroute("**/api/today", todayRoute);
@@ -133,5 +144,5 @@ module.exports = async function verifyMascot({ page, base, projectRoot, today })
     await setTheme("light");
   }
   await page.goto(base);
-  console.log("Mascot: PASS — profile timezone, varied time-of-day poses, manual/automatic rotation, food context, visible joint movement, static sleep and reduced-motion/off-screen pauses.");
+  console.log("Mascot: PASS — profile timezone, varied time-of-day poses, automatic random rotation, food context, visible joint movement, static sleep and reduced-motion/off-screen pauses.");
 };
