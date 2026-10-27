@@ -8,22 +8,27 @@ import { LOADER_MOODS, pickLoaderMood, type LoaderMood } from "@/lib/loaderScene
 let lastMood: LoaderMood | null = null;
 
 /**
- * The waiting screen: kukang keeps busy in the middle of the space while data
- * loads. The first paint always shows the same pose, so the server and the
- * browser agree; the pose for this wait is chosen right after.
+ * What kukang is busy with during this wait. The first paint always shows the
+ * same activity, so the server and the browser agree; the one for this wait is
+ * chosen right after.
  */
-export default function KukangLoader({ label = "Memuat...", size = "page" }: {
-  label?: string;
-  /** "page" fills the screen for a whole page; "section" fits inside a tab or card. */
-  size?: "page" | "section";
-}) {
+export function useLoaderMood(): LoaderMood {
   const [mood, setMood] = useState<LoaderMood>(LOADER_MOODS[0]);
   useEffect(() => {
     const next = pickLoaderMood(lastMood);
     lastMood = next;
     setMood(next);
   }, []);
+  return mood;
+}
 
+/** The waiting screen: kukang keeps busy in the middle of the space while data loads. */
+export default function KukangLoader({ label = "Memuat...", size = "page" }: {
+  label?: string;
+  /** "page" fills the screen for a whole page; "section" fits inside a tab or card. */
+  size?: "page" | "section";
+}) {
+  const mood = useLoaderMood();
   const page = size === "page";
   return (
     <div
