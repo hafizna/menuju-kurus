@@ -22,7 +22,7 @@ const PUBLIC_PATHS = ["/login", "/api/auth", "/api/health-sync", "/shortcuts"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+  if (pathname === "/api/health-pairing/redeem" || PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return NextResponse.next();
   }
 

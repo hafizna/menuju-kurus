@@ -1,0 +1,107 @@
+/* Local SVG rigs keep the painted pose separate from each moving joint. */
+.kukang { overflow: visible; stroke-linecap: round; stroke-linejoin: round; }
+.kukang-fur { fill: var(--kukang-fur); stroke: var(--kukang-ink); stroke-width: 3; }
+.kukang-fur-highlight { fill: none; stroke: var(--kukang-fur-light); stroke-width: 5; opacity: .7; }
+.kukang-arm-outline { fill: none; stroke: var(--kukang-ink); stroke-width: 30; }
+.kukang-arm-fill { fill: none; stroke: var(--kukang-fur); stroke-width: 24; }
+.kukang-claws { fill: none; stroke: var(--kukang-claw); stroke-width: 5; }
+.kukang-face-line { fill: none; stroke: var(--kukang-ink); }
+.kukang-motion { transform-box: fill-box; }
+.kukang-body { transform-origin: 50% 85%; animation: kukang-breathe 3.7s ease-in-out infinite; }
+.kukang-head { transform-origin: 50% 75%; animation: kukang-look 7s ease-in-out infinite; }
+.kukang-blink { transform-origin: center; animation: kukang-blink 5.1s infinite; }
+.kukang-gaze { animation: kukang-gaze 7s ease-in-out infinite; }
+.kukang-arm { transform-box: view-box; transform-origin: 0px 0px; }
+.kukang[data-mood="happy"] .kukang-arm--right { animation: kukang-wave 4.8s ease-in-out infinite; }
+.kukang[data-mood="neutral"] .kukang-rig { transform-origin: 50% 0%; animation: kukang-sway 5.2s ease-in-out infinite; }
+.kukang[data-mood="neutral"] .kukang-body { animation-duration: 5s; }
+.kukang[data-mood="neutral"] .kukang-head { animation: kukang-sleep-head 5s ease-in-out infinite; }
+.kukang[data-mood="neutral"] .kukang-sleep-mouth { transform-origin: center; animation: kukang-sleep-mouth 5s ease-in-out infinite; }
+.kukang[data-mood="cheer"] .kukang-rig { transform-origin: 50% 100%; animation: kukang-cheer 3.3s ease-in-out infinite; }
+.kukang[data-mood="cheer"] .kukang-arm--left { animation: kukang-cheer-arm 3.3s ease-in-out infinite; }
+.kukang[data-mood="cheer"] .kukang-arm--right { animation: kukang-cheer-arm 3.3s ease-in-out infinite reverse; }
+.kukang[data-mood="worried"] .kukang-head { animation: kukang-concern 4.5s ease-in-out infinite; }
+.kukang[data-mood="full"] .kukang-body { animation-duration: 4.4s; }
+.kukang[data-mood="full"] .kukang-head { animation: kukang-sleep-head 4.4s ease-in-out infinite; }
+.kukang[data-mood="full"] .kukang-belly { transform-origin: center; animation: kukang-breathe 4.4s ease-in-out infinite; }
+.kukang[data-mood="full"] .kukang-arm--right { animation: kukang-pat 2s ease-in-out infinite; }
+.kukang[data-mood="dance"] .kukang-rig { transform-origin: 50% 80%; animation: kukang-dance 1.1s ease-in-out infinite; }
+.kukang[data-mood="dance"] .kukang-head { animation: kukang-dance-head 1.1s ease-in-out infinite; }
+.kukang[data-mood="dance"] .kukang-arm--left { animation: kukang-dance-arm 1.1s ease-in-out infinite; }
+.kukang[data-mood="dance"] .kukang-arm--right { animation: kukang-dance-arm 1.1s ease-in-out infinite reverse; }
+.kukang[data-mood="dance"] .kukang-foot--left { transform-origin: center; animation: kukang-step 1.1s ease-in-out infinite; }
+.kukang[data-mood="dance"] .kukang-foot--right { transform-origin: center; animation: kukang-step 1.1s ease-in-out infinite reverse; }
+.kukang[data-mood="thinking"] .kukang-head { animation: kukang-think 5.4s ease-in-out infinite; }
+.kukang[data-mood="thinking"] .kukang-gaze { animation: kukang-think-gaze 5.4s ease-in-out infinite; }
+.kukang[data-mood="exercise"] .kukang-rig { transform-origin: 50% 90%; animation: kukang-workout-bounce 2.4s ease-in-out infinite; }
+.kukang[data-mood="exercise"] .kukang-head { animation: kukang-workout-head 2.4s ease-in-out infinite; }
+.kukang[data-mood="exercise"] .kukang-arm--left { animation: kukang-curl 2.4s ease-in-out infinite; }
+.kukang[data-mood="exercise"] .kukang-arm--right { animation: kukang-curl 2.4s ease-in-out -1.2s infinite; }
+.kukang[data-mood="hustle"] .kukang-rig { transform-origin: 50% 90%; animation: kukang-hurry 1.05s ease-in-out infinite; }
+.kukang[data-mood="hustle"] .kukang-head { animation: kukang-hurry-head 1.05s ease-in-out infinite; }
+.kukang[data-mood="hustle"] .kukang-arm--left { animation: kukang-walking-arm 1.05s ease-in-out infinite; }
+.kukang[data-mood="hustle"] .kukang-foot--left { transform-origin: center; animation: kukang-walk-step 1.05s ease-in-out infinite; }
+.kukang[data-mood="hustle"] .kukang-foot--right { transform-origin: center; animation: kukang-walk-step 1.05s ease-in-out -.525s infinite; }
+.kukang-satchel { transform-origin: top center; animation: kukang-bag-bounce 1.05s ease-in-out infinite; }
+.kukang-speed { opacity: .7; animation: kukang-speed 1.05s ease-in-out infinite; }
+.kukang[data-mood="work"] .kukang-head { animation: kukang-work-head 4.8s ease-in-out infinite; }
+.kukang[data-mood="work"] .kukang-gaze { animation: kukang-work-gaze 4.8s ease-in-out infinite; }
+.kukang[data-mood="work"] .kukang-arm--left { animation: kukang-type .65s ease-in-out infinite; }
+.kukang[data-mood="work"] .kukang-arm--right { animation: kukang-type .65s ease-in-out -.325s infinite; }
+.kukang[data-mood="protein"] .kukang-head,
+.kukang[data-mood="sugar"] .kukang-head { animation: kukang-snack-nod 3.6s ease-in-out infinite; }
+.kukang-feeding-arm { animation: kukang-nibble 3.6s ease-in-out infinite; }
+.kukang[data-mood="sugar"] .kukang-feeding-arm { animation-duration: 4.8s; }
+.kukang-chew { transform-origin: center; animation: kukang-chew 1.2s ease-in-out infinite; }
+.kukang-cheeks { transform-origin: center; animation: kukang-cheeks 1.2s ease-in-out infinite; }
+.kukang[data-mood="sugar"] .kukang-cheeks { animation-name: kukang-full-cheeks; }
+.kukang-crumb { opacity: .7; animation: kukang-crumb 2.4s ease-in-out infinite; }
+.kukang-zzz { opacity: .85; animation: kukang-zzz 3.6s ease-out infinite; }
+.kukang-heart { opacity: 0; animation: kukang-float 3.5s ease-out infinite; }
+.kukang-spark { transform-origin: center; animation: kukang-spark 2s ease-in-out infinite; }
+.kukang-drop { animation: kukang-drop 3s ease-in-out infinite; }
+.kukang-note { transform-origin: center; animation: kukang-note 1.1s ease-in-out infinite; }
+.kukang[data-playing="false"] .kukang-motion { animation-play-state: paused; }
+
+@keyframes kukang-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.015, 1.035); } }
+@keyframes kukang-look { 0%, 48%, 100% { transform: rotate(-2deg); } 60%, 78% { transform: rotate(4deg) translateY(-1px); } }
+@keyframes kukang-blink { 0%, 90%, 96%, 100% { transform: scaleY(1); } 93% { transform: scaleY(.08); } }
+@keyframes kukang-gaze { 0%, 48%, 100% { transform: translateX(0); } 60%, 78% { transform: translateX(1.7px); } }
+@keyframes kukang-wave { 0%, 48%, 100% { transform: rotate(0); } 58%, 76% { transform: rotate(-13deg); } 67%, 85% { transform: rotate(10deg); } 93% { transform: rotate(-4deg); } }
+@keyframes kukang-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes kukang-sleep-head { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg) translateY(1px); } }
+@keyframes kukang-sleep-mouth { 0%, 100% { transform: scale(.9, .85); } 50% { transform: scale(1.05, 1.15); } }
+@keyframes kukang-cheer { 0%, 15%, 72%, 100% { transform: translateY(0) scale(1); } 24% { transform: translateY(7px) scale(1.07,.91); } 38% { transform: translateY(-25px) scale(.98,1.035); } 52% { transform: translateY(4px) scale(1.04,.95); } 62% { transform: translateY(-3px) scale(1); } }
+@keyframes kukang-cheer-arm { 0%, 22%, 100% { transform: rotate(0); } 38% { transform: rotate(8deg); } 55% { transform: rotate(-5deg); } }
+@keyframes kukang-concern { 0%, 100% { transform: rotate(-1deg); } 45% { transform: rotate(2deg) translateY(1px); } }
+@keyframes kukang-pat { 0%, 50%, 100% { transform: rotate(0); } 25%, 75% { transform: rotate(-7deg) translateX(2px); } }
+@keyframes kukang-dance { 0%, 100% { transform: translateX(-5px) rotate(-4deg); } 50% { transform: translateX(5px) rotate(4deg); } }
+@keyframes kukang-dance-head { 0%, 100% { transform: rotate(7deg); } 50% { transform: rotate(-7deg); } }
+@keyframes kukang-dance-arm { 0%, 100% { transform: rotate(-13deg); } 50% { transform: rotate(13deg); } }
+@keyframes kukang-step { 0%, 100% { transform: translateY(-4px) rotate(-5deg); } 50% { transform: translateY(0) rotate(5deg); } }
+@keyframes kukang-think { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(2deg); } }
+@keyframes kukang-think-gaze { 0%, 100% { transform: translate(1px, -1px); } 50% { transform: translate(2px, -2px); } }
+@keyframes kukang-workout-bounce { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(2px) scale(1.025, .98); } }
+@keyframes kukang-workout-head { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg) translateY(-1px); } }
+@keyframes kukang-curl { 0%, 100% { transform: rotate(-9deg); } 50% { transform: rotate(9deg) translateY(-5px); } }
+@keyframes kukang-hurry { 0%, 50%, 100% { transform: translateY(0); } 25%, 75% { transform: translateY(-5px); } }
+@keyframes kukang-hurry-head { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(2deg); } }
+@keyframes kukang-walking-arm { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(12deg); } }
+@keyframes kukang-walk-step { 0%, 100% { transform: translate(-4px, 0) rotate(-10deg); } 50% { transform: translate(4px, -9px) rotate(12deg); } }
+@keyframes kukang-bag-bounce { 0%, 50%, 100% { transform: rotate(-2deg); } 25%, 75% { transform: rotate(3deg) translateY(-2px); } }
+@keyframes kukang-speed { 0%, 100% { opacity: .35; transform: translateX(0); } 50% { opacity: .8; transform: translateX(-7px); } }
+@keyframes kukang-work-head { 0%, 70%, 100% { transform: rotate(0); } 30%, 50% { transform: rotate(3deg) translateY(2px); } }
+@keyframes kukang-work-gaze { 0%, 70%, 100% { transform: translateY(1.5px); } 30%, 50% { transform: translate(1px, 3px); } }
+@keyframes kukang-type { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(3deg); } }
+@keyframes kukang-snack-nod { 0%, 34%, 100% { transform: rotate(-1deg); } 45%, 62% { transform: rotate(2deg) translateY(1px); } 76% { transform: rotate(-2deg); } }
+@keyframes kukang-nibble { 0%, 18%, 100% { transform: rotate(0) translate(0, 0); } 33%, 63% { transform: rotate(-4deg) translate(-4px, -3px); } 46% { transform: rotate(-2deg) translate(-2px, -1px); } 78% { transform: rotate(1deg) translate(1px, 2px); } }
+@keyframes kukang-chew { 0%, 50%, 100% { transform: scale(1, 1); } 25%, 75% { transform: scale(1.13, .72) translateY(1px); } }
+@keyframes kukang-cheeks { 0%, 50%, 100% { transform: scaleX(1); } 25%, 75% { transform: scaleX(1.04) translateY(1px); } }
+@keyframes kukang-full-cheeks { 0%, 50%, 100% { transform: scale(1, 1); } 25% { transform: scale(1.08, 1.07) translateX(-1px); } 75% { transform: scale(1.08, 1.07) translateX(1px); } }
+@keyframes kukang-crumb { 0%, 30%, 100% { opacity: 0; transform: translate(0, 0) rotate(0); } 42% { opacity: .85; } 80% { opacity: 0; transform: translate(-3px, 14px) rotate(30deg); } }
+@keyframes kukang-zzz { 0% { opacity: .3; transform: translate(0, 4px); } 40% { opacity: .95; } 100% { opacity: .2; transform: translate(7px, -13px); } }
+@keyframes kukang-float { 0% { opacity: 0; transform: translateY(5px) scale(.7); } 25% { opacity: .8; } 100% { opacity: 0; transform: translateY(-24px) scale(1.1); } }
+@keyframes kukang-spark { 0%, 100% { opacity: .35; transform: scale(.75); } 50% { opacity: .9; transform: scale(1.1); } }
+@keyframes kukang-drop { 0%, 100% { opacity: .4; transform: translateY(0); } 50% { opacity: .9; transform: translateY(6px); } }
+@keyframes kukang-note { 0%, 100% { transform: translateY(-4px) rotate(-8deg); } 50% { transform: translateY(4px) rotate(8deg); } }
+

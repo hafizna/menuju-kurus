@@ -6,6 +6,7 @@ import BodyTab from "@/components/progress/BodyTab";
 import OverviewTab from "@/components/progress/OverviewTab";
 import FitnessTab from "@/components/progress/FitnessTab";
 import WeeklyTab from "@/components/progress/WeeklyTab";
+import JournalHeader from "@/components/JournalHeader";
 
 const TABS = [
   { id: "overview", label: "Ringkasan" },
@@ -29,15 +30,10 @@ function ProgressContent() {
     router.replace(`/progress?${query.toString()}`, { scroll: false });
   }
   return (
-    <div className="space-y-4 p-4">
-      <header className="pt-2">
-        <h1 className="text-xl font-bold">Progress</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Perubahan tubuh, aktivitas, dan kebiasaan dari waktu ke waktu.
-        </p>
-      </header>
+    <div className="journal-page journal-page--progress space-y-4 p-4">
+      <JournalHeader scene="progress" kicker="Jejak kecilmu" title="Progress" description="Perubahan tubuh, aktivitas, dan kebiasaan dari waktu ke waktu." />
       <div
-        className="grid grid-cols-4 gap-1 rounded-2xl bg-neutral-100 p-1 dark:bg-neutral-900"
+        className="journal-tabs grid grid-cols-4 gap-1 rounded-2xl p-1"
         role="tablist"
         aria-label="Bagian Progress"
       >
@@ -74,6 +70,7 @@ function ProgressContent() {
         ))}
       </div>
       <div
+        className="journal-content"
         key={tab}
         role="tabpanel"
         id={`panel-${tab}`}

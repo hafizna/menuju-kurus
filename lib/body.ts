@@ -120,6 +120,65 @@ export function comparisonRows(
   }));
 }
 
+export interface BodyChange {
+  field: BodyField;
+  from: { date: string; value: number };
+  to: { date: string; value: number };
+  delta: number;
+  /** Calendar days between the two readings, so the card never overstates the period. */
+  days: number;
+}
+
+const dayMs = 86400000;
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/**
+ * Change in one measurement, from its first reading in the period to its latest.
+ * `windowDays` null means since the first reading ever. Returns null when fewer
+ * than two readings fall in the period, rather than showing a change of zero.
+ */
+export function bodyChange(
+  snapshots: BodySnapshot[],
+  field: BodyField,
+  windowDays: number | null,
+  today: string,
+): BodyChange | null {
+  const readings = snapshots
+    .filter((entry) => entry[field])
+    .map((entry) => ({ date: entry.date, value: entry[field]!.value }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const latest = readings.at(-1);
+  if (!latest || readings.length < 2) return null;
+  const floor =
+    windowDays === null
+      ? null
+      : new Date(Date.parse(today) - windowDays * dayMs).toISOString().slice(0, 10);
+  const from = (floor === null ? readings : readings.filter((entry) => entry.date >= floor))[0];
+  if (!from || from.date >= latest.date) return null;
+  return {
+    field,
+    from,
+    to: latest,
+    delta: round2(latest.value - from.value),
+    days: Math.round((Date.parse(latest.date) - Date.parse(from.date)) / dayMs),
+  };
+}
+
+export function bodyChanges(
+  snapshots: BodySnapshot[],
+  windowDays: number | null,
+  today: string,
+) {
+  const changes: BodyChange[] = [];
+  const missing: BodyField[] = [];
+  for (const field of BODY_FIELDS) {
+    const change = bodyChange(snapshots, field, windowDays, today);
+    if (change) changes.push(change);
+    else missing.push(field);
+  }
+  return { changes, missing };
+}
+
 export function latestReading(snapshots: BodySnapshot[], field: BodyField) {
   const snapshot = [...snapshots].reverse().find((entry) => entry[field]);
   return snapshot?.[field]

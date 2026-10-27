@@ -166,6 +166,15 @@ export default function FitnessTab() {
         </section>
       )}
 
+      {(data.vo2Max === null || data.restingHeartRate === null || data.bodyFatLatest === null) && (
+        <p className="px-1 text-xs leading-relaxed text-neutral-500">
+          Tidak punya jam tangan atau timbangan pintar? Isi sendiri saja. Body fat di{" "}
+          <Link href="/progress?tab=body" className="font-semibold text-brand-700 dark:text-brand-300">Perjalanan → Tubuh</Link>,
+          VO₂ max, detak istirahat, dan jadwal latihan di{" "}
+          <Link href="/settings" className="font-semibold text-brand-700 dark:text-brand-300">Profil → Aktivitas &amp; fitness</Link>.
+        </p>
+      )}
+
       <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-2 text-sm font-medium">Prioritas berikutnya</div>
         {data.priorities.length ? (

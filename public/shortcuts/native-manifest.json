@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "generatorSha256": "b1d4d65ae75c5d67b2c6047a991b47d915b202b8fe6dd80a92cfd7cc1cc4aafa",
+  "wireHelpersSha256": "1f8c53275f479503995bf7d25f8110a0fa4435ea67776052daa4f8dbcb94f982",
+  "signingFormat": "AEA1",
+  "signingMode": "anyone",
+  "signingService": "https://sign.shortcuty.app/api/v1/sign",
+  "deviceVerification": "Native query actions supplied and tested by user; generic installer and automation pending physical iPhone validation",
+  "shortcuts": {
+    "berat": {
+      "name": "Slothly Berat",
+      "actions": 121,
+      "installPath": "/shortcuts/Slothly%20Berat.shortcut",
+      "fixtureSha256": "58c9f6bbb3142361eb6ea7840254b38748a055b6a2b5a8c8f62406db77b3229f",
+      "unsignedSha256": "9df49fceabfd3d38434ca3df6cb7408c1942cd00cbc0796038bd1511edae6dd9",
+      "signedSha256": "7550403d2e84769158f5919f2bf6c7493cf3008d98b44c18354c18891c0faaba"
+    },
+    "watch": {
+      "name": "Slothly Watch",
+      "actions": 141,
+      "installPath": "/shortcuts/Slothly%20Watch.shortcut",
+      "fixtureSha256": "15888b84e4f966a7897b3278fafbb7b301bacf58fa95c72ed25ecc1c017e03ce",
+      "unsignedSha256": "b106258b9a23191604c8458685e63622029566bd7827a0486c818e0dcceba110",
+      "signedSha256": "2116f702cac8d2d1455837c7c53857c52f44537b6f3f977192cf162d626f912a"
+    }
+  }
+}

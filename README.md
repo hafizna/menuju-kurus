@@ -215,120 +215,91 @@ npm run build
 
 ## Apple Health Sync
 
-Di Slothly, buka **Profil → Data kesehatan → Hubungkan Apple Health**. Halaman
-ini menyediakan pembuatan koneksi pribadi, unduhan Shortcut bertanda tangan,
-penyalinan konfigurasi, pemeriksaan data terakhir diterima, dan pemutusan akses.
-Pemasangan pertama dilakukan di iPhone; persetujuan membaca Apple Health tetap
-diberikan pengguna di Shortcuts.
+Buka **Profil → Data kesehatan → Hubungkan Apple Health** untuk memasang
+**Slothly Berat v2** dan **Slothly Watch v2**. Unduhan bertanda tangan bersifat
+generik dan tidak meminta isian konfigurasi. Setelah memasang, pilih
+**Hubungkan lewat Slothly Berat** atau **Hubungkan lewat Slothly Watch** sekali
+di iPhone. Tombol membuka Shortcut langsung dengan kode sekali pakai; browser
+tidak menerima Bearer token dan tidak ada konfigurasi yang perlu disalin.
 
-**Cara yang disarankan bila Shortcut unduhan gagal:** buat Shortcut sendiri di iPhone
-dengan [panduan Shortcut buatan sendiri](docs/health-shortcut-manual.md), juga tersedia
-di halaman yang sama di app beserta tombol **Salin token saja**. Berat dari AFit lewat
-Apple Health sudah berhasil dikirim dengan cara ini. Server menerima bentuk datar
-`{"provider":"apple_health","measuredAt":"…","weightKg":93.4,"bodyFatPercent":28.1}`;
-dengan `provider`, `vo2Max` dan `restingHeartRate` tersimpan sebagai data Apple Health
-beserta riwayat harian untuk tren di tab Fitness. Tanpa `provider`, bentuk lama
-(profil) tetap berlaku.
+Shortcut menukar kode ke server Slothly, menampilkan nama akun terverifikasi
+untuk persetujuan, menguji koneksi, lalu menyimpan koneksi pribadi di
+`Shortcuts/Slothly/connection.json`. Kedua Shortcut memakai berkas yang sama.
+Pasang keduanya jika ingin memakai kedua jenis sinkronisasi, lalu jalankan
+masing-masing sekali untuk memberi izin Health sebelum membuat automasi.
+Tombol **Buka Slothly Berat/Watch** berikutnya memakai koneksi tersimpan.
 
-Shortcut **Slothly Health Sync v5** mengambil **berat badan, persentase lemak,
-VO₂ max, dan detak jantung istirahat terbaru** dengan tanggal pengukuran asli,
-lalu mengirimkannya ke Slothly. Setiap kali berjalan, pengguna memilih satu atau
-beberapa metrik sebelum Health dibaca. Metrik tanpa hasil dilewati; metrik yang
-tidak dipilih tidak diminta. Jika izin untuk metrik yang dipilih ditolak, iOS
-masih dapat menghentikan proses. Konfigurasi cukup dipasang sekali sampai berhasil.
-Automasi tetap membutuhkan interaksi untuk memilih metrik. HealthKit dibaca di
-iPhone, bukan oleh browser. Konektor
-Android Health Connect belum disertakan dalam versi ini.
+- **Berat:** berat badan dan persentase lemak terbaru yang tersedia hari ini.
+  Automasi setelah aplikasi timbangan ditutup memerlukan timbangan digital
+  dengan aplikasi pendamping yang menulis ke Apple Health. Pengguna memilih
+  aplikasi timbangannya sendiri; AFit hanya contoh. Slothly tidak menghubungkan
+  Bluetooth timbangan secara langsung.
+- **Watch:** VO₂ max terbaru dari jendela 30 hari, detak istirahat dari jendela
+  dua hari, dan jumlah kalori aktif hari ini. Panduan automasi tersedia untuk
+  setiap hari pukul **21.30**. Data dari Apple Watch atau sumber lain harus
+  sudah tersedia di Apple Health.
+- Kedua automasi dibuat sendiri di aplikasi Shortcuts. Unduhan tidak membuat
+  personal automation. Sinkronisasi tetap dapat dijalankan manual.
 
-Permintaan modern memakai `{provider:"apple_health",samples:[{metric,value,measuredAt}]}`
-dengan empat nama metrik: `weightKg`, `bodyFatPercent`, `vo2Max`, dan
-`restingHeartRate`. VO₂ max dan detak jantung istirahat disimpan terpisah dari
-isian Profil bersama sumber dan waktu aslinya. Perjalanan → Fitness menampilkan
-pengukuran terbaru tiap metrik beserta tren dibanding baseline bila riwayat harian
-cukup (tersimpan hanya dari permintaan ber-`provider`); grafik VO₂ max belum ada.
-Pengukuran lama tidak menimpa yang lebih baru. Isian Profil menjadi cadangan jika
-belum ada pengukuran impor. Langkah, tidur, dan energi aktivitas belum dibaca v5.
+**Shortcut buatan sendiri.** Server juga menerima bentuk datar
+`{"provider":"apple_health","measuredAt":"…","weightKg":93.4,"bodyFatPercent":28.1}`
+dari Shortcut yang dibangun sendiri; panduannya ada di
+[docs/health-shortcut-manual.md](docs/health-shortcut-manual.md). Browser tidak
+menampilkan token, jadi cara ini hanya untuk token koneksi yang sudah dimiliki.
+Dengan `provider` (termasuk Shortcut v2), `vo2Max` dan `restingHeartRate` tersimpan
+sebagai data Apple Health beserta riwayat harian untuk tren di tab Fitness. Tanpa
+`provider`, bentuk lama (hanya mengisi Profil) tetap berlaku.
 
-Versi 4 memperbaiki penghubung input Split/Combine Text agar daftar pilihan
-metrik tampil saat Shortcut dijalankan. Ganti file Shortcut versi 3 di iPhone;
-memuat ulang web saja tidak mengganti Shortcut yang terpasang. Konfigurasi
-tersimpan yang valid tetap dipakai.
+Kode penghubung berlaku hingga lima menit dan dipakai sekali. Menyiapkan kode tidak
+mengubah akses yang sudah bekerja; penukaran kode menambah akses instalasi
+baru. **Putuskan koneksi** mencabut seluruh akses dan kode penghubung sebelumnya,
+tanpa menghapus pengukuran. Token hanya diterima Shortcut dan disimpan sebagai
+hash di server. Berkas koneksi pribadi dapat mengikuti pengaturan iCloud dan
+tidak boleh dibagikan.
 
-Versi 5 memperbaiki jenis sampel berat menjadi `Weight`, sesuai filter tipe
-Shortcut yang diekspor. Izin baca Health diberikan per metrik: persentase lemak
-yang sudah diizinkan belum memberikan akses ke berat badan. Pilih Berat badan
-di Shortcut terbaru untuk meminta akses jika belum muncul di daftar izin.
+Templat publik dikunci ke `https://menuju-kurus.vercel.app` untuk penukaran kode
+dan pengiriman Health. Deployment lain memerlukan templat yang dibangun dan
+ditandatangani untuk origin tersebut. Ekspor pribadi tidak dipublikasikan;
+layanan signing hanya menerima templat generik tanpa token, kode, nama akun,
+atau pengukuran pribadi. Pemasangan v2, penyimpanan berkas bersama, dan automasi
+**masih memerlukan verifikasi pada iPhone fisik**; tes lokal tidak membuktikan
+izin maupun eksekusi latar iOS. Lihat [panduan dua Shortcut](docs/native-health-shortcuts.md).
 
-Token dibuat dari app dan hanya diperlihatkan sekali dalam konfigurasi pemasangan.
-Server menyimpan hash token. Mengganti atau memutus koneksi menghentikan akses
-token lama, termasuk token environment sebelumnya. Status uji koneksi dipisahkan
-dari penerimaan pengukuran nyata. Lihat [detail Shortcut](docs/health-shortcut.md).
+HealthKit dibaca di iPhone, bukan oleh browser. Pengguna tetap memberi izin
+per jenis data; iOS dapat menghentikan proses jika akses belum diberikan.
+Metrik tanpa sampel dilewati. Unit yang tidak dikenali dihentikan sebelum
+nilainya dikirim: gunakan kg, persen, BPM, mL/kg/min, dan kcal sesuai metrik.
+Langkah, tidur, dan konektor Android Health Connect belum disertakan.
 
-Jika data sudah terlihat di Health dan izin baca aktif tetapi sinkronisasi tetap
-tidak menemukan pengukuran, tersedia [pemeriksaan pembacaan Health](docs/health-read-check.md)
-yang terpisah. Shortcut ini membaca satu sampel Weight terbaru, menampilkan
-jumlah dan tanggalnya secara lokal, tanpa konfigurasi akun atau pengiriman data.
-Hasilnya membedakan pembacaan dasar di iPhone dari alur pemilihan/sinkronisasi;
-jumlah nol atau error native tidak otomatis membuktikan izin ditolak.
+Permintaan body/fitness memakai
+`{provider:"apple_health",samples:[{metric,value,measuredAt}]}` dengan nama metrik
+`weightKg`, `bodyFatPercent`, `vo2Max`, dan `restingHeartRate`. Tanggal pengukuran
+asli dipertahankan; pengukuran lama tidak menimpa yang lebih baru. Perjalanan →
+Fitness menampilkan VO₂ max dan denyut istirahat terbaru beserta sumber/tanggal;
+isian Profil menjadi cadangan jika belum ada hasil impor. Ini belum berupa
+riwayat atau grafik VO₂ max. Kalori aktif harian memakai payload
+`{provider:"apple_health",calories:<sum>}` dan mengganti jumlah aktivitas Health
+hari itu, bukan menumpuknya.
+
+**Periksa status** membedakan akses akun, uji koneksi, dan pengukuran yang benar-benar
+diterima. Status akun tidak membuktikan koneksi telah tersimpan pada iPhone
+tertentu. Jika Health sudah berisi data tetapi tidak terbaca, tersedia
+[pemeriksaan pembacaan Health](docs/health-read-check.md) yang menampilkan jumlah
+dan tanggal sampel secara lokal tanpa mengirim hasil atau nilai berat. Jumlah
+nol maupun error native tidak otomatis membuktikan izin ditolak.
 
 ### Kompatibilitas Shortcut lama
 
-`/api/health-sync` menerima kombinasi field apa pun berikut — semuanya opsional,
-kirim yang berhasil kamu baca dari Health saja (mis. tanpa Apple Watch, `vo2Max` dan
-`restingHeartRate` memang tidak akan ada):
+Shortcut gabungan v5 dan instalasi manual yang sudah tersambung tetap didukung.
+Menghubungkan v2 tidak merotasi akses sebelumnya. Untuk pemasangan baru gunakan
+v2; [dokumentasi v5](docs/health-shortcut.md) adalah arsip alur sebelumnya dan
+kontrol pemasangan manualnya sudah tidak ditampilkan di app.
 
-```json
-{
-  "calories": 450,
-  "weightKg": 81.8,
-  "bodyFatPercent": 24.2,
-  "vo2Max": 38.5,
-  "restingHeartRate": 62,
-  "cardioMinutesWeekly": 90
-}
-```
-
-Setiap field **menimpa** nilai sebelumnya (bukan menumpuk), dan field yang tidak
-dikirim di satu sync **tidak menghapus** nilai yang sudah tersimpan dari sync
-sebelumnya — jadi automation boleh gagal membaca satu-dua metrik tanpa merusak yang
-lain. `calories` dan `weightKg` dan `bodyFatPercent` masuk ke catatan hari itu (kalori
-keluar & berat badan); `vo2Max`, `restingHeartRate`, `cardioMinutesWeekly` masuk ke
-Settings sebagai nilai terbaru.
-
-### Setup manual untuk Shortcut lama
-
-1. Buka app **Shortcuts** → tab **Automation** → **+** → **Create Personal
-   Automation** → pilih trigger (misalnya **Time of Day**, jalan tiap pagi/malam,
-   atau **App** saat buka app tertentu) → matikan **Ask Before Running**.
-2. Untuk tiap metrik yang mau disinkron, tambahkan pasangan action **Find Health
-   Samples where** (pilih tipe data + rentang tanggal) lalu **Calculate
-   Statistics** (Sum/Average/Latest sesuai kebutuhan), simpan hasilnya sebagai
-   variable:
-
-   | Metrik | Tipe Health | Rentang | Statistik |
-   |---|---|---|---|
-   | `calories` | Active Energy | Start Date is Today | Sum |
-   | `weightKg` | Weight | Start Date is Today | Latest |
-   | `bodyFatPercent` | Body Fat Percentage | sama seperti Weight | Latest/Average |
-   | `vo2Max` | VO2 Max | 7–30 hari terakhir | Latest |
-   | `restingHeartRate` | Resting Heart Rate | Start Date is Today | Average |
-   | `cardioMinutesWeekly` | Workout Duration (filter kardio) atau Exercise Minutes | 7 hari terakhir | Sum |
-
-   Kalau suatu metrik tidak ada datanya (mis. tidak pakai Apple Watch), lewati saja
-   pasangan action-nya — tidak perlu dipaksakan.
-3. Tambahkan action **Dictionary**, isi key-key di atas dengan variable yang sesuai
-   (hapus key yang datanya tidak tersedia).
-4. Tambahkan action **Get Contents of URL**:
-   - URL: `https://<domain-vercel-kamu>/api/health-sync`
-   - Method: `POST`
-   - Headers: `Authorization: Bearer <USER_HEALTH_SYNC_TOKEN milikmu>`
-   - Request Body: **JSON**, isi dengan Dictionary dari langkah 3
-5. Simpan. Tiap automation ini jalan, Settings/Progress/Weight otomatis ter-update
-   sesuai metrik yang berhasil dibaca.
-
-Kalau tidak mau ribet setup semua sekaligus, mulai dari `calories` saja (paling
-simpel, 1 pasang action) lalu tambah metrik lain belakangan — endpoint yang sama
-menerima payload sebagian.
+`/api/health-sync` tetap menerima field datar opsional `calories`, `weightKg`,
+`bodyFatPercent`, `vo2Max`, `restingHeartRate`, dan `cardioMinutesWeekly` untuk
+instalasi lama. Field yang tidak dikirim tidak menghapus hasil sinkronisasi lain.
+Pada kontrak lama, kalori/berat/body fat memakai tanggal kiriman atau hari ini;
+VO₂ max, denyut istirahat, dan kardio mingguan memperbarui isian Settings.
 
 ## Prinsip keselamatan produk
 

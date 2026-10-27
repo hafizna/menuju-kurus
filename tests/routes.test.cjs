@@ -176,6 +176,26 @@ test('meal sugar is optional: unknown stays absent, real values are kept, junk i
   assert.equal(store.get(keys.day('u3', date)).meals.length, 5);
 });
 
+test('a logged activity keeps its duration; implausible durations and energy are refused', async () => {
+  const date = todayKey(DEFAULT_SETTINGS.timezone);
+  const post = (extra) => logRoute.POST(request('/api/log', 'POST', { type: 'burn', calories: 150, label: 'Jalan kaki', source: 'manual', ...extra }));
+  const saved = await (await post({ durationMin: 30 })).json();
+  assert.equal(saved.entry.durationMin, 30);
+  assert.equal(saved.entry.calories, 150);
+  // Older clients send no duration, and the entry stays valid without one.
+  const legacy = await (await post({})).json();
+  assert.equal('durationMin' in legacy.entry, false);
+  for (const durationMin of [0, -5, 721, 30.5, '30', null]) {
+    assert.equal((await post({ durationMin })).status, 400, `duration ${JSON.stringify(durationMin)}`);
+  }
+  assert.equal((await post({ calories: 5001, durationMin: 30 })).status, 400);
+  assert.equal((await post({ calories: 5000, durationMin: 30 })).status, 200);
+  assert.equal(store.get(keys.day('u3', date)).burns.length, 3);
+  const removed = await logRoute.DELETE(request(`/api/log?type=burn&id=${saved.entry.id}&date=${date}`, 'DELETE'));
+  assert.equal(removed.status, 200);
+  assert.equal(store.get(keys.day('u3', date)).burns.some((burn) => burn.id === saved.entry.id), false);
+});
+
 test('Home reports today sugar and a weekly average built only from days with known sugar', async () => {
   const dates = lastNDateKeys(7, DEFAULT_SETTINGS.timezone);
   const today = dates[dates.length - 1];

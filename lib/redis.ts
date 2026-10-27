@@ -9,6 +9,7 @@ export const keys = {
   weight: (userId: string) => `mk:${userId}:weight`,
   weeklySummary: (userId: string) => `mk:${userId}:weeklySummary`,
   healthConnection: (userId: string) => `mk:${userId}:healthConnection`,
+  healthPairing: (userId: string) => `mk:${userId}:healthPairing`,
   healthSyncStatus: (userId: string) => `mk:${userId}:healthSyncStatus`,
   fitnessMeasurements: (userId: string) => `mk:${userId}:fitnessMeasurements`,
   fitnessHistory: (userId: string) => `mk:${userId}:fitnessHistory`,

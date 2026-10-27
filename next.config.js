@@ -14,7 +14,13 @@ const nextConfig = {
         { key: "Content-Type", value: "application/octet-stream" },
         { key: "Content-Disposition", value: 'attachment; filename="slothly-health-read-check.shortcut"' },
       ],
-    }];
+    }, ...["Slothly Berat", "Slothly Watch"].map((name) => ({
+      source: `/shortcuts/${encodeURIComponent(name)}.shortcut`,
+      headers: [
+        { key: "Content-Type", value: "application/octet-stream" },
+        { key: "Content-Disposition", value: `attachment; filename="${name}.shortcut"` },
+      ],
+    }))];
   },
 };
 

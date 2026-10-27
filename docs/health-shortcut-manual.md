@@ -1,6 +1,6 @@
 # Apple Health → Slothly: Shortcut buatan sendiri
 
-Cara ini membuat Shortcut langsung di iPhone, tanpa unduhan bertanda tangan dan tanpa layanan pihak ketiga. Dipakai bila [Shortcut unduhan](health-shortcut.md) gagal membaca data. Panduan yang sama tersedia di aplikasi: **Profil → Data kesehatan → Hubungkan Apple Health → Buat Shortcut sendiri**.
+Cara ini membuat Shortcut langsung di iPhone, tanpa unduhan bertanda tangan dan tanpa layanan pihak ketiga. Cara yang disarankan tetap [Slothly Berat dan Slothly Watch v2](native-health-shortcuts.md). Panduan ini untuk yang ingin membangun sendiri, atau sudah punya Shortcut sederhana yang berjalan dan ingin menambah penanda waktu atau metrik lain. Panduan ini tidak ada di aplikasi, karena browser tidak menampilkan token (lihat bagian Token).
 
 Status verifikasi: berat dari AFit → Apple Health → Shortcut sederhana → `/api/health-sync` sudah dicoba di iPhone pemilik app (respons `status: "ok"`, `weightKg: true`). Body fat, penanda waktu `measuredAt`, data Apple Watch, dan pemicu otomatis belum diuji di perangkat; tiap bagian di bawah menandainya.
 
@@ -8,11 +8,12 @@ Prasyarat: sumber data (AFit, Apple Watch) menulis ke Apple Health. Cek di Healt
 
 ## 1. Token
 
-1. Di halaman Hubungkan Apple Health tekan **Siapkan koneksi** (atau **Sambungkan ulang**).
-2. Tekan **Salin token saja**, tempel di Catatan. Token hanya tampil sekali: server menyimpan hash-nya. Menutup halaman sebelum menyalin berarti membuat token baru.
-3. Bentuknya `slothly.u1.` diikuti 43 karakter `A–Z a–z 0–9 _ -`. Token membolehkan penulisan data ke akunmu; jangan dibagikan. **Sambungkan ulang** membatalkan token lama.
+Aplikasi tidak lagi menampilkan atau menyalin token ke browser: koneksi baru dibuat lewat kode sekali pakai yang ditukar langsung oleh Shortcut resmi, dan server hanya menyimpan hash-nya. Karena itu Shortcut buatan sendiri hanya bisa memakai token yang **sudah kamu pegang**:
 
-Token `USERn_HEALTH_SYNC_TOKEN` di environment hanya berlaku bila belum pernah ada koneksi dari app; begitu koneksi dibuat, token environment berhenti dipakai (`lib/healthConnection.ts`).
+- Token koneksi yang dibuat sebelum perubahan itu tetap berlaku. Menghubungkan Shortcut v2 menambah instalasi baru dan tidak membatalkannya; hanya **Putuskan koneksi** yang mencabut semua token.
+- Token `USERn_HEALTH_SYNC_TOKEN` dari environment berlaku untuk akun yang belum pernah membuat koneksi dari app (`lib/healthConnection.ts`).
+
+Bentuk token koneksi adalah `slothly.u1.` diikuti 43 karakter `A–Z a–z 0–9 _ -`. Token membolehkan penulisan data ke akunmu; simpan di Shortcut itu saja dan jangan dibagikan.
 
 ## 2. Shortcut berat dan body fat
 
@@ -112,7 +113,7 @@ Satu pembacaan per data per tanggal: sample yang lebih baru menggantikan yang le
 
 | Gejala | Penyebab dan perbaikan |
 |---|---|
-| `connection_invalid` | Token tidak terbaca atau tidak cocok. Periksa header (`Authorization`, `Bearer` + spasi + token, tanpa `=` atau kurung). Bila format sudah benar, tekan **Sambungkan ulang** dan salin token baru. |
+| `connection_invalid` | Token tidak terbaca atau tidak cocok. Periksa header (`Authorization`, `Bearer` + spasi + token, tanpa `=` atau kurung). Bila format sudah benar, tokennya mungkin sudah dicabut (**Putuskan koneksi**) atau tidak pernah valid; pasang Shortcut v2 dan hubungkan lewat kode sekali pakai. |
 | `request_invalid` | Angka terkirim sebagai teks dengan satuan (`93.4 kg`), angka `0` bawaan di depan variabel, nilai di luar rentang, `measuredAt` tanpa jam atau zona waktu, atau field `date` bersama `provider`. |
 | "The network connection was lost" | Koneksi putus sebelum ada jawaban; bukan penolakan token. Periksa header yang rusak, lalu coba lewat Wi-Fi. |
 | "This shortcut can't access …" | Izin domain Shortcut. Pilih Allow pada popup, atau ubah di pengaturan Shortcut (ikon ⓘ). |

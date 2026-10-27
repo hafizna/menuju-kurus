@@ -7,6 +7,7 @@ import type { ActivityLevel, BiologicalSex, FitnessGoal, UserSettings } from "@/
 import { computeProgramRecommendation, type ProgramRecommendation } from "@/lib/programCalories";
 import DisplaySettings from "@/components/DisplaySettings";
 import { programDraftError } from "@/lib/programDraft";
+import JournalHeader from "@/components/JournalHeader";
 
 const GOALS: { value: FitnessGoal; label: string; description: string }[] = [
   { value: "weight_loss", label: "Turun berat", description: "Turun berat dengan defisit moderat." },
@@ -78,8 +79,8 @@ export default function SettingsPage() {
   const inputClass = "w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800";
 
   return (
-    <div className="space-y-4 p-4">
-      <header className="pt-2"><h1 className="text-xl font-bold">Program Saya</h1>{userName && <p className="text-sm text-neutral-500">Masuk sebagai {userName}</p>}</header>
+    <div className="journal-page journal-page--profile space-y-4 p-4">
+      <JournalHeader scene="profile" kicker="Ruang pribadi" title="Program Saya" description={userName ? `Masuk sebagai ${userName}` : "Target dan kebiasaan, sesuai keseharianmu."} />
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-200">{error}</p>}
       {saved && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800 dark:bg-brand-950 dark:text-brand-200">Program tersimpan.</p>}
 
@@ -139,8 +140,9 @@ export default function SettingsPage() {
         <button type="submit" disabled={saving} className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">{saving ? "Menyimpan..." : saved ? "Tersimpan ✓" : "Simpan Program"}</button>
       </form>
 
-      <Section title="Data kesehatan" description="Masukkan hasil pengukuran dari Apple Health lewat Shortcut di iPhone.">
-        <p className="text-sm text-neutral-500">Hubungkan berat badan dan persentase lemak, lalu periksa kapan data terakhir masuk.</p>
+      <Section title="Data kesehatan (opsional)" description="Untuk yang punya iPhone dengan Apple Watch atau timbangan pintar.">
+        <p className="text-sm text-neutral-500">Hubungkan agar berat, persentase lemak, VO₂ max, dan detak istirahat masuk otomatis dari Apple Health.</p>
+        <p className="mt-2 text-sm text-neutral-500">Tidak punya atau tidak mau menghubungkan? Tidak masalah, semuanya tetap bisa dicatat sendiri: berat dan ukuran tubuh di Perjalanan → Tubuh, aktivitas di Home, VO₂ max dan detak istirahat di bagian Aktivitas &amp; fitness di atas.</p>
         <Link href="/settings/health" className="mt-3 inline-flex rounded-xl bg-brand-700 px-4 py-3 text-sm font-medium text-white">Hubungkan Apple Health →</Link>
       </Section>
       <Section title="Tampilan" description="Otomatis mengikuti pengaturan HP-mu."><DisplaySettings /></Section>
@@ -154,6 +156,6 @@ export default function SettingsPage() {
   );
 }
 
-function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) { return <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900"><div className="mb-3"><h2 className="text-sm font-semibold">{title}</h2>{description && <p className="mt-0.5 text-xs text-neutral-400">{description}</p>}</div>{children}</section>; }
+function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) { return <section className="journal-card rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900"><div className="mb-3"><h2 className="text-sm font-semibold">{title}</h2>{description && <p className="mt-0.5 text-xs text-neutral-400">{description}</p>}</div>{children}</section>; }
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block"><span className="mb-1 block text-sm text-neutral-500">{label}</span>{children}</label>; }
 function Stat({ label, value, note }: { label: string; value: string; note: string }) { return <div className="rounded-xl bg-neutral-50 p-3 dark:bg-neutral-800"><div className="text-xs text-neutral-500">{label}</div><div className="mt-1 font-bold tabular-nums">{value}</div><div className="text-xs text-neutral-400">{note}</div></div>; }

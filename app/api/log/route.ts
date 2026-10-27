@@ -4,6 +4,7 @@ import { todayKey } from "@/lib/dates";
 import { BurnEntry, MealEntry } from "@/lib/types";
 import { getUserId } from "@/lib/session";
 import { parseSugarInput } from "@/lib/sugar";
+import { MAX_ACTIVITY_KCAL, validDurationMin } from "@/lib/activity";
 
 export async function POST(req: NextRequest) {
   const userId = getUserId(req);
@@ -48,11 +49,20 @@ export async function POST(req: NextRequest) {
     log.foodLogComplete = false;
     savedEntry = entry;
   } else {
+    // Duration is optional, but when sent it must be a believable number of minutes.
+    if (body.durationMin !== undefined && !validDurationMin(body.durationMin)) {
+      return NextResponse.json({ error: "Durasi aktivitas belum masuk akal. Isi 1 sampai 720 menit." }, { status: 400 });
+    }
+    const calories = Math.max(0, Math.round(Number(body.calories) || 0));
+    if (calories > MAX_ACTIVITY_KCAL) {
+      return NextResponse.json({ error: `Estimasi aktivitas terlalu besar. Isi sampai ${MAX_ACTIVITY_KCAL} kcal.` }, { status: 400 });
+    }
     const entry: BurnEntry = {
       id: crypto.randomUUID(),
       time: new Date().toISOString(),
-      calories: Math.max(0, Math.round(Number(body.calories) || 0)),
+      calories,
       label: String(body.label ?? "Aktivitas"),
+      ...(body.durationMin === undefined ? {} : { durationMin: body.durationMin }),
       source: body.source === "shortcuts" ? "shortcuts" : "manual",
     };
     log.burns.push(entry);
