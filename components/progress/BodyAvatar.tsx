@@ -1,6 +1,7 @@
 "use client";
 
 import { avatarHalfWidth, avatarHeight, type BodySnapshot } from "@/lib/body";
+import { formatMeasure } from "@/lib/format";
 
 export type AvatarRegion = "waistCm" | "hipCm" | "thighCm";
 const REGIONS = [
@@ -158,7 +159,7 @@ export default function BodyAvatar({
         {REGIONS.map(([field, label]) => {
           const reading = snapshot[field];
           const delta = change(field);
-          const text = `${label}: ${reading ? `${reading.value} cm` : "Belum diukur"}`;
+          const text = `${label}: ${reading ? `${formatMeasure(reading.value)} cm` : "Belum diukur"}`;
           const active = focus === field;
           return (
             <li key={field}>

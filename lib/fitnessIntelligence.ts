@@ -1,6 +1,7 @@
 import type { FitnessGoal, UserSettings, WeightEntry } from "./types";
 import type { WeightTrend } from "./weight";
 import { lastNDateKeys } from "./dates";
+import { roundMeasure } from "./format";
 import type { FitnessMeasurement, FitnessMeasurements } from "./fitnessMeasurements";
 import { describeFitnessTrends, type CompositionTrend, type FitnessTrends, type SeriesTrend } from "./fitnessTrends";
 
@@ -216,12 +217,12 @@ export function computeFitnessIntelligence(
     baselineReady,
     baselineReasons,
     dataConfidence,
-    bodyFatLatest: latestBodyFat,
+    bodyFatLatest: latestBodyFat === null ? null : roundMeasure(latestBodyFat),
     bodyFatDate,
     bodyFatSource,
     weightTrendKgWeek: trend.weeklyRate,
-    vo2Max: settings.vo2Max,
-    restingHeartRate: settings.restingHeartRate,
+    vo2Max: settings.vo2Max === null ? null : roundMeasure(settings.vo2Max),
+    restingHeartRate: settings.restingHeartRate === null ? null : roundMeasure(settings.restingHeartRate),
     vo2MaxReading: fitnessMeasurements.vo2Max ?? null,
     restingHeartRateReading: fitnessMeasurements.restingHeartRate ?? null,
     cardioMinutes: settings.cardioMinutesWeekly,

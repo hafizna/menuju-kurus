@@ -7,6 +7,7 @@ import { findHealthSyncUser, recordHealthSync, recordHealthTest } from "@/lib/he
 import { getWeightEntries, upsertWeightEntryResult } from "@/lib/weight";
 import { upsertFitnessMeasurement } from "@/lib/fitnessMeasurements";
 import { recordFitnessHistory } from "@/lib/fitnessHistory";
+import { roundMeasure } from "@/lib/format";
 
 const METRICS = ["calories", "weightKg", "bodyFatPercent", "vo2Max", "restingHeartRate", "cardioMinutesWeekly"] as const;
 type Metric = (typeof METRICS)[number];
@@ -85,11 +86,12 @@ async function receive(req: NextRequest) {
         typeof sample.value !== "number" || !Number.isFinite(sample.value) || !validTimestamp(sample.measuredAt)) return failure("request_invalid");
       const metric = sample.metric as Metric;
       const [min, max] = ranges[metric];
-      if (sample.value < min || sample.value > max) return failure("request_invalid");
+      const value = roundMeasure(sample.value);
+      if (value < min || value > max) return failure("request_invalid");
       const measuredAt = new Date(sample.measuredAt).toISOString();
       const date = dateKeyFor(new Date(measuredAt), settings.timezone);
       if (!validMeasurementDate(date, today)) return failure("request_invalid");
-      samples.push({ metric, value: sample.value, measuredAt, date });
+      samples.push({ metric, value, measuredAt, date });
     }
   } else {
     // A timestamp without a provider would be ignored silently and the data
@@ -112,7 +114,8 @@ async function receive(req: NextRequest) {
     if (!validMeasurementDate(date, today)) return failure("request_invalid");
     for (const metric of METRICS) {
       if (body[metric] === undefined || body[metric] === null || body[metric] === "") continue;
-      const value = parseNumber(body[metric]);
+      const parsed = parseNumber(body[metric]);
+      const value = parsed === null ? null : roundMeasure(parsed);
       const [min, max] = ranges[metric];
       if (value === null || value < min || value > max) return failure("request_invalid");
       samples.push({ metric, value, date, measuredAt });

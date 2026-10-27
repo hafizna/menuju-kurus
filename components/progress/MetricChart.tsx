@@ -6,6 +6,7 @@ import {
   type BodyField,
   type BodySnapshot,
 } from "@/lib/body";
+import { formatMeasure } from "@/lib/format";
 
 export default function MetricChart({
   snapshots,
@@ -103,7 +104,7 @@ export default function MetricChart({
                 className="text-neutral-600 dark:text-neutral-300"
               >
                 <title>
-                  {point.date}: {point.value} {meta.unit}
+                  {point.date}: {formatMeasure(point.value)} {meta.unit}
                 </title>
               </circle>
               {point.average7 !== null && (
@@ -157,7 +158,7 @@ export default function MetricChart({
                 >
                   <td className="py-2">{point.date}</td>
                   <td>
-                    {point.value} {meta.unit}
+                    {formatMeasure(point.value)} {meta.unit}
                   </td>
                   {field === "weightKg" && (
                     <td>
