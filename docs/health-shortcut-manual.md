@@ -122,6 +122,6 @@ Satu pembacaan per data per tanggal: sample yang lebih baru menggantikan yang le
 
 ## Cara app memakai data ini
 
-- **Berat dan body fat** → Progress → Tubuh dan Fitness. Komposisi (massa lemak dan massa bebas lemak) hanya dihitung dari hari yang punya keduanya; lihat [kebijakan](body-response-data-policy.md#komposisi-tubuh-dan-tren-fitness).
-- **VO₂ max dan detak istirahat** → Fitness, dengan rata-rata terbaru dibanding baseline bila riwayatnya cukup. Riwayat hanya terbentuk dari permintaan yang memakai `provider: "apple_health"`.
+- **Berat dan body fat** → Progress → Tubuh. Komposisi (massa lemak dan massa bebas lemak) hanya dihitung dari hari yang punya keduanya; lihat [kebijakan](body-response-data-policy.md#komposisi-tubuh-dan-tren-fitness).
+- **VO₂ max dan detak istirahat** → Kebugaran, dengan rata-rata terbaru dibanding baseline bila riwayatnya cukup. Riwayat hanya terbentuk dari permintaan yang memakai `provider: "apple_health"`.
 - **Ringkasan AI** menerima pengamatan yang sama (`signals`) yang tampil di layar. Model tidak menghitung ulang; tanpa kunci AI, ringkasan memakai template deterministik.

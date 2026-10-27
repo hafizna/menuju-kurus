@@ -243,7 +243,10 @@ export default function WeeklyTab() {
 
       <WeeklyFocusCard editable />
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <details className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <summary className="cursor-pointer text-sm font-medium">Rincian per hari · grafik asupan dan status catatan</summary>
+      <div className="mt-4 space-y-4">
+      <section>
         <div className="mb-3 text-sm font-medium">Asupan tercatat vs target · periode review yang sama</div>
         <div className="flex h-40 items-end gap-1">
           {reviewDays.map((d) => {
@@ -291,6 +294,8 @@ export default function WeeklyTab() {
             </div>
           ))}
       </section>
+      </div>
+      </details>
     </div>
   );
 }

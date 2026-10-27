@@ -18,7 +18,7 @@ export interface WeeklySummaryInput {
   periodStart: string | null;
   periodEnd: string | null;
   // Deterministic observations from imported history (body composition,
-  // resting heart rate, VO2 max). Same sentences as the Fitness tab.
+  // resting heart rate, VO2 max). Same sentences as the Tubuh and Kebugaran tabs.
   signals?: string[];
 }
 

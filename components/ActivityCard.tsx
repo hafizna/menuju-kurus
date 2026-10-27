@@ -47,7 +47,7 @@ export default function ActivityCard({ burns, date, weightKg, onChanged }: Props
     try {
       const response = await fetch("/api/log", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "burn", calories: kcal, label: chosen.label, durationMin: minutes, source: "manual" }),
+        body: JSON.stringify({ type: "burn", calories: kcal, label: chosen.label, kind: chosen.id, durationMin: minutes, source: "manual" }),
       });
       if (!response.ok) throw new Error((await response.json().catch(() => null))?.error || "Belum tersimpan. Isianmu tetap di sini.");
       setKind(""); setPreset(null); setCustom(""); setKcalInput(null);

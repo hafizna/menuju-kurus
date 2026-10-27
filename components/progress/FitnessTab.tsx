@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { FitnessIntelligence } from "@/lib/fitnessIntelligence";
-import type { CompositionTrend, SeriesTrend } from "@/lib/fitnessTrends";
+import type { SeriesTrend } from "@/lib/fitnessTrends";
+import type { LoggedActivity } from "@/lib/activity";
 import { IconSparkle } from "@/components/icons";
 
 interface AiSummary {
@@ -14,6 +15,7 @@ interface AiSummary {
 
 export default function FitnessTab() {
   const [data, setData] = useState<FitnessIntelligence | null>(null);
+  const [logged, setLogged] = useState<LoggedActivity | null>(null);
   const [ai, setAi] = useState<AiSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -23,9 +25,9 @@ export default function FitnessTab() {
     setLoading(true); setError("");
     try {
       const res = await fetch("/api/fitness-intelligence");
-      if (!res.ok) throw new Error("Data fitness belum dapat dimuat.");
-      const result = await res.json(); setData(result.intelligence);
-    } catch (e) { setError(e instanceof Error ? e.message : "Data fitness belum dapat dimuat."); }
+      if (!res.ok) throw new Error("Data kebugaran belum dapat dimuat.");
+      const result = await res.json(); setData(result.intelligence); setLogged(result.loggedActivity ?? null);
+    } catch (e) { setError(e instanceof Error ? e.message : "Data kebugaran belum dapat dimuat."); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -39,6 +41,7 @@ export default function FitnessTab() {
       if (!res.ok) throw new Error(result.error || "Gagal membuat recap");
       setAi(result.ai);
       setData(result.intelligence);
+      setLogged(result.loggedActivity ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal membuat recap");
     } finally {
@@ -50,7 +53,7 @@ export default function FitnessTab() {
   if (loading || !data)
     return <div className="p-6 text-center text-neutral-400">Memuat...</div>;
 
-  // The composition card already shows its own sentence, so list the others.
+  // The composition sentence is shown with the body measurements in Tubuh.
   const otherSignals = data.signals.filter((item) => item !== data.composition?.statement);
   const statusText =
     data.scoreLabel === "baseline"
@@ -98,25 +101,6 @@ export default function FitnessTab() {
 
       <section className="grid grid-cols-2 gap-3">
         <Metric
-          label="Tren berat"
-          value={
-            data.weightTrendKgWeek === null
-              ? "Belum ada"
-              : `${data.weightTrendKgWeek > 0 ? "+" : ""}${data.weightTrendKgWeek} kg/mgg`
-          }
-        />
-        <Metric
-          label="Body fat"
-          value={
-            data.bodyFatLatest === null ? "Belum ada" : `${data.bodyFatLatest}%`
-          }
-          note={
-            data.bodyFatDate
-              ? `${data.bodyFatDate} · ${data.bodyFatSource === "shortcuts" ? "Apple Health" : "manual"}; estimasi`
-              : "estimasi"
-          }
-        />
-        <Metric
           label="VO₂ max"
           value={data.vo2Max === null ? "Belum ada" : `${data.vo2Max} mL/kg/min`}
           note={data.vo2MaxReading
@@ -138,19 +122,17 @@ export default function FitnessTab() {
         />
         <Metric
           label="Kardio"
-          value={`${data.cardioMinutes} menit`}
-          note="minggu ini"
+          value={logged && logged.cardioMinutes > 0 ? `${logged.cardioMinutes} menit` : "Belum ada catatan"}
+          note={`${logged?.windowDays ?? 7} hari terakhir, dari Gerak hari ini`}
+          extra={data.cardioMinutes > 0 ? `Rutinitas di Profil: ${data.cardioMinutes} menit/minggu` : undefined}
         />
         <Metric
-          label="Strength"
-          value={`${data.strengthDays} hari`}
-          note="minggu ini"
+          label="Latihan beban"
+          value={logged && logged.strengthDays > 0 ? `${logged.strengthDays} hari` : "Belum ada catatan"}
+          note={`${logged?.windowDays ?? 7} hari terakhir, dari Gerak hari ini`}
+          extra={data.strengthDays > 0 ? `Rutinitas di Profil: ${data.strengthDays} hari/minggu` : undefined}
         />
       </section>
-
-      {data.composition && data.composition.recent.pairs + data.composition.baseline.pairs > 0 && (
-        <CompositionCard composition={data.composition} />
-      )}
 
       {otherSignals.length > 0 && (
         <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
@@ -166,12 +148,11 @@ export default function FitnessTab() {
         </section>
       )}
 
-      {(data.vo2Max === null || data.restingHeartRate === null || data.bodyFatLatest === null) && (
+      {(data.vo2Max === null || data.restingHeartRate === null) && (
         <p className="px-1 text-xs leading-relaxed text-neutral-500">
-          Tidak punya jam tangan atau timbangan pintar? Isi sendiri saja. Body fat di{" "}
-          <Link href="/progress?tab=body" className="font-semibold text-brand-700 dark:text-brand-300">Perjalanan → Tubuh</Link>,
-          VO₂ max, detak istirahat, dan jadwal latihan di{" "}
+          Tidak punya jam tangan? Isi sendiri saja: VO₂ max, detak istirahat, dan rutinitas latihan ada di{" "}
           <Link href="/settings" className="font-semibold text-brand-700 dark:text-brand-300">Profil → Aktivitas &amp; fitness</Link>.
+          Sesi yang kamu catat di Home lewat Gerak hari ini muncul di Kardio dan Latihan beban.
         </p>
       )}
 
@@ -266,65 +247,6 @@ function trendLine(trend: SeriesTrend | null, unit: string) {
     return `Rata-rata terbaru ${trend.recent.average} ${unit}, sebelumnya ${trend.baseline.average}`;
   }
   return undefined;
-}
-
-const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
-
-function CompositionCard({ composition }: { composition: CompositionTrend }) {
-  const { recent, baseline, change } = composition;
-  const rows = change
-    ? [
-        { label: "Berat", unit: "kg", before: baseline.weightKg, after: recent.weightKg, delta: change.weightKg },
-        { label: "Body fat", unit: "%", before: baseline.bodyFatPercent, after: recent.bodyFatPercent, delta: change.bodyFatPoints },
-        { label: "Massa lemak", unit: "kg", before: baseline.fatMassKg, after: recent.fatMassKg, delta: change.fatMassKg },
-        { label: "Massa bebas lemak", unit: "kg", before: baseline.fatFreeMassKg, after: recent.fatFreeMassKg, delta: change.fatFreeMassKg },
-      ]
-    : [];
-  return (
-    <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
-      <div>
-        <div className="text-sm font-semibold">Komposisi tubuh (estimasi)</div>
-        <div className="text-xs text-neutral-400">
-          Rata-rata 14 hari terakhir dibanding 14 hari sebelumnya, hanya dari hari yang punya berat dan body fat.
-        </div>
-      </div>
-      {change ? (
-        <>
-          <table className="w-full text-sm">
-            <caption className="sr-only">Perubahan komposisi tubuh antara dua periode 14 hari</caption>
-            <thead className="text-xs text-neutral-400">
-              <tr>
-                <th scope="col" className="py-1 text-left font-normal">Ukuran</th>
-                <th scope="col" className="py-1 text-right font-normal">Sebelumnya</th>
-                <th scope="col" className="py-1 text-right font-normal">Terbaru</th>
-                <th scope="col" className="py-1 text-right font-normal">Selisih</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.label} className="border-t border-neutral-100 dark:border-neutral-800">
-                  <th scope="row" className="py-1.5 text-left font-normal">{row.label}</th>
-                  <td className="py-1.5 text-right">{row.before} {row.unit}</td>
-                  <td className="py-1.5 text-right">{row.after} {row.unit}</td>
-                  <td className="py-1.5 text-right font-medium">{signed(row.delta)} {row.unit === "%" ? "poin" : row.unit}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {composition.statement && <p className="text-sm text-neutral-600 dark:text-neutral-300">{composition.statement}</p>}
-          <p className="text-xs text-neutral-400">
-            Sampel {recent.pairs} dan {baseline.pairs} hari{composition.confidence === "low" ? "; masih sedikit, anggap sebagai gambaran awal" : ""}.
-          </p>
-        </>
-      ) : (
-        <p className="text-sm text-neutral-500">{composition.needs}</p>
-      )}
-      <p className="text-xs text-neutral-400">
-        Massa bebas lemak mencakup air, glikogen, organ, dan tulang, bukan otot saja. Body fat dari timbangan impedansi
-        bergeser karena cairan dan waktu timbang; pakai tren, bukan satu angka.
-      </p>
-    </section>
-  );
 }
 
 function measurementDate(value: string) {

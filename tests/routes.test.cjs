@@ -398,6 +398,23 @@ test('Fitness uses the latest standalone body-fat reading and its date/source', 
 });
 
 
+test('logged activity keeps its kind, rejects unknown kinds, and reaches the Kebugaran summary', async () => {
+  const fitnessRoute = require('../app/api/fitness-intelligence/route');
+  const date = todayKey(DEFAULT_SETTINGS.timezone);
+  const post = (extra) => logRoute.POST(request('/api/log', 'POST', { type: 'burn', calories: 150, source: 'manual', ...extra }));
+  assert.equal((await post({ label: 'Lari', kind: 'run', durationMin: 40 })).status, 200);
+  assert.equal((await post({ label: 'Jalan kaki', kind: 'walk', durationMin: 20 })).status, 200);
+  assert.equal((await post({ label: 'Gym', kind: 'strength', durationMin: 50 })).status, 200);
+  // An older client sends only a label; it is still classified by that label.
+  assert.equal((await post({ label: 'Sepeda', durationMin: 30 })).status, 200);
+  for (const kind of ['juggling', 7, null]) assert.equal((await post({ label: 'Lari', kind, durationMin: 10 })).status, 400, String(kind));
+  assert.equal(store.get(keys.day('u3', date)).burns[0].kind, 'run');
+  // Apple Watch energy has no duration and is not counted as cardio.
+  await healthRoute.POST(request('/api/health-sync', 'POST', { calories: 500 }, null, { authorization: 'Bearer test-health-3' }));
+  const result = await (await fitnessRoute.GET(request('/api/fitness-intelligence'))).json();
+  assert.deepEqual(result.loggedActivity, { cardioMinutes: 90, strengthDays: 1, activeDays: 1, windowDays: 7 });
+});
+
 test('an explicit zero Active Energy snapshot overwrites the previous sync without affecting food or body data', async () => {
   const date = todayKey(DEFAULT_SETTINGS.timezone);
   await bodyRoute.POST(request('/api/body', 'POST', { waistCm: 90 }));

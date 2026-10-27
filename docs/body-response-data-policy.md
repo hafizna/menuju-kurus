@@ -42,7 +42,7 @@ Unit/regression tests mencakup data kosong/parsial/nol, cakupan dan sebaran, sam
 
 ## Komposisi tubuh dan tren fitness
 
-Implementasi di `lib/fitnessTrends.ts`, tampil di Progress → Fitness, dan masuk ke ringkasan AI sebagai `signals`. Ambang di bawah adalah heuristik kualitas data produk, bukan standar klinis, dan tidak mengubah skor Fitness: tren menjelaskan data, bukan menilai pengguna.
+Implementasi di `lib/fitnessTrends.ts`, tampil di Progress → Tubuh (komposisi) dan Progress → Kebugaran (tren VO₂ max dan detak istirahat), dan masuk ke ringkasan AI sebagai `signals`. Ambang di bawah adalah heuristik kualitas data produk, bukan standar klinis, dan tidak mengubah skor Fitness: tren menjelaskan data, bukan menilai pengguna.
 
 | Tren | Jendela | Syarat siap | Catatan |
 |---|---|---|---|
