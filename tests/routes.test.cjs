@@ -398,6 +398,34 @@ test('Fitness uses the latest standalone body-fat reading and its date/source', 
 });
 
 
+test('Apple Health float noise is rounded to two decimals before it is stored or reported', async () => {
+  const date = todayKey(DEFAULT_SETTINGS.timezone);
+  const auth = { authorization: 'Bearer test-health-3' };
+  // 32-bit floats widened to doubles, exactly what HealthKit hands to a Shortcut.
+  const flat = await healthRoute.POST(request('/api/health-sync', 'POST', {
+    provider: 'apple_health', weightKg: 90.50000190734863, bodyFatPercent: 30.700000762939453,
+  }, null, auth));
+  assert.equal(flat.status, 200);
+  const samples = await healthRoute.POST(request('/api/health-sync', 'POST', {
+    provider: 'apple_health',
+    samples: [{ metric: 'vo2Max', value: 44.20000076293945, measuredAt: new Date(Date.now() - 3600_000).toISOString() }],
+  }, null, auth));
+  assert.equal(samples.status, 200);
+  const weight = store.get(keys.weight('u3')).find((entry) => entry.date === date);
+  assert.equal(weight.weightKg, 90.5);
+  assert.equal(store.get(keys.body('u3')).find((entry) => entry.date === date).bodyFatPercent.value, 30.7);
+  assert.equal(store.get(keys.fitnessMeasurements('u3')).vo2Max.value, 44.2);
+  const fitnessRoute = require('../app/api/fitness-intelligence/route');
+  const { intelligence } = await (await fitnessRoute.GET(request('/api/fitness-intelligence'))).json();
+  assert.equal(intelligence.bodyFatLatest, 30.7);
+  assert.equal(intelligence.vo2Max, 44.2);
+  // A value that only passes the range check because of noise is still judged on the rounded number.
+  const edge = await healthRoute.POST(request('/api/health-sync', 'POST', { provider: 'apple_health', bodyFatPercent: 75.004 }, null, auth));
+  assert.equal(edge.status, 200);
+  const over = await healthRoute.POST(request('/api/health-sync', 'POST', { provider: 'apple_health', bodyFatPercent: 75.006 }, null, auth));
+  assert.equal(over.status, 400);
+});
+
 test('logged activity keeps its kind, rejects unknown kinds, and reaches the Kebugaran summary', async () => {
   const fitnessRoute = require('../app/api/fitness-intelligence/route');
   const date = todayKey(DEFAULT_SETTINGS.timezone);

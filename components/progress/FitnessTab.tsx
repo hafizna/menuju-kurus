@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { FitnessIntelligence } from "@/lib/fitnessIntelligence";
 import type { SeriesTrend } from "@/lib/fitnessTrends";
 import type { LoggedActivity } from "@/lib/activity";
+import { formatMeasure } from "@/lib/format";
 import { IconSparkle } from "@/components/icons";
 
 interface AiSummary {
@@ -102,7 +103,7 @@ export default function FitnessTab() {
       <section className="grid grid-cols-2 gap-3">
         <Metric
           label="VO₂ max"
-          value={data.vo2Max === null ? "Belum ada" : `${data.vo2Max} mL/kg/min`}
+          value={data.vo2Max === null ? "Belum ada" : `${formatMeasure(data.vo2Max)} mL/kg/min`}
           note={data.vo2MaxReading
             ? `Apple Health · ${measurementDate(data.vo2MaxReading.recordedAt)} · estimasi`
             : data.vo2Max === null ? "estimasi kebugaran kardio" : "Isian Profil · estimasi"}
@@ -113,7 +114,7 @@ export default function FitnessTab() {
           value={
             data.restingHeartRate === null
               ? "Belum ada"
-              : `${data.restingHeartRate} bpm`
+              : `${formatMeasure(data.restingHeartRate)} bpm`
           }
           note={data.restingHeartRateReading
             ? `Apple Health · ${measurementDate(data.restingHeartRateReading.recordedAt)}`

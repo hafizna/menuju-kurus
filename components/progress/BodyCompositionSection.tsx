@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { FitnessIntelligence } from "@/lib/fitnessIntelligence";
 import type { CompositionTrend } from "@/lib/fitnessTrends";
+import { formatMeasure } from "@/lib/format";
 
 const signed = (value: number) => `${value > 0 ? "+" : ""}${value}`;
 
@@ -34,7 +35,7 @@ export default function BodyCompositionSection() {
           <p className="mt-0.5 text-xs text-neutral-500">Estimasi, paling berguna dilihat sebagai tren.</p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-lg font-bold tabular-nums">{data.bodyFatLatest === null ? "Belum ada" : `${data.bodyFatLatest}%`}</p>
+          <p className="text-lg font-bold tabular-nums">{data.bodyFatLatest === null ? "Belum ada" : `${formatMeasure(data.bodyFatLatest)}%`}</p>
           {data.bodyFatDate && (
             <p className="text-xs text-neutral-500">
               {readingDate(data.bodyFatDate)} · {data.bodyFatSource === "shortcuts" ? "Apple Health" : "manual"}

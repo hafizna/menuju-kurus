@@ -12,6 +12,7 @@ import {
   type BodySnapshot,
 } from "@/lib/body";
 import type { WeightTrend } from "@/lib/weight";
+import { formatMeasure } from "@/lib/format";
 import WeightForecastCard from "@/components/WeightForecastCard";
 import BodyAvatar, { type AvatarRegion } from "./BodyAvatar";
 import MetricChart from "./MetricChart";
@@ -490,12 +491,12 @@ export default function BodyTab() {
                       </th>
                       <td>
                         {row.before
-                          ? `${row.before.value} ${BODY_LABELS[row.field].unit}`
+                          ? `${formatMeasure(row.before.value)} ${BODY_LABELS[row.field].unit}`
                           : "Belum diukur"}
                       </td>
                       <td>
                         {row.after
-                          ? `${row.after.value} ${BODY_LABELS[row.field].unit}`
+                          ? `${formatMeasure(row.after.value)} ${BODY_LABELS[row.field].unit}`
                           : "Belum diukur"}
                       </td>
                       <td>
@@ -560,10 +561,10 @@ export default function BodyTab() {
                 </span>
                 {focusRow.before && focusRow.after
                   ? focusRow.delta === null
-                    ? `: ${focusRow.after.value} cm. Pilih tanggal awal yang lebih lama untuk melihat perubahan.`
+                    ? `: ${formatMeasure(focusRow.after.value)} cm. Pilih tanggal awal yang lebih lama untuk melihat perubahan.`
                     : focusRow.delta === 0
-                      ? `: tetap ${focusRow.after.value} cm.`
-                      : `: ${focusRow.before.value} → ${focusRow.after.value} cm (${focusRow.delta > 0 ? "+" : "−"}${Math.abs(focusRow.delta)} cm).`
+                      ? `: tetap ${formatMeasure(focusRow.after.value)} cm.`
+                      : `: ${formatMeasure(focusRow.before.value)} → ${formatMeasure(focusRow.after.value)} cm (${focusRow.delta > 0 ? "+" : "−"}${formatMeasure(Math.abs(focusRow.delta))} cm).`
                   : ": belum diukur di kedua tanggal, jadi belum ada perubahan untuk ditunjukkan."}
                 {" "}Ketuk ukuran lain untuk menyorot area itu.
               </p>
@@ -626,7 +627,7 @@ export default function BodyTab() {
             <p className="mt-2 text-xs text-neutral-500">
               Rata-rata 7 hari saat ini:{" "}
               {data.weightTrend.avg7 !== null
-                ? `${data.weightTrend.avg7} kg`
+                ? `${formatMeasure(data.weightTrend.avg7)} kg`
                 : "belum ada data"}
               .
             </p>
@@ -660,7 +661,7 @@ export default function BodyTab() {
                         >
                           <div>
                             <span className="font-medium">
-                              {BODY_LABELS[field].label}: {entry[field]!.value}{" "}
+                              {BODY_LABELS[field].label}: {formatMeasure(entry[field]!.value)}{" "}
                               {BODY_LABELS[field].unit}
                             </span>
                             <p className="text-xs text-neutral-500">
