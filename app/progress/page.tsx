@@ -6,6 +6,7 @@ import BodyTab from "@/components/progress/BodyTab";
 import OverviewTab from "@/components/progress/OverviewTab";
 import FitnessTab from "@/components/progress/FitnessTab";
 import JournalHeader from "@/components/JournalHeader";
+import KukangLoader from "@/components/KukangLoader";
 
 const TABS = [
   { id: "overview", label: "Ringkasan" },
@@ -89,11 +90,7 @@ function ProgressContent() {
 }
 export default function ProgressPage() {
   return (
-    <Suspense
-      fallback={
-        <p className="p-6 text-center text-neutral-500">Memuat progress...</p>
-      }
-    >
+    <Suspense fallback={<KukangLoader label="Memuat progress..." />}>
       <ProgressContent />
     </Suspense>
   );

@@ -8,6 +8,7 @@ import { computeProgramRecommendation, type ProgramRecommendation } from "@/lib/
 import DisplaySettings from "@/components/DisplaySettings";
 import { programDraftError } from "@/lib/programDraft";
 import JournalHeader from "@/components/JournalHeader";
+import KukangLoader from "@/components/KukangLoader";
 
 const GOALS: { value: FitnessGoal; label: string; description: string }[] = [
   { value: "weight_loss", label: "Turun berat", description: "Turun berat dengan defisit moderat." },
@@ -75,7 +76,7 @@ export default function SettingsPage() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Belum dapat keluar."); }
   }
 
-  if (!settings) return <div className="space-y-3 p-6">{loading ? <p className="text-neutral-500">Memuat profil…</p> : <><p role="alert" className="text-sm text-red-600">{error}</p><button type="button" onClick={() => void load()} className="rounded-xl bg-brand-700 px-4 py-3 font-medium text-white">Coba lagi</button></>}</div>;
+  if (!settings) return <div className="space-y-3 p-6">{loading ? <KukangLoader label="Memuat profil…" /> : <><p role="alert" className="text-sm text-red-600">{error}</p><button type="button" onClick={() => void load()} className="rounded-xl bg-brand-700 px-4 py-3 font-medium text-white">Coba lagi</button></>}</div>;
   const inputClass = "w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800";
 
   return (

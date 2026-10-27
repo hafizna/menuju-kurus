@@ -7,6 +7,7 @@ import type { SeriesTrend } from "@/lib/fitnessTrends";
 import type { LoggedActivity } from "@/lib/activity";
 import { formatMeasure } from "@/lib/format";
 import { IconSparkle } from "@/components/icons";
+import KukangLoader from "@/components/KukangLoader";
 
 interface AiSummary {
   summary: string;
@@ -51,8 +52,7 @@ export default function FitnessTab() {
   }
 
   if (!data && error) return <div className="space-y-3"><p role="alert" className="text-sm text-red-500">{error}</p><button type="button" onClick={() => void load()} className="rounded-lg border px-3 py-2 text-sm">Coba lagi</button></div>;
-  if (loading || !data)
-    return <div className="p-6 text-center text-neutral-400">Memuat...</div>;
+  if (loading || !data) return <KukangLoader size="section" label="Memuat kebugaran..." />;
 
   // The composition sentence is shown with the body measurements in Tubuh.
   const otherSignals = data.signals.filter((item) => item !== data.composition?.statement);

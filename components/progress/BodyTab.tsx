@@ -14,6 +14,7 @@ import {
 import type { WeightTrend } from "@/lib/weight";
 import { formatMeasure } from "@/lib/format";
 import WeightForecastCard from "@/components/WeightForecastCard";
+import KukangLoader from "@/components/KukangLoader";
 import BodyAvatar, { type AvatarRegion } from "./BodyAvatar";
 import MetricChart from "./MetricChart";
 import BodyChangeCard from "./BodyChangeCard";
@@ -190,9 +191,7 @@ export default function BodyTab() {
         </button>
       </div>
     ) : (
-      <p className="py-6 text-center text-neutral-500">
-        Memuat ukuran tubuh...
-      </p>
+      <KukangLoader size="section" label="Memuat ukuran tubuh..." />
     );
 
   const snapshots = data.snapshots;

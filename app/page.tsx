@@ -13,6 +13,7 @@ import { buildAdaptiveCoach, type CoachMoment } from "@/lib/adaptiveCoach";
 import { IconCamera, IconSearch, IconScaleWeight, IconTarget, IconBowl } from "@/components/icons";
 import DailyCoach from "@/components/DailyCoach";
 import Mascot from "@/components/Mascot";
+import KukangLoader from "@/components/KukangLoader";
 import SkyBackdrop, { skyBackground } from "@/components/SkyBackdrop";
 import WeeklyFocusCard from "@/components/WeeklyFocusCard";
 import { skyForHour } from "@/lib/skyTheme";
@@ -164,9 +165,12 @@ export default function DashboardPage() {
   }
 
   if (!data || needsOnboarding) return (
-    <div className="space-y-3 p-6">
-      {loadError ? <><p role="alert" className="text-sm text-red-600 dark:text-red-300">{loadError}</p><button type="button" onClick={() => void load()} className="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm dark:border-neutral-700">Coba lagi</button></> : <p role="status" className="text-center text-neutral-500">Memuat harimu...</p>}
-    </div>
+    loadError ? (
+      <div className="space-y-3 p-6">
+        <p role="alert" className="text-sm text-red-600 dark:text-red-300">{loadError}</p>
+        <button type="button" onClick={() => void load()} className="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm dark:border-neutral-700">Coba lagi</button>
+      </div>
+    ) : <KukangLoader label="Memuat harimu..." />
   );
 
   const { summary, log, streak, challenge, weeklyBudget, weightTrend, proteinToday, sugarToday, sugarWeek, settings, habits } = data;

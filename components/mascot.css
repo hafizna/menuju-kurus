@@ -52,6 +52,21 @@
 .kukang[data-mood="sugar"] .kukang-head { animation: kukang-snack-nod 3.6s ease-in-out infinite; }
 .kukang-feeding-arm { animation: kukang-nibble 3.6s ease-in-out infinite; }
 .kukang[data-mood="sugar"] .kukang-feeding-arm { animation-duration: 4.8s; }
+/* Loading poses: the ball's bounce is the clock, and the body, head and eyes
+ * follow it. Contact is at 0% and 100%, the top of the hop at 50%. */
+.kukang-ball { transform-origin: center; animation: kukang-ball-hop 1.5s infinite; }
+.kukang[data-mood="juggle"] .kukang-ball { --hop: -58px; }
+.kukang[data-mood="header"] .kukang-ball { --hop: -52px; }
+.kukang[data-mood="juggle"] .kukang-rig,
+.kukang[data-mood="header"] .kukang-rig { transform-origin: 50% 90%; animation: kukang-ball-knees 1.5s ease-in-out infinite; }
+.kukang[data-mood="juggle"] .kukang-head { animation: kukang-ball-look 1.5s ease-in-out infinite; }
+.kukang[data-mood="juggle"] .kukang-gaze,
+.kukang[data-mood="header"] .kukang-gaze { animation: kukang-ball-gaze 1.5s ease-in-out infinite; }
+.kukang[data-mood="header"] .kukang-head { animation: kukang-ball-nod 1.5s ease-out infinite; }
+.kukang[data-mood="juggle"] .kukang-arm--right { animation: kukang-racket-give 1.5s ease-in-out infinite; }
+.kukang[data-mood="juggle"] .kukang-arm--left,
+.kukang[data-mood="header"] .kukang-arm--left { animation: kukang-balance 1.5s ease-in-out infinite; }
+.kukang[data-mood="header"] .kukang-arm--right { animation: kukang-balance 1.5s ease-in-out infinite reverse; }
 .kukang-chew { transform-origin: center; animation: kukang-chew 1.2s ease-in-out infinite; }
 .kukang-cheeks { transform-origin: center; animation: kukang-cheeks 1.2s ease-in-out infinite; }
 .kukang[data-mood="sugar"] .kukang-cheeks { animation-name: kukang-full-cheeks; }
@@ -104,4 +119,15 @@
 @keyframes kukang-spark { 0%, 100% { opacity: .35; transform: scale(.75); } 50% { opacity: .9; transform: scale(1.1); } }
 @keyframes kukang-drop { 0%, 100% { opacity: .4; transform: translateY(0); } 50% { opacity: .9; transform: translateY(6px); } }
 @keyframes kukang-note { 0%, 100% { transform: translateY(-4px) rotate(-8deg); } 50% { transform: translateY(4px) rotate(8deg); } }
+@keyframes kukang-ball-hop {
+  0% { transform: translateY(0) scale(1.12, .88) rotate(0); animation-timing-function: cubic-bezier(.2, .7, .4, 1); }
+  50% { transform: translateY(var(--hop)) scale(1) rotate(200deg); animation-timing-function: cubic-bezier(.6, 0, .8, .35); }
+  100% { transform: translateY(0) scale(1.12, .88) rotate(360deg); }
+}
+@keyframes kukang-ball-knees { 0%, 100% { transform: translateY(3px); } 14% { transform: translateY(-1px); } 60% { transform: translateY(0); } }
+@keyframes kukang-ball-look { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-3deg) translateY(-1px); } }
+@keyframes kukang-ball-nod { 0%, 100% { transform: rotate(1deg) translateY(1px); } 10% { transform: rotate(-4deg) translateY(-4px); } 32%, 90% { transform: rotate(0) translateY(0); } }
+@keyframes kukang-ball-gaze { 0%, 100% { transform: translateY(2px); } 50% { transform: translateY(-3.5px); } }
+@keyframes kukang-racket-give { 0%, 100% { transform: translateY(4px); } 14% { transform: translateY(-3px); } 70% { transform: translateY(0); } }
+@keyframes kukang-balance { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(5deg); } }
 

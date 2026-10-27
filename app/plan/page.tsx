@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DayLog, PlanType } from "@/lib/types";
 import { IconClock, IconBowl, IconSparkle } from "@/components/icons";
+import KukangLoader from "@/components/KukangLoader";
 
 interface Suggestion {
   recommended: PlanType;
@@ -62,7 +63,7 @@ export default function PlanPage() {
     }
   }
 
-  if (!data) return <div className="p-6 text-center text-neutral-400">Memuat...</div>;
+  if (!data) return <KukangLoader label="Memuat rencana..." />;
 
   const { log, suggestion } = data;
 

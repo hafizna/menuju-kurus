@@ -7,6 +7,7 @@ import type { BodyResponse } from "./BodyTab";
 import CalibrationPanel from "./CalibrationPanel";
 import BodyResponsePanel from "./BodyResponsePanel";
 import WeeklyTab from "./WeeklyTab";
+import KukangLoader from "@/components/KukangLoader";
 
 export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
   const [data, setData] = useState<BodyResponse | null>(null);
@@ -60,7 +61,7 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
         </button>
       </div>
     ) : (
-      <p className="py-6 text-center text-neutral-500">Memuat progress...</p>
+      <KukangLoader size="section" label="Memuat progress..." />
     );
   const waistDue = checkInDue(data.snapshots, "waistCm", data.today);
   const analysisReady = !!report && report.current.food.ready && report.current.weight.ready;

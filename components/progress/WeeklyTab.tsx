@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { IconSparkle } from "@/components/icons";
 import WeeklyFocusCard from "@/components/WeeklyFocusCard";
+import KukangLoader from "@/components/KukangLoader";
 import type { WeeklyReview } from "@/lib/weeklyReview";
 import type { StoredWeeklySummary } from "@/lib/weeklySummary";
 
@@ -116,7 +117,7 @@ export default function WeeklyTab() {
       <p role="alert" className="text-sm text-red-500">{loadError}</p>
       <button type="button" onClick={() => void loadReview()} className="rounded-lg border border-neutral-300 px-3 py-2 text-sm">Coba lagi</button>
     </div>
-  ) : <div className="p-6 text-center text-neutral-400">Memuat...</div>;
+  ) : <KukangLoader size="section" label="Memuat minggu ini..." />;
 
   const reviewDays = data.days.filter((day) => weekly?.review.periodStart && weekly.review.periodEnd
     ? day.date >= weekly.review.periodStart && day.date <= weekly.review.periodEnd
