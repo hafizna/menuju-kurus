@@ -119,11 +119,24 @@ module.exports = async function verifyLoader({ page: main, base, projectRoot }) 
     const ball = sheet.locator(".kukang-ball").first();
     const ballStart = await ball.evaluate(node => getComputedStyle(node).transform);
     await page.waitForFunction(ballStart => getComputedStyle(document.querySelector('[role="dialog"] .kukang-ball')).transform !== ballStart, ballStart);
+    // The upload step gives way to reading after a moment, which shows the seconds.
+    await sheet.getByText(/Sudah \d+ dtk\./).waitFor();
     for (const [width, height] of [[390, 844], [320, 568]]) {
       await page.setViewportSize({ width, height });
       const panel = await sheet.locator(":scope > div").boundingBox();
       assert.ok(panel.y >= 0 && panel.y + panel.height <= height + 1, `${width}px photo sheet runs off the screen`);
+      // Kukang sits beside the steps, so the sheet stays short and the steps keep one line each.
+      const kukang = await sheet.locator(".kukang").boundingBox();
+      const steps = await sheet.getByRole("list").boundingBox();
+      assert.ok(kukang.x + kukang.width <= steps.x + 24, `${width}px kukang is not beside the steps`);
+      assert.ok(Math.abs(kukang.y + kukang.height / 2 - (steps.y + steps.height / 2)) < 30, `${width}px kukang is not level with the steps`);
+      if (width >= 390) {
+        assert.ok(panel.height < height * 0.7, `${width}px photo sheet is ${Math.round(panel.height)}px tall`);
+        const label = await sheet.getByText("Membaca makanannya", { exact: true }).boundingBox();
+        assert.ok(label.height < 26, "the reading step wraps onto two lines");
+      }
       await noOverflow(`${width}px photo sheet overflow`);
+      await capture(`sheet-${width}`);
       const cancel = await sheet.getByRole("button", { name: "Batalkan", exact: true }).boundingBox();
       assert.ok(cancel.y >= 0 && cancel.y + cancel.height <= height, `${width}px cancel button is off the screen`);
     }
