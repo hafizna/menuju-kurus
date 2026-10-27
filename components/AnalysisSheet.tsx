@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Mascot, { type MascotMood } from "@/components/Mascot";
+import { useLoaderMood } from "@/components/KukangLoader";
 
 export type SheetPhase = "upload" | "read" | "done" | "error";
 
@@ -49,7 +50,9 @@ export default function AnalysisSheet({
   onRetry: () => void;
   onManual: () => void;
 }) {
-  const mood: MascotMood = phase === "error" ? "worried" : phase === "done" ? "cheer" : "thinking";
+  // While the photo is being read kukang keeps busy, the same way as on the loading screens.
+  const busy = useLoaderMood();
+  const mood: MascotMood = phase === "error" ? "worried" : phase === "done" ? "cheer" : busy;
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef(onCancel);
   cancelRef.current = onCancel;
@@ -74,7 +77,7 @@ export default function AnalysisSheet({
 
   return (
     <div ref={dialogRef} className="fixed inset-0 z-40 flex items-end bg-black/40" role="dialog" aria-modal="true" aria-label="Membaca foto makanan">
-      <div className="mx-auto w-full max-w-md rounded-t-3xl bg-neutral-50 px-5 pb-8 pt-3 dark:bg-neutral-950">
+      <div className="mx-auto max-h-[94dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-neutral-50 px-5 pb-8 pt-3 dark:bg-neutral-950">
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700" />
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold">Membaca makananmu</h2>
@@ -90,7 +93,7 @@ export default function AnalysisSheet({
 
         {preview && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt="" className="h-52 w-full rounded-2xl object-cover" />
+          <img src={preview} alt="" className="h-40 w-full rounded-2xl object-cover" />
         )}
 
         <div className="mt-3 rounded-2xl bg-white p-4 shadow-xs dark:bg-neutral-900">
@@ -110,9 +113,10 @@ export default function AnalysisSheet({
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              <Mascot mood={mood} className="h-16 w-16 shrink-0" />
-              <ol className="flex-1 space-y-3" aria-live="polite">
+            <div className="space-y-3">
+              {/* The picture is decoration; the steps below say where things stand. */}
+              <Mascot mood={mood} decorative className="mx-auto mt-3 w-36" />
+              <ol className="space-y-3" aria-live="polite">
                 <Step state={uploadState} label="Mengirim foto" />
                 <Step state={readState} label="Membaca makanannya" extra={phase === "read" ? `${seconds} dtk` : undefined} />
                 <Step state={phase === "done" ? "done" : "pending"} label="Siap kamu cek" />

@@ -98,11 +98,45 @@ module.exports = async function verifyLoader({ page: main, base, projectRoot }) 
     await capture("section-320");
     await release();
     await loader().waitFor({ state: "detached" });
+
+    // The sheet shown while a food photo is read has the same kukang, kept
+    // inside the screen and gone again when the reading is cancelled.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("about:blank");
+    await page.goto(`${base}/makan#random=0.5`);
+    let reading;
+    await page.route("**/api/analyze-food", route => { reading = route; });
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j0hQAAAAASUVORK5CYII=", "base64");
+    const fileInput = page.locator('input[type="file"]').last();
+    await fileInput.waitFor({ state: "attached" });
+    await fileInput.setInputFiles({ name: "synthetic.png", mimeType: "image/png", buffer: png });
+    const sheet = page.getByRole("dialog", { name: "Membaca foto makanan" });
+    await sheet.getByText("Membaca makanannya", { exact: true }).waitFor();
+    await page.waitForFunction(() => document.querySelector('[role="dialog"] .kukang')?.dataset.mood === "header");
+    await page.waitForFunction(() => document.querySelector('[role="dialog"] .kukang')?.dataset.playing === "true");
+    assert.equal(await sheet.locator('[data-prop="football"]').count(), 1);
+    assert.equal(await sheet.locator(".kukang").getAttribute("aria-hidden"), "true");
+    const ball = sheet.locator(".kukang-ball").first();
+    const ballStart = await ball.evaluate(node => getComputedStyle(node).transform);
+    await page.waitForFunction(ballStart => getComputedStyle(document.querySelector('[role="dialog"] .kukang-ball')).transform !== ballStart, ballStart);
+    for (const [width, height] of [[390, 844], [320, 568]]) {
+      await page.setViewportSize({ width, height });
+      const panel = await sheet.locator(":scope > div").boundingBox();
+      assert.ok(panel.y >= 0 && panel.y + panel.height <= height + 1, `${width}px photo sheet runs off the screen`);
+      await noOverflow(`${width}px photo sheet overflow`);
+      const cancel = await sheet.getByRole("button", { name: "Batalkan", exact: true }).boundingBox();
+      assert.ok(cancel.y >= 0 && cancel.y + cancel.height <= height, `${width}px cancel button is off the screen`);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await capture("sheet-light");
+    await sheet.getByRole("button", { name: "Batalkan", exact: true }).click();
+    await sheet.waitFor({ state: "detached" });
+    await reading?.abort();
   } catch (error) {
     await capture("failure").catch(() => {});
     throw error;
   } finally {
     await page.close();
   }
-  console.log("Loader: PASS — juggling, football and walking poses, centred on the waiting screen, moving, hidden from screen readers, still readable with reduced motion, gone once data arrives, smaller inside a tab.");
+  console.log("Loader: PASS — juggling, football and walking poses, centred on the waiting screen, moving, hidden from screen readers, still readable with reduced motion, gone once data arrives, smaller inside a tab, the same kukang in the photo-reading sheet within a 320px screen.");
 };
