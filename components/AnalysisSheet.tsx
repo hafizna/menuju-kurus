@@ -6,7 +6,7 @@ import { useLoaderMood } from "@/components/KukangLoader";
 
 export type SheetPhase = "upload" | "read" | "done" | "error";
 
-function Step({ state, label, extra }: { state: "done" | "active" | "pending"; label: string; extra?: string }) {
+function Step({ state, label }: { state: "done" | "active" | "pending"; label: string }) {
   return (
     <li className="flex items-center gap-3">
       <span
@@ -28,7 +28,6 @@ function Step({ state, label, extra }: { state: "done" | "active" | "pending"; l
         )}
       </span>
       <span className={`flex-1 text-[15px] ${state === "pending" ? "text-neutral-400" : "font-medium"}`}>{label}</span>
-      {extra && <span className="text-xs tabular-nums text-neutral-400">{extra}</span>}
     </li>
   );
 }
@@ -93,7 +92,7 @@ export default function AnalysisSheet({
 
         {preview && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt="" className="h-40 w-full rounded-2xl object-cover" />
+          <img src={preview} alt="" className="h-52 w-full rounded-2xl object-cover" />
         )}
 
         <div className="mt-3 rounded-2xl bg-white p-4 shadow-xs dark:bg-neutral-900">
@@ -113,12 +112,13 @@ export default function AnalysisSheet({
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              {/* The picture is decoration; the steps below say where things stand. */}
-              <Mascot mood={mood} decorative className="mx-auto mt-3 w-36" />
-              <ol className="space-y-3" aria-live="polite">
+            <div className="flex items-center gap-1">
+              {/* The picture is decoration; the steps say where things stand. The negative
+                  margin uses the empty edge of the drawing so the steps keep their width. */}
+              <Mascot mood={mood} decorative className="-ml-4 w-28 shrink-0" />
+              <ol className="min-w-0 flex-1 space-y-3" aria-live="polite">
                 <Step state={uploadState} label="Mengirim foto" />
-                <Step state={readState} label="Membaca makanannya" extra={phase === "read" ? `${seconds} dtk` : undefined} />
+                <Step state={readState} label="Membaca makanannya" />
                 <Step state={phase === "done" ? "done" : "pending"} label="Siap kamu cek" />
               </ol>
             </div>
@@ -127,7 +127,10 @@ export default function AnalysisSheet({
 
         {phase !== "error" && (
           <>
-            <p className="mt-3 text-center text-sm text-neutral-500">Biasanya cuma beberapa detik.</p>
+            {/* The seconds live here, not in the step, so the steps keep one line each. */}
+            <p className="mt-3 text-center text-sm text-neutral-500">
+              Biasanya cuma beberapa detik.{phase === "read" && <>{" "}<span className="whitespace-nowrap tabular-nums">Sudah {seconds} dtk.</span></>}
+            </p>
             <p className="mt-1 text-center text-xs text-neutral-400">
               AI menebak nama makanan, porsi, dan kalorinya. Kamu cek dulu sebelum disimpan, ya.
             </p>
