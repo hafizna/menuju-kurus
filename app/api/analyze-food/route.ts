@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeFoodPhoto } from "@/lib/gemini";
+import { cleanNote } from "@/lib/mealNote";
 
 export const maxDuration = 30;
 
@@ -15,12 +16,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Foto terlalu besar (maks 8MB)" }, { status: 400 });
   }
 
+  // Optional: what the person knows that the photo cannot show, e.g. "telur 3 butir".
+  const note = cleanNote(form?.get("note"));
   const buffer = Buffer.from(await file.arrayBuffer());
   const base64 = buffer.toString("base64");
   const mimeType = file.type || "image/jpeg";
 
   try {
-    const analysis = await analyzeFoodPhoto(base64, mimeType);
+    const analysis = await analyzeFoodPhoto(base64, mimeType, note);
     return NextResponse.json({ analysis });
   } catch (err) {
     console.error(err);

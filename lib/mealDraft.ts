@@ -1,5 +1,5 @@
 import type { FoodAnalysis } from "./gemini";
-import { NO_ADJUST, type MealAdjust } from "./mealMath";
+import { COMPONENT_SCALES, NO_ADJUST, type MealAdjust } from "./mealMath";
 import { dateKeyFor, zonedTimeToUtcISO } from "./dates";
 import type { HabitMeal } from "./habits";
 import type { MealEntry } from "./types";
@@ -10,6 +10,10 @@ export interface MealDraft {
   name: string;
   adjust: MealAdjust;
   kcalEdit: string | null;
+  /** Protein typed over the estimate; null means use the estimate. */
+  proteinEdit: string | null;
+  /** The note for the AI ("telur 3 butir"). */
+  note: string;
   time: string;
   manualOpen: boolean;
   manual: ManualMealDraft;
@@ -38,14 +42,14 @@ export function priorMealDraft(storage: Pick<Storage, "length" | "key" | "getIte
   return found.sort((a, b) => b.date.localeCompare(a.date))[0] || null;
 }
 export function emptyMealDraft(time: string): MealDraft {
-  return { result: null, name: "", adjust: { ...NO_ADJUST }, kcalEdit: null, time, manualOpen: false, manual: { name: "", kcal: "", protein: "", time }, quick: null, quickPortion: "1", quickTime: time };
+  return { result: null, name: "", adjust: { ...NO_ADJUST }, kcalEdit: null, proteinEdit: null, note: "", time, manualOpen: false, manual: { name: "", kcal: "", protein: "", time }, quick: null, quickPortion: "1", quickTime: time };
 }
 export function hasMealDraft(draft: MealDraft): boolean {
   return Boolean(draft.result || draft.name.trim() || draft.manual.name.trim() || draft.manual.kcal || draft.manual.protein || draft.manual.sugar || draft.quick);
 }
 // Explicit allowlist: image bytes, blob URLs and account metadata never enter storage.
 export function serializeMealDraft(draft: MealDraft): string {
-  return JSON.stringify({ result: draft.result, name: draft.name, adjust: draft.adjust, kcalEdit: draft.kcalEdit, time: draft.time, manualOpen: draft.manualOpen, manual: draft.manual, quick: draft.quick, quickPortion: draft.quickPortion, quickTime: draft.quickTime });
+  return JSON.stringify({ result: draft.result, name: draft.name, adjust: draft.adjust, kcalEdit: draft.kcalEdit, proteinEdit: draft.proteinEdit, note: draft.note, time: draft.time, manualOpen: draft.manualOpen, manual: draft.manual, quick: draft.quick, quickPortion: draft.quickPortion, quickTime: draft.quickTime });
 }
 export function readMealDraft(raw: string | null): MealDraft | null {
   if (!raw) return null;
@@ -56,6 +60,12 @@ export function readMealDraft(raw: string | null): MealDraft | null {
       (d.manual.sugar !== undefined && typeof d.manual.sugar !== "string") ||
       !d.adjust || !Number.isFinite(d.adjust.stapleDeltaG) || !["less", "normal", "more"].includes(d.adjust.oil) ||
       ![1, 0.75, 0.5, 0.25].includes(d.adjust.eaten) || (d.kcalEdit !== null && typeof d.kcalEdit !== "string")) return null;
+    // Drafts saved before ingredient amounts and typed protein existed lack these fields; they stay readable.
+    if (d.adjust.scales !== undefined && (!Array.isArray(d.adjust.scales) || d.adjust.scales.some((value) => !(COMPONENT_SCALES as readonly number[]).includes(value)))) return null;
+    if (d.proteinEdit !== undefined && d.proteinEdit !== null && typeof d.proteinEdit !== "string") return null;
+    if (d.note !== undefined && typeof d.note !== "string") return null;
+    d.proteinEdit = d.proteinEdit ?? null;
+    d.note = d.note ?? "";
     if (typeof d.quickPortion !== "string" || typeof d.quickTime !== "string" || (d.quick && (typeof d.quick.name !== "string" || typeof d.quick.key !== "string" || typeof d.quick.portion !== "string" || typeof d.quick.detail !== "string" || ![d.quick.kcal, d.quick.protein, d.quick.carbs, d.quick.fat].every(Number.isFinite) || (d.quick.sugar !== undefined && !Number.isFinite(d.quick.sugar))))) return null;
     if (d.result && (!Array.isArray(d.result.components) || typeof d.result.foodName !== "string" || typeof d.result.portionNote !== "string" ||
       ![d.result.calories, d.result.protein_g, d.result.carbs_g, d.result.fat_g, d.result.kcalLow, d.result.kcalHigh].every(Number.isFinite) ||
@@ -96,4 +106,24 @@ export function recentMealChoices(meals: MealEntry[], recurring: HabitMeal[], li
   [...meals].sort((a, b) => b.time.localeCompare(a.time)).forEach((m) => add({ key: m.id, name: m.foodName, kcal: m.calories, protein: m.protein_g, carbs: m.carbs_g, fat: m.fat_g, sugar: m.sugar_g, portion: m.portionNote || "1 porsi catatan terakhir", detail: "Terakhir dicatat" }));
   recurring.forEach((m) => add({ key: m.key, name: m.name, kcal: m.averageCalories, protein: m.averageProteinG, carbs: m.averageCarbsG, fat: m.averageFatG, portion: m.portionNote || "1 porsi biasanya", detail: `Rata-rata ${m.count} catatan` }));
   return choices;
+}
+
+/** The value for an <input type="time"> (HH:mm) from a saved meal time, in the person's timezone. */
+export function mealTimeInput(value: string, timezone: string): string {
+  if (/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return value;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const format = (zone: string) => new Intl.DateTimeFormat("en-GB", { timeZone: zone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date);
+  try { return format(timezone); } catch { return format("Asia/Jakarta"); }
+}
+
+/**
+ * The instant for a time of day on a given date. Unlike mealTimeIso it has no
+ * 36 hour limit, because a correction keeps the meal on its own date; the
+ * server checks that the date is unchanged and that the time has happened.
+ */
+export function mealTimeToIso(time: string, date: string, timezone: string): string | null {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const [h, m] = time.split(":").map(Number);
+  return zonedTimeToUtcISO(date, h, m, timezone);
 }

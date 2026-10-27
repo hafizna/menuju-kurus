@@ -28,6 +28,7 @@ export class UploadAborted extends Error {}
 export function postPhoto(
   photo: Blob,
   hooks: { onUploaded: () => void; register: (xhr: XMLHttpRequest) => void },
+  note?: string,
 ): Promise<{ status: number; data: { analysis?: unknown; error?: string } | null }> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -47,6 +48,7 @@ export function postPhoto(
     xhr.onabort = () => reject(new UploadAborted());
     const form = new FormData();
     form.append("photo", photo, "photo.jpg");
+    if (note) form.append("note", note);
     xhr.send(form);
   });
 }

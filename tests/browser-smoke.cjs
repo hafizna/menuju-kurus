@@ -241,6 +241,7 @@ let child, browser;
 
   await require("./mascot-browser.cjs")({ page, base, projectRoot, today });
   await require("./activity-browser.cjs")({ page, base, store, today });
+  await require("./meal-correction-browser.cjs")({ page, base, store, today, offset });
 
   // A draft survives the recommendation mode, other meal routes and a reload.
   await page.goto(`${base}/makan`);

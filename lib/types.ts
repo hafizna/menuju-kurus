@@ -1,4 +1,5 @@
 import type { CalibrationReview } from "./calibration";
+import type { MealBreakdown } from "./mealBreakdown";
 export type PlanType = "if" | "deficit";
 export type FitnessGoal =
   | "weight_loss"
@@ -19,6 +20,10 @@ export interface MealEntry {
   // Added/free sugar in grams. Absent means "unknown", never zero.
   sugar_g?: number;
   portionNote?: string;
+  /** Ingredients and corrections behind a photo estimate, so the meal can be reviewed and corrected later. */
+  breakdown?: MealBreakdown;
+  /** Set when the meal was corrected after it was saved. */
+  editedAt?: string;
   source: "photo" | "manual";
 }
 export interface BurnEntry {
