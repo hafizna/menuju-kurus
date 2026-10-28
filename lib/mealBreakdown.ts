@@ -1,6 +1,6 @@
 import { normalizeFoodAnalysis, type FoodAnalysis } from "./gemini";
 import { COMPONENT_SCALES, type MealAdjust, type OilLevel, type EatenFraction } from "./mealMath";
-import { cleanNote } from "./mealNote";
+import { cleanDescription, cleanNote } from "./mealNote";
 
 /**
  * What is kept with a photo meal: the ingredient estimate, the corrections made
@@ -13,6 +13,8 @@ export interface MealBreakdown {
   kcalEdit: number | null;
   proteinEdit: number | null;
   note?: string;
+  /** What the person wrote, for a meal that was estimated from words instead of a photo. */
+  described?: string;
 }
 
 const OILS: OilLevel[] = ["less", "normal", "more"];
@@ -50,5 +52,6 @@ export function sanitizeBreakdown(raw: unknown): MealBreakdown | null {
   const proteinEdit = wholeOrNull(input.proteinEdit, 1000);
   if (kcalEdit === undefined || proteinEdit === undefined) return null;
   const note = cleanNote(input.note);
-  return { analysis, adjust, kcalEdit, proteinEdit, ...(note ? { note } : {}) };
+  const described = cleanDescription(input.described);
+  return { analysis, adjust, kcalEdit, proteinEdit, ...(note ? { note } : {}), ...(described ? { described } : {}) };
 }

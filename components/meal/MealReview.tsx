@@ -34,6 +34,8 @@ interface Props {
   photo?: string | null;
   /** Keeps element ids unique when two reviews exist on one page. */
   idPrefix?: string;
+  /** "text" for a meal that was written out instead of photographed; only the wording of the note's help changes. */
+  from?: "photo" | "text";
 }
 
 // The review of one meal estimate: what it is made of, what can be corrected,
@@ -226,7 +228,11 @@ export default function MealReview(props: Props) {
             {refining ? "Menghitung…" : "Hitung ulang"}
           </button>
         </div>
-        <p className="text-xs leading-relaxed text-neutral-500">Hal yang tidak terlihat di foto, seperti jumlah telur. AI menghitung ulang bahannya dari keterangan ini, tanpa foto. Pengaturan di atas diulang dari awal.</p>
+        <p className="text-xs leading-relaxed text-neutral-500">
+          {props.from === "text"
+            ? "Tambahan atau perubahan dari yang kamu tulis, seperti telur jadi 3 butir atau minyak sedikit. AI menghitung ulang bahannya dari keterangan ini. Pengaturan di atas diulang dari awal."
+            : "Hal yang tidak terlihat di foto, seperti jumlah telur. AI menghitung ulang bahannya dari keterangan ini, tanpa foto. Pengaturan di atas diulang dari awal."}
+        </p>
         {refined && <p role="status" className="text-xs font-medium text-brand-700 dark:text-brand-300">Sudah dihitung ulang. Cek angkanya di atas.</p>}
         {refineError && <p role="alert" className="text-xs text-red-600 dark:text-red-300">{refineError}</p>}
       </div>

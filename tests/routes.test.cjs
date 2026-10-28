@@ -428,6 +428,7 @@ test('Apple Health float noise is rounded to two decimals before it is stored or
 
 const analyzeRoute = require('../app/api/analyze-food/route');
 const refineRoute = require('../app/api/refine-food/route');
+const estimateRoute = require('../app/api/estimate-meal/route');
 const eggAnalysis = () => ({
   foodName: 'Telur dadar + nasi', portionNote: '1 piring', confidence: 'medium', kcalLow: 400, kcalHigh: 600,
   components: [
@@ -540,6 +541,55 @@ test('refine recalculates from the note alone and needs a note, an estimate and 
   await withGemini({ ok: true, json: { ...eggAnalysis(), components: [] } }, async () => {
     assert.equal((await post({ analysis: eggAnalysis(), note: 'telur 3 butir' })).status, 502, 'an empty revision is not accepted');
   });
+});
+
+test('a meal written in words is estimated without a photo or anything about the person', async () => {
+  const post = (body, user = 'u3') => estimateRoute.POST(request('/api/estimate-meal', 'POST', body, user));
+  await withGemini({ ok: true, json: eggAnalysis() }, async (calls) => {
+    const response = await post({ text: '  nasi 1,5 centong,\n telur dadar 2 butir  ' });
+    assert.equal(response.status, 200);
+    const { analysis } = await response.json();
+    assert.equal(analysis.components.length, 2);
+    assert.equal(analysis.calories, 335, 'totals are the sum of the ingredients');
+    assert.equal(calls.length, 1);
+    const sent = calls[0].body.contents[0].parts;
+    assert.equal(sent.length, 1, 'no photo is sent');
+    assert.match(sent[0].text, /"nasi 1,5 centong, telur dadar 2 butir"/, 'the text is cleaned and quoted');
+    assert.match(sent[0].text, /Nasi putih: 1 centong = 100 g matang/);
+    assert.doesNotMatch(JSON.stringify(calls[0].body), /biologicalSex|weightKg|heightCm/, 'nothing about the person is sent');
+
+    for (const body of [{}, { text: '' }, { text: '  ' }, { text: 'ab' }, { text: 42 }, null]) {
+      assert.equal((await post(body)).status, 400, JSON.stringify(body));
+    }
+    assert.equal((await post({ text: 'nasi 1 centong' }, null)).status, 401);
+    assert.equal(calls.length, 1, 'rejected requests never reach the model');
+
+    await post({ text: 'x'.repeat(900) });
+    assert.ok(JSON.parse(calls[1].body.contents[0].parts[0].text.match(/: ("x+")\n/)[1]).length <= 400, 'a long text is capped');
+  });
+  await withGemini({ ok: false, status: 500 }, async () => {
+    const failed = await post({ text: 'nasi 1 centong' });
+    assert.equal(failed.status, 502);
+    assert.match((await failed.json()).error, /manual/);
+  });
+  await withGemini({ ok: true, json: { ...eggAnalysis(), components: [] } }, async () => {
+    assert.equal((await post({ text: 'nasi 1 centong' })).status, 502, 'an estimate without ingredients is not accepted');
+  });
+});
+
+test('a meal estimated from words keeps what was written, and is saved as a manual entry with a breakdown', async () => {
+  const date = todayKey(DEFAULT_SETTINGS.timezone);
+  const before = store.get(keys.day('u3', date))?.meals.length ?? 0;
+  const body = { ...breakdownBody(), note: undefined, described: ' nasi 1,5 centong,\n telur dadar 2 butir ' };
+  const response = await logRoute.POST(request('/api/log', 'POST', { type: 'meal', foodName: 'Telur dadar + nasi', calories: 335, protein_g: 11, source: 'manual', breakdown: body }));
+  assert.equal(response.status, 200);
+  const meal = store.get(keys.day('u3', date)).meals[before];
+  assert.equal(meal.source, 'manual');
+  assert.equal(meal.breakdown.described, 'nasi 1,5 centong, telur dadar 2 butir');
+  assert.equal('note' in meal.breakdown, false);
+  const patched = await logRoute.PATCH(request('/api/log', 'PATCH', { mealId: meal.id, date, breakdown: { ...body, described: 42 } }));
+  assert.equal(patched.status, 200);
+  assert.equal('described' in store.get(keys.day('u3', date)).meals[before].breakdown, false, 'a non-text description is dropped');
 });
 
 test('a note given with the photo reaches the prompt; without one the prompt is unchanged', async () => {

@@ -6,7 +6,7 @@ Aplikasi personal untuk calorie tracking, weight management, fitness intelligenc
 
 Slothly diposisikan sebagai **personal nutrition decision assistant**: logika lokal menentukan keputusan, sedangkan AI hanya menjelaskan hasil yang sudah dihitung.
 
-Tampilan **Rumah Kukang** memakai ilustrasi kanopi dan maskot SVG orisinal, dengan flow Catat → cek porsi → simpan → review harian/mingguan. Makanan yang sudah tersimpan bisa dibuka lagi dari riwayat Makan, per hari untuk 7 hari terakhir, untuk melihat rincian bahan dan mengoreksi jumlah, protein, nama, atau jam; keterangan seperti "telur 3 butir" bisa dihitung ulang oleh AI tanpa foto. Detail draft, kesiapan data, motion, dan perilaku penyimpanan ada di [panduan Rumah Kukang](docs/rumah-kukang.md).
+Tampilan **Rumah Kukang** memakai ilustrasi kanopi dan maskot SVG orisinal, dengan flow Catat → cek porsi → simpan → review harian/mingguan. Makanan yang sudah tersimpan bisa dibuka lagi dari riwayat Makan, per hari untuk 7 hari terakhir, untuk melihat rincian bahan dan mengoreksi jumlah, protein, nama, atau jam; keterangan seperti "telur 3 butir" bisa dihitung ulang oleh AI tanpa foto. Tanpa foto, **Tulis & hitung** menghitung makanan dari tulisan dengan ukuran baku (centong, butir, gelas) yang sama untuk semua orang. Detail draft, kesiapan data, motion, dan perilaku penyimpanan ada di [panduan Rumah Kukang](docs/rumah-kukang.md).
 
 ## Fitur utama
 

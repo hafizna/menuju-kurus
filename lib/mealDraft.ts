@@ -17,6 +17,10 @@ export interface MealDraft {
   time: string;
   manualOpen: boolean;
   manual: ManualMealDraft;
+  /** The "Tulis & hitung" form: whether it is open and what has been written in it. */
+  describe: { open: boolean; text: string };
+  /** Where `result` came from, so a saved meal records whether it had a photo. */
+  resultFrom: "photo" | "text";
   quick: RepeatMeal | null;
   quickPortion: string;
   quickTime: string;
@@ -42,14 +46,14 @@ export function priorMealDraft(storage: Pick<Storage, "length" | "key" | "getIte
   return found.sort((a, b) => b.date.localeCompare(a.date))[0] || null;
 }
 export function emptyMealDraft(time: string): MealDraft {
-  return { result: null, name: "", adjust: { ...NO_ADJUST }, kcalEdit: null, proteinEdit: null, note: "", time, manualOpen: false, manual: { name: "", kcal: "", protein: "", time }, quick: null, quickPortion: "1", quickTime: time };
+  return { result: null, name: "", adjust: { ...NO_ADJUST }, kcalEdit: null, proteinEdit: null, note: "", time, manualOpen: false, manual: { name: "", kcal: "", protein: "", time }, describe: { open: false, text: "" }, resultFrom: "photo", quick: null, quickPortion: "1", quickTime: time };
 }
 export function hasMealDraft(draft: MealDraft): boolean {
-  return Boolean(draft.result || draft.name.trim() || draft.manual.name.trim() || draft.manual.kcal || draft.manual.protein || draft.manual.sugar || draft.quick);
+  return Boolean(draft.result || draft.name.trim() || draft.manual.name.trim() || draft.manual.kcal || draft.manual.protein || draft.manual.sugar || draft.describe.text.trim() || draft.quick);
 }
 // Explicit allowlist: image bytes, blob URLs and account metadata never enter storage.
 export function serializeMealDraft(draft: MealDraft): string {
-  return JSON.stringify({ result: draft.result, name: draft.name, adjust: draft.adjust, kcalEdit: draft.kcalEdit, proteinEdit: draft.proteinEdit, note: draft.note, time: draft.time, manualOpen: draft.manualOpen, manual: draft.manual, quick: draft.quick, quickPortion: draft.quickPortion, quickTime: draft.quickTime });
+  return JSON.stringify({ result: draft.result, name: draft.name, adjust: draft.adjust, kcalEdit: draft.kcalEdit, proteinEdit: draft.proteinEdit, note: draft.note, time: draft.time, manualOpen: draft.manualOpen, manual: draft.manual, describe: draft.describe, resultFrom: draft.resultFrom, quick: draft.quick, quickPortion: draft.quickPortion, quickTime: draft.quickTime });
 }
 export function readMealDraft(raw: string | null): MealDraft | null {
   if (!raw) return null;
@@ -64,6 +68,11 @@ export function readMealDraft(raw: string | null): MealDraft | null {
     if (d.adjust.scales !== undefined && (!Array.isArray(d.adjust.scales) || d.adjust.scales.some((value) => !(COMPONENT_SCALES as readonly number[]).includes(value)))) return null;
     if (d.proteinEdit !== undefined && d.proteinEdit !== null && typeof d.proteinEdit !== "string") return null;
     if (d.note !== undefined && typeof d.note !== "string") return null;
+    // Drafts saved before "Tulis & hitung" existed lack these two fields.
+    if (d.describe !== undefined && (!d.describe || typeof d.describe.open !== "boolean" || typeof d.describe.text !== "string")) return null;
+    if (d.resultFrom !== undefined && d.resultFrom !== "photo" && d.resultFrom !== "text") return null;
+    d.describe = d.describe ?? { open: false, text: "" };
+    d.resultFrom = d.resultFrom ?? "photo";
     d.proteinEdit = d.proteinEdit ?? null;
     d.note = d.note ?? "";
     if (typeof d.quickPortion !== "string" || typeof d.quickTime !== "string" || (d.quick && (typeof d.quick.name !== "string" || typeof d.quick.key !== "string" || typeof d.quick.portion !== "string" || typeof d.quick.detail !== "string" || ![d.quick.kcal, d.quick.protein, d.quick.carbs, d.quick.fat].every(Number.isFinite) || (d.quick.sugar !== undefined && !Number.isFinite(d.quick.sugar))))) return null;
