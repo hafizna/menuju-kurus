@@ -232,10 +232,10 @@ let child, browser;
   await page.waitForURL(`http://127.0.0.1:${appPort}/`);
   await page.getByText(/\/ 1800 kcal$/).first().waitFor();
   await fs.mkdir(path.join(projectRoot, ".next/validation"), { recursive: true });
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Home mobile overflow");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "Home mobile overflow");
   await page.screenshot({ path: path.join(projectRoot, ".next/validation/home-mobile.png"), fullPage: true });
   await page.setViewportSize({ width: 1280, height: 900 });
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Home desktop overflow");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "Home desktop overflow");
   await page.screenshot({ path: path.join(projectRoot, ".next/validation/home-desktop.png"), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
 
@@ -244,6 +244,7 @@ let child, browser;
   await require("./activity-browser.cjs")({ page, base, store, today });
   await require("./meal-correction-browser.cjs")({ page, base, store, today, offset });
   await require("./describe-browser.cjs")({ page, base, store, today, projectRoot });
+  await require("./repeat-meals-browser.cjs")({ page, base, today, projectRoot });
 
   // A draft survives the recommendation mode, other meal routes and a reload.
   await page.goto(`${base}/makan`);
@@ -849,6 +850,10 @@ let child, browser;
   await page.goto(`${base}/onboarding`);
   const nickname = page.getByRole("textbox", { name: /Biar akrab/ });
   await nickname.waitFor();
+  // The page fills in the account's name from /api/me a moment after it opens. Clear it only once
+  // that has happened, or the late answer puts the name back after it was cleared.
+  for (let i = 0; i < 50 && (await nickname.inputValue()) !== "Pengguna uji"; i++) await page.waitForTimeout(100);
+  assert.equal(await nickname.inputValue(), "Pengguna uji", "the account name was not pre-filled");
   await nickname.fill("");
   await page.getByRole("button", { name: "Mulai", exact: true }).click();
   await page.getByRole("heading", { name: "Apa tujuan utamamu?", exact: true }).waitFor();
@@ -925,7 +930,7 @@ let child, browser;
   await weightGuide.locator("summary").click();
   await automation.locator("..").screenshot({ path: path.join(projectRoot, ".next/validation/health-automation-guides.png") });
   await page.setViewportSize({ width: 320, height: 720 });
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "open automation instructions overflow at 320px");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "open automation instructions overflow at 320px");
   await page.setViewportSize({ width: 390, height: 844 });
   await weightGuide.locator("summary").click();
   await watchGuide.locator("summary").click();
@@ -1001,7 +1006,7 @@ let child, browser;
   assert.equal(new URL(await openShortcutLink.getAttribute("href")).searchParams.get("name"), customShortcutName);
   assert.deepEqual(await readPairingLink(connectWeightLink), firstPairing, "renaming changed the account pairing");
   await page.setViewportSize({ width: 320, height: 720 });
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Shortcut installation steps overflow at 320px");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "Shortcut installation steps overflow at 320px");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: path.join(projectRoot, ".next/validation/health-setup-mobile.png"), fullPage: true });
   await page.reload();
@@ -1091,7 +1096,7 @@ let child, browser;
   await page.getByText("58 bpm", { exact: true }).waitFor();
   assert.equal(await page.getByText(/^Apple Health ·/).count(), 2, "imported fitness readings omitted source and original dates");
   await page.setViewportSize({ width: 320, height: 720 });
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "fitness units overflow at 320px");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "fitness units overflow at 320px");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: path.join(projectRoot, ".next/validation/health-fitness-mobile.png"), fullPage: true });
   // Sessions logged on Home count in Kebugaran next to the Profil routine; Apple Watch energy does not.
@@ -1115,7 +1120,7 @@ let child, browser;
   await expectNoHealthSecret(healthToken);
   assert.equal(await page.getByRole("button", { name: "Salin konfigurasi", exact: true }).count(), 0, "reload recovered a credential that should exist only in memory");
   await page.setViewportSize({ width: 320, height: 720 });
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Health setup mobile overflow");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "Health setup mobile overflow");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => { localStorage.setItem("mk_theme", "light"); window.dispatchEvent(new Event("mk-theme")); });
   await page.waitForFunction(() => !document.documentElement.classList.contains("dark"));

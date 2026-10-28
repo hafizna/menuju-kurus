@@ -26,7 +26,7 @@ module.exports = async function verifyMascot({ page, base, projectRoot, today })
     await page.goto(base);
     await hero.waitFor();
     await page.waitForFunction(() => document.querySelector(".home-mascot .kukang")?.dataset.playing === "true");
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `home overflow at ${hour}:00`);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, `home overflow at ${hour}:00`);
   }
   async function expectMood(mood) {
     await page.waitForFunction(mood => document.querySelector(".home-mascot .kukang")?.dataset.mood === mood, mood);
@@ -74,7 +74,7 @@ module.exports = async function verifyMascot({ page, base, projectRoot, today })
     await expectMovement(".kukang-cheeks");
     await capture("sugar-dark");
     await page.setViewportSize({ width: 320, height: 720 });
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "sugar hero 320px overflow");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "sugar hero 320px overflow");
     await capture("sugar-320-dark");
     await page.setViewportSize({ width: 390, height: 844 });
     await scenario(23, { meals: 2, calories: 1400, protein: 30, sugar: 65, knownSugar: 1 });
@@ -139,7 +139,7 @@ module.exports = async function verifyMascot({ page, base, projectRoot, today })
     await setTheme("dark");
     await page.screenshot({ path: path.join(projectRoot, `.next/validation/journal-${name}-dark.png`) });
     await page.setViewportSize({ width: 320, height: 720 });
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${name} journal 320px overflow`);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, `${name} journal 320px overflow`);
     await page.setViewportSize({ width: 390, height: 844 });
     await setTheme("light");
   }

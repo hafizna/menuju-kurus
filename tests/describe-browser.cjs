@@ -138,7 +138,7 @@ module.exports = async function verifyDescribe({ page, base, store, today, proje
     await page.getByRole("button", { name: /^Tulis & hitung/ }).click();
     assert.equal(await page.locator("#describe-text").inputValue(), "nasi 2 centong", "switching forms lost the text");
     await page.setViewportSize({ width: 320, height: 720 });
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "describe form overflow at 320px");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "describe form overflow at 320px");
     await page.screenshot({ path: path.join(projectRoot, ".next/validation/describe-form-320.png"), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
     // Leave no draft behind for the rest of the suite.
