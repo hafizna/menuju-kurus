@@ -75,6 +75,8 @@ export default function MealCorrection({ meal, date, timezone, onClose, onSaved 
             kcalEdit: kcalEdit === null ? null : Number(kcalEdit),
             proteinEdit: proteinEdit === null ? null : Number(proteinEdit),
             note: note.trim() || undefined,
+            // The words the meal was first estimated from stay with it.
+            described: breakdown?.described,
           },
         });
         onSaved(`${foodName} · ${Math.round(calories)} kcal`);
@@ -109,15 +111,18 @@ export default function MealCorrection({ meal, date, timezone, onClose, onSaved 
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <h2 id="meal-fix-title" className="text-lg font-semibold">Koreksi makanan</h2>
-            <p className="mt-0.5 text-xs text-neutral-500">{date} · tersimpan sebagai {meal.source === "photo" ? "hasil foto" : "catatan manual"}</p>
+            <p className="mt-0.5 text-xs text-neutral-500">{date} · tersimpan sebagai {meal.source === "photo" ? "hasil foto" : breakdown?.described ? "hasil hitung dari tulisan" : "catatan manual"}</p>
           </div>
           <button type="button" onClick={onClose} disabled={saving} aria-label="Tutup koreksi" className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800">✕</button>
         </div>
 
         <fieldset disabled={saving} className="min-w-0 space-y-3">
           {analysis ? (
+            <>
+            {breakdown?.described && <p className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600 dark:bg-neutral-800/60 dark:text-neutral-300">Yang kamu tulis: {breakdown.described}</p>}
             <MealReview
               idPrefix="fix"
+              from={breakdown?.described ? "text" : "photo"}
               analysis={analysis}
               name={name} onName={setName}
               adjust={adjust} onAdjust={setAdjust}
@@ -130,6 +135,7 @@ export default function MealCorrection({ meal, date, timezone, onClose, onSaved 
               }}
               time={time} onTime={setTime} timezone={timezone}
             />
+            </>
           ) : (
             <div className="space-y-3">
               {meal.source === "photo" && <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">Rincian bahan tidak tersimpan untuk catatan ini, jadi hanya angkanya yang bisa dikoreksi.</p>}

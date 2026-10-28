@@ -199,6 +199,7 @@ function MealDetail({ id, meal, onFix }: { id: string; meal: MealEntry; onFix: (
           {meal.source === "photo" ? "Rincian bahan tidak tersimpan untuk catatan ini." : "Dicatat manual, jadi tidak ada rincian bahan."}
         </p>
       )}
+      {breakdown?.described && <p className="text-neutral-500">Yang kamu tulis: {breakdown.described}</p>}
       {breakdown?.note && <p className="text-neutral-500">Keterangan: {breakdown.note}</p>}
       {(breakdown?.kcalEdit != null || breakdown?.proteinEdit != null) && (
         <p className="text-neutral-500">{[breakdown?.kcalEdit != null && "Kalori", breakdown?.proteinEdit != null && "Protein"].filter(Boolean).join(" dan ")} memakai angka yang diisi, bukan hitungan rincian.</p>

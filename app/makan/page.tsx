@@ -10,6 +10,7 @@ import AnalysisSheet, { type SheetPhase } from "@/components/AnalysisSheet";
 import { compressImage, postPhoto, UploadAborted } from "@/lib/clientImage";
 import type { FoodAnalysis } from "@/lib/gemini";
 import { mealTotals, portionSummary, NO_ADJUST, type MealAdjust } from "@/lib/mealMath";
+import DescribeMeal from "@/components/meal/DescribeMeal";
 import MealReview from "@/components/meal/MealReview";
 import MealHistory from "@/components/meal/MealHistory";
 import { MealTimeField, nowHHMM } from "@/components/meal/MealFields";
@@ -194,6 +195,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   const lastFile = useRef<File | null>(photoDrafts.get(key)?.file || null);
   const resultRef = useRef<HTMLElement>(null);
+  const describeRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState<FoodAnalysis | null>(initial.result);
   const [name, setName] = useState(initial.name);
@@ -207,6 +209,9 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
   const [undoId, setUndoId] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(initial.manualOpen);
   const [manual, setManual] = useState<ManualMealDraft>(initial.manual);
+  const [describeOpen, setDescribeOpen] = useState(initial.describe.open);
+  const [describeText, setDescribeText] = useState(initial.describe.text);
+  const [resultFrom, setResultFrom] = useState<"photo" | "text">(initial.resultFrom);
   const [restored, setRestored] = useState(hasMealDraft(initial) || photoDrafts.has(key));
   const [quick, setQuick] = useState<RepeatMeal | null>(initial.quick);
   const [quickPortion, setQuickPortion] = useState(initial.quickPortion);
@@ -217,7 +222,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
   const [previous, setPrevious] = useState<{ date: string; draft: MealDraft } | null>(() => {
     try { return previousDraftFor(today.userId, today.date, currentTime()); } catch { return null; }
   });
-  const draft: MealDraft = { result, name, adjust: adj, kcalEdit, proteinEdit, note, time: mealTime, manualOpen, manual, quick, quickPortion, quickTime };
+  const draft: MealDraft = { result, name, adjust: adj, kcalEdit, proteinEdit, note, time: mealTime, manualOpen, manual, describe: { open: describeOpen, text: describeText }, resultFrom, quick, quickPortion, quickTime };
   const dirty = hasMealDraft(draft) || Boolean(preview);
   const busy = saving || pending;
   const rollover = draftDate !== today.date;
@@ -249,6 +254,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
     setDraftDate(date); setAllowPreviousDate(reviewed);
     setResult(next.result); setName(next.name); setAdj(next.adjust); setKcalEdit(next.kcalEdit); setProteinEdit(next.proteinEdit); setNote(next.note);
     setMealTime(next.time); setManual(next.manual); setManualOpen(next.manualOpen);
+    setDescribeOpen(next.describe.open); setDescribeText(next.describe.text); setResultFrom(next.resultFrom);
     setQuick(next.quick); setQuickPortion(next.quickPortion); setQuickTime(next.quickTime);
     setPreview(photoDrafts.get(nextKey)?.preview || null);
     lastFile.current = photoDrafts.get(nextKey)?.file || null;
@@ -288,7 +294,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
 
   useEffect(() => {
     persist(draft);
-  }, [key, result, name, adj, kcalEdit, proteinEdit, note, mealTime, manualOpen, manual, quick, quickPortion, quickTime]);
+  }, [key, result, name, adj, kcalEdit, proteinEdit, note, mealTime, manualOpen, manual, describeOpen, describeText, resultFrom, quick, quickPortion, quickTime]);
 
   useEffect(() => {
     mounted.current = true;
@@ -335,6 +341,8 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
     setKcalEdit(null);
     setProteinEdit(null);
     setManualOpen(false);
+    setDescribeOpen(false);
+    setResultFrom("photo");
     setSeconds(0);
     const old = photoDrafts.get(key);
     const capturedTime = old?.file === file ? old.time : rollover ? mealTime : currentTime();
@@ -384,8 +392,11 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
   }
 
   function reset() {
-    persist({ ...draftRef.current, result: null, name: "", adjust: NO_ADJUST, kcalEdit: null, proteinEdit: null, note: "" });
+    persist({ ...draftRef.current, result: null, name: "", adjust: NO_ADJUST, kcalEdit: null, proteinEdit: null, note: "", describe: { open: false, text: "" }, resultFrom: "photo" });
     setResult(null);
+    setDescribeOpen(false);
+    setDescribeText("");
+    setResultFrom("photo");
     setPreview(null);
     setAdj(NO_ADJUST);
     setKcalEdit(null);
@@ -397,6 +408,19 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
     if (photo) URL.revokeObjectURL(photo.preview);
     photoDrafts.delete(key);
     lastFile.current = null;
+  }
+
+  // A meal estimated from words: the same review as a photo, without a picture.
+  function describedEstimate(analysis: FoodAnalysis) {
+    analysisRun.current++;
+    setError(""); setSaved(""); setUndoId(null);
+    setResult(analysis);
+    setName(analysis.foodName);
+    setAdj(NO_ADJUST); setKcalEdit(null); setProteinEdit(null); setNote("");
+    setMealTime(rollover ? mealTime : currentTime());
+    setResultFrom("text");
+    setDescribeOpen(false);
+    setTimeout(() => resultRef.current?.scrollIntoView({ behavior: mealScrollBehavior(), block: "start" }), 80);
   }
 
   async function quickAdd(item: QuickItem) {
@@ -495,8 +519,9 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
           kcalEdit: kcalEdit === null ? null : Number(kcalEdit),
           proteinEdit: proteinEdit === null ? null : Number(proteinEdit),
           note: note.trim() || undefined,
+          described: resultFrom === "text" ? describeText.trim() || undefined : undefined,
         },
-        source: "photo",
+        source: resultFrom === "photo" ? "photo" : "manual",
       });
       notice.saved = `${name.trim() || result.foodName} · ${Math.round(kcal)} kcal`;
       notice.id = id;
@@ -570,9 +595,25 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
               <span className="text-sm font-semibold">Dari galeri</span>
             </button>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setDescribeOpen((v) => !v); setManualOpen(false);
+              // The form opens under this card; bring it up so it is not left below the fold.
+              if (!describeOpen) setTimeout(() => describeRef.current?.scrollIntoView({ behavior: mealScrollBehavior(), block: "start" }), 60);
+            }}
+            aria-expanded={describeOpen}
+            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-brand-300 px-4 py-3 text-left dark:border-brand-800"
+          >
+            <span>
+              <span className="block text-sm font-semibold text-brand-700 dark:text-brand-300">Tulis &amp; hitung</span>
+              <span className="block text-xs text-neutral-500">Tanpa foto. Tulis makanan dan ukurannya, AI menghitung.</span>
+            </span>
+            <span aria-hidden="true" className="text-lg text-brand-700 dark:text-brand-300">{describeOpen ? "−" : "+"}</span>
+          </button>
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => setManualOpen((v) => !v)}
+              onClick={() => { setManualOpen((v) => !v); setDescribeOpen(false); }}
               className="rounded-xl border border-neutral-200 py-2.5 text-sm font-medium dark:border-neutral-700"
             >
               {manualOpen ? "Sembunyikan form" : "Tulis manual"}
@@ -603,6 +644,8 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
           </details>
         </section>
       )}
+
+      {describeOpen && !result && !preview && <div ref={describeRef} className="scroll-mt-4"><DescribeMeal text={describeText} onText={setDescribeText} onEstimated={describedEstimate} /></div>}
 
       {!preview && !result && repeatMeals.length > 0 && <section className="space-y-2"><div className="flex items-center justify-between px-1"><h2 className="text-sm font-semibold">Makan yang sama lagi?</h2><Link href="/makan/habits" className="text-xs text-brand-700">Lihat pola →</Link></div><p className="px-1 text-xs text-neutral-500">Dari catatanmu sendiri. Cek porsi dan jam sebelum menambah.</p><div className="grid gap-2">{repeatMeals.map((item) => <button type="button" key={item.key} onClick={() => { setQuick(item); setQuickPortion("1"); setQuickTime(currentTime()); }} className="flex items-center justify-between gap-3 rounded-2xl border border-neutral-100 bg-white p-3.5 text-left shadow-xs dark:border-neutral-800 dark:bg-neutral-900"><span className="min-w-0"><strong className="block truncate text-sm">{item.name}</strong><span className="text-xs text-neutral-500">{item.detail}</span></span><span className="shrink-0 text-sm font-semibold text-brand-700">{item.kcal} kcal +</span></button>)}</div></section>}
 
@@ -677,6 +720,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
             onTime={setMealTime}
             timezone={timezone}
             photo={preview}
+            from={resultFrom}
           />
 
           <div className="flex gap-2">
