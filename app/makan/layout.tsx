@@ -32,7 +32,7 @@ function MakanNav() {
         Restoran
       </Link>
       <Link href="/makan/habits" aria-current={habitsActive ? "page" : undefined} className={linkClass(habitsActive)}>
-        Sering
+        Favorit
       </Link>
     </nav>
   );

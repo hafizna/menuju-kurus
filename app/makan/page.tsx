@@ -583,7 +583,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
               onClick={(event) => { if (busy || reviewPrevious) event.preventDefault(); }}
               className="rounded-xl border border-neutral-200 py-2.5 text-center text-sm font-medium dark:border-neutral-700"
             >
-              Yang sering →
+              Menu favorit →
             </Link>
           </div>
           <details>
