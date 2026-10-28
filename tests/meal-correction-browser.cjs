@@ -156,7 +156,7 @@ module.exports = async function verifyMealCorrection({ page, base, store, today,
     assert.equal(meals(today).some((meal) => meal.id === saved.id), false);
 
     await page.setViewportSize({ width: 320, height: 720 });
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "history overflow at 320px");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "history overflow at 320px");
     await page.setViewportSize({ width: 390, height: 844 });
     console.log("Meal correction: PASS — note with the photo, ingredient amounts and typed protein, saved breakdown, detail in the history, correction with recalculation from a note, a past day, seven-day window.");
   } finally {

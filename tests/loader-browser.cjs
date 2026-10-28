@@ -28,7 +28,7 @@ module.exports = async function verifyLoader({ page: main, base, projectRoot }) 
   const capture = name => page.screenshot({ path: path.join(projectRoot, `.next/validation/loader-${name}.png`) });
   const setTheme = theme => page.evaluate(theme => { localStorage.setItem("mk_theme", theme); window.dispatchEvent(new Event("mk-theme")); }, theme);
   const loader = () => page.locator(".kukang-loader");
-  const noOverflow = message => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth).then(ok => assert.equal(ok, true, message));
+  const noOverflow = message => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth).then(ok => assert.equal(ok, true, message));
 
   try {
     // 0 -> tennis racket, 0.5 -> football, 0.95 -> walking with the bag.

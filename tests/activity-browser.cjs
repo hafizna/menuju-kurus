@@ -68,7 +68,7 @@ module.exports = async function verifyActivity({ page, base, store, today }) {
   assert.equal(await card.getByRole("button", { name: /^Hapus Apple Watch/ }).count(), 0, "synced entry can be removed");
 
   await page.setViewportSize({ width: 320, height: 720 });
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "activity card 320px overflow");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "activity card 320px overflow");
   await page.setViewportSize({ width: 390, height: 844 });
   console.log("Activity: PASS — kind + duration estimate, hand-edited energy, disabled until complete, saved with duration, failure keeps choice, removal, synced entry protected, 320px layout.");
 };
