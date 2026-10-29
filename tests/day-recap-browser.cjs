@@ -110,32 +110,26 @@ module.exports = async function verifyDayRecap({ page, base, store, today, offse
     await page.getByText("Tidak ada catatan pada hari ini.").waitFor();
     assert.equal(await toggle.count(), 0);
 
-    // 7. The card fits the screen, light and dark, down to 320px.
+    // 7. The card fits the screen, down to 320px.
     seed({ meals: [meal("e", "Nasi Campur Sayur Urap, Bakwan Jagung, dan Tahu Krecek dengan Sambal Terasi Pedas", 1950, 85)], burns: [burn] });
     await openDay();
     await toggle.waitFor();
-    for (const theme of ["light", "dark"]) {
-      await page.evaluate((theme) => { localStorage.setItem("mk_theme", theme); window.dispatchEvent(new Event("mk-theme")); }, theme);
-      for (const width of [390, 320]) {
-        await page.setViewportSize({ width, height: 844 });
-        await noOverflow(`${width}px ${theme}: the recap overflows`);
-        // The card is the button plus its border, so measure the card around it.
-        const box = await toggle.locator("xpath=..").boundingBox();
-        const history = await page.locator("#riwayat").boundingBox();
-        assert.ok(box.x >= 0 && box.x + box.width <= width, `${width}px ${theme}: the card runs off the screen`);
-        assert.ok(Math.abs(box.width - history.width) <= 1, `${width}px ${theme}: the card is not as wide as the history`);
-      }
-      if (theme === "dark") {
-        await page.waitForTimeout(900);
-        await page.screenshot({ path: path.join(projectRoot, ".next/validation/day-recap-dark-320.png") });
-      }
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      await noOverflow(`${width}px: the recap overflows`);
+      // The card is the button plus its border, so measure the card around it.
+      const box = await toggle.locator("xpath=..").boundingBox();
+      const history = await page.locator("#riwayat").boundingBox();
+      assert.ok(box.x >= 0 && box.x + box.width <= width, `${width}px: the card runs off the screen`);
+      assert.ok(Math.abs(box.width - history.width) <= 1, `${width}px: the card is not as wide as the history`);
     }
+    await page.waitForTimeout(900);
+    await page.screenshot({ path: path.join(projectRoot, ".next/validation/day-recap-320.png") });
     await toggle.click();
     await noOverflow("320px: the opened day overflows");
   } finally {
     if (original === undefined) store.delete(key); else store.set(key, original);
-    await page.evaluate(() => { localStorage.setItem("mk_theme", "light"); window.dispatchEvent(new Event("mk-theme")); }).catch(() => {});
     await page.setViewportSize({ width: 390, height: 844 });
   }
-  console.log("Day recap: PASS — a past day opens as calorie and protein rings with over/within/below words, the meals open on a tap, marking a day complete is saved, empty days stay plain, and the card fits 390px and 320px in light and dark.");
+  console.log("Day recap: PASS — a past day opens as calorie and protein rings with over/within/below words, the meals open on a tap, marking a day complete is saved, empty days stay plain, and the card fits 390px and 320px.");
 };

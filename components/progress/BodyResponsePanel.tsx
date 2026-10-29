@@ -81,7 +81,7 @@ export default function BodyResponsePanel({
   }, [period, retry, initialReport, onReport]);
   if (error)
     return (
-      <section className="space-y-3 rounded-2xl border border-neutral-100 p-4 dark:border-neutral-800">
+      <section className="space-y-3 rounded-2xl border border-neutral-100 p-4">
         <p role="alert" className="text-sm text-red-500">
           {error}
         </p>
@@ -129,12 +129,12 @@ export default function BodyResponsePanel({
   const reviewDays = current.days.filter((day) => day.review.length);
   return (
     <div className="space-y-4" data-testid="body-response">
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4">
         <h2 className="font-semibold">Body Response · {period} hari</h2>
         <p className="mt-1 text-xs text-neutral-500">
           {current.start} — {current.end}
         </p>
-        <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
+        <p className="mt-3 text-sm text-neutral-600">
           {current.completeFoodDays}/{period} hari catatan makan dikonfirmasi
           lengkap. Rata-rata memakai nilai yang tersedia; hari kosong dan
           parsial tidak dimasukkan sebagai nol.
@@ -143,7 +143,7 @@ export default function BodyResponsePanel({
           {metrics.map(({ label, metric, unit, delta }) => (
             <div
               key={label}
-              className="rounded-xl bg-neutral-50 p-3 dark:bg-neutral-950"
+              className="rounded-xl bg-neutral-50 p-3"
             >
               <h3 className="text-xs text-neutral-500">{label}</h3>
               <p className="mt-1 text-lg font-semibold tabular-nums">
@@ -189,7 +189,7 @@ export default function BodyResponsePanel({
         ).map(([label, metric, unit]) => (
           <div
             key={label}
-            className="rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+            className="rounded-2xl border border-neutral-100 bg-white p-4"
           >
             <h3 className="text-sm font-semibold">
               Perubahan {label.toLowerCase()}
@@ -217,7 +217,7 @@ export default function BodyResponsePanel({
           </div>
         ))}
       </section>
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4">
         <h2 className="font-semibold">Yang bisa dideskripsikan dari catatan</h2>
         {report.insights.length ? (
           <ul className="mt-3 space-y-4">
@@ -238,7 +238,7 @@ export default function BodyResponsePanel({
           </p>
         )}
         {!!reviewDays.length && (
-          <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+          <p className="mt-3 text-xs text-amber-700">
             {reviewDays.length} tanggal memiliki nilai yang perlu ditinjau.
             Nilai ekstrem yang valid tetap ditampilkan; nilai tidak valid tidak
             dipakai dalam rata-rata. Ini pemeriksaan kualitas data, bukan
@@ -246,7 +246,7 @@ export default function BodyResponsePanel({
           </p>
         )}
       </section>
-      <section className="space-y-4 rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="space-y-4 rounded-2xl border border-neutral-100 bg-white p-4">
         <h2 className="font-semibold">Grafik pada sumbu tanggal yang sama</h2>
         <p className="text-xs text-neutral-500">
           Setiap panel memiliki skala vertikal dan satuan sendiri. Titik
@@ -262,7 +262,7 @@ export default function BodyResponsePanel({
           </div>
         ))}
       </section>
-      <details className="rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <details className="rounded-2xl border border-neutral-100 bg-white p-4">
         <summary className="cursor-pointer text-sm font-medium">
           Catatan harian dan kualitas data
         </summary>
@@ -292,7 +292,7 @@ export default function BodyResponsePanel({
               {current.days.map((day) => (
                 <tr
                   key={day.date}
-                  className="border-t border-neutral-100 dark:border-neutral-800"
+                  className="border-t border-neutral-100"
                 >
                   <td className="whitespace-nowrap p-2">{day.date}</td>
                   <td className="p-2">
@@ -351,7 +351,7 @@ export default function BodyResponsePanel({
           </table>
         </div>
       </details>
-      <details className="rounded-2xl border border-neutral-100 p-4 dark:border-neutral-800">
+      <details className="rounded-2xl border border-neutral-100 p-4">
         <summary className="cursor-pointer text-sm font-medium">
           Aturan kesiapan data
         </summary>

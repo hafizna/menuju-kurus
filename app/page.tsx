@@ -167,8 +167,8 @@ export default function DashboardPage() {
   if (!data || needsOnboarding) return (
     loadError ? (
       <div className="space-y-3 p-6">
-        <p role="alert" className="text-sm text-red-600 dark:text-red-300">{loadError}</p>
-        <button type="button" onClick={() => void load()} className="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm dark:border-neutral-700">Coba lagi</button>
+        <p role="alert" className="text-sm text-red-600">{loadError}</p>
+        <button type="button" onClick={() => void load()} className="rounded-xl border border-neutral-300 px-4 py-2.5 text-sm">Coba lagi</button>
       </div>
     ) : <KukangLoader label="Memuat harimu..." />
   );
@@ -189,32 +189,32 @@ export default function DashboardPage() {
   stage.current = { scenes, shown: scene.mood };
   const hero = buildHomeHero({ localHour: hour, mealCount: log.meals.length, foodLogComplete: complete, firstRun: fresh });
   const recent = [...log.meals].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 3);
-  const card = "home-card rounded-2xl border border-neutral-200/70 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900";
+  const card = "home-card rounded-2xl border border-neutral-200/70 bg-white p-4";
 
   const closeDay = (!fresh || log.meals.length > 0) && (
-    <section className={`${card} ${evening && !complete ? "border-brand-200 dark:border-brand-800" : ""}`} aria-labelledby="close-day-title">
+    <section className={`${card} ${evening && !complete ? "border-brand-200" : ""}`} aria-labelledby="close-day-title">
       <div className="flex items-start justify-between gap-3">
-        <div><h2 id="close-day-title" className="font-semibold">Tutup hari</h2><p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">{complete ? "Catatan hari ini sudah lengkap." : summary.foodLogStatus === "partial" ? "Sudah semua makan dan minum hari ini tercatat?" : "Belum ada makanan yang tercatat hari ini."}</p></div>
-        {complete && <span className="rounded-full bg-brand-100 px-2.5 py-1 text-xs text-brand-800 dark:bg-brand-900 dark:text-brand-200">Lengkap</span>}
+        <div><h2 id="close-day-title" className="font-semibold">Tutup hari</h2><p className="mt-1 text-sm text-neutral-600">{complete ? "Catatan hari ini sudah lengkap." : summary.foodLogStatus === "partial" ? "Sudah semua makan dan minum hari ini tercatat?" : "Belum ada makanan yang tercatat hari ini."}</p></div>
+        {complete && <span className="rounded-full bg-brand-100 px-2.5 py-1 text-xs text-brand-800">Lengkap</span>}
       </div>
-      {!log.foodLogComplete && log.meals.length > 0 && <p className="mt-2 text-xs leading-relaxed text-neutral-500">Cek juga minuman, camilan, serta minyak atau saus. <Link href="/makan" className="font-semibold text-brand-700 underline underline-offset-2 dark:text-brand-300">Ada yang belum dicatat?</Link></p>}
-      <button type="button" onClick={toggleFoodLogComplete} disabled={savingCompletion} className={`mt-3 w-full rounded-xl px-3 py-3 text-sm font-semibold disabled:opacity-50 ${log.foodLogComplete ? "border border-neutral-300 dark:border-neutral-700" : "bg-brand-600 text-white"}`}>{savingCompletion ? "Menyimpan..." : log.foodLogComplete ? "Buka lagi catatannya" : "Sudah semua, tutup hari"}</button>
-      {completionError && <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-300">{completionError}</p>}
+      {!log.foodLogComplete && log.meals.length > 0 && <p className="mt-2 text-xs leading-relaxed text-neutral-500">Cek juga minuman, camilan, serta minyak atau saus. <Link href="/makan" className="font-semibold text-brand-700 underline underline-offset-2">Ada yang belum dicatat?</Link></p>}
+      <button type="button" onClick={toggleFoodLogComplete} disabled={savingCompletion} className={`mt-3 w-full rounded-xl px-3 py-3 text-sm font-semibold disabled:opacity-50 ${log.foodLogComplete ? "border border-neutral-300" : "bg-brand-600 text-white"}`}>{savingCompletion ? "Menyimpan..." : log.foodLogComplete ? "Buka lagi catatannya" : "Sudah semua, tutup hari"}</button>
+      {completionError && <p role="alert" className="mt-2 text-sm text-red-600">{completionError}</p>}
       <p className="mt-2 text-xs leading-relaxed text-neutral-500">Streak merayakan catatan yang lengkap. Kamu bisa membuka catatannya lagi kapan saja.</p>
     </section>
   );
 
   return (
     <div className="slothly-home space-y-5 p-4 sm:space-y-6 sm:p-0">
-      {loadError && <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30"><p role="alert" className="flex-1 text-sm text-amber-900 dark:text-amber-200">{loadError}</p><button type="button" onClick={() => void load()} className="rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold dark:border-amber-800">Coba lagi</button></div>}
+      {loadError && <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"><p role="alert" className="flex-1 text-sm text-amber-900">{loadError}</p><button type="button" onClick={() => void load()} className="rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold">Coba lagi</button></div>}
       <section ref={heroRef} className="home-canopy slothly-canopy relative isolate overflow-hidden rounded-3xl px-5 py-4 sm:px-7 sm:py-5" style={{ background: skyBackground(sky, "canopy") }} aria-label="Sapaan harian">
         <SkyBackdrop sky={sky} variant="canopy" />
         <div className="home-greeting">
           <div className="min-w-0 py-2">
-            <p className="break-words text-sm text-neutral-600 dark:text-neutral-300">{greeting}{data.userName ? `, ${data.userName}` : ""}.</p>
+            <p className="break-words text-sm text-neutral-600">{greeting}{data.userName ? `, ${data.userName}` : ""}.</p>
             <h1 className="mt-1 text-xl font-medium leading-tight sm:text-3xl">{hero.headline}</h1>
-            <p className="mt-2 text-xs leading-relaxed text-neutral-600 dark:text-neutral-300">{hero.support}</p>
-            {streak > 0 && <p className="mt-2 text-xs font-semibold text-brand-700 dark:text-brand-300">{streak} hari tercatat lengkap</p>}
+            <p className="mt-2 text-xs leading-relaxed text-neutral-600">{hero.support}</p>
+            {streak > 0 && <p className="mt-2 text-xs font-semibold text-brand-700">{streak} hari tercatat lengkap</p>}
           </div>
           <div className="home-mascot">
             <Mascot key={scene.mood} mood={scene.mood} className="home-mascot-art" decorative />
@@ -228,28 +228,28 @@ export default function DashboardPage() {
         </div>
         <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <Link href="/makan" className="flex items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-brand-700"><IconCamera className="h-5 w-5" />Catat makan</Link>
-          <Link href="/makan?mode=cari" className="flex items-center justify-center gap-2 rounded-2xl border border-neutral-300/70 px-4 py-3 text-sm font-semibold dark:border-neutral-600"><IconSearch className="h-4 w-4" />Butuh ide makan?</Link>
+          <Link href="/makan?mode=cari" className="flex items-center justify-center gap-2 rounded-2xl border border-neutral-300/70 px-4 py-3 text-sm font-semibold"><IconSearch className="h-4 w-4" />Butuh ide makan?</Link>
         </div>
       </section>
 
-      {notice && <p role="status" className="text-sm text-brand-700 dark:text-brand-300">{notice}</p>}
+      {notice && <p role="status" className="text-sm text-brand-700">{notice}</p>}
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(260px,1fr)] lg:gap-6">
         <div className="min-w-0 space-y-5">
           <section className={card} aria-labelledby="intake-title">
             <div className="flex items-baseline justify-between gap-2"><h2 id="intake-title" className="text-sm font-semibold">Yang tercatat hari ini</h2><span className="text-xs text-neutral-500">{log.meals.length} catatan</span></div>
             <div className="mt-3 grid gap-4 sm:grid-cols-2">
-              <div><p className="text-xs text-neutral-500">Asupan</p><p className="mt-1 font-semibold tabular-nums">{caloriesLabel}</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800" role="progressbar" aria-label="Asupan yang tercatat" aria-valuemin={0} aria-valuemax={Math.max(1, summary.target)} aria-valuenow={Math.min(Math.max(0, summary.caloriesIn), Math.max(1, summary.target))} aria-valuetext={caloriesLabel}><div className="h-full rounded-full bg-brand-500" style={{ width: `${intakePct}%` }} /></div></div>
-              <div><p className="text-xs text-neutral-500">Protein</p><p className="mt-1 font-semibold tabular-nums">{proteinLabel}</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800" role="progressbar" aria-label="Protein yang tercatat" aria-valuemin={0} aria-valuemax={Math.max(1, settings.proteinTargetG)} aria-valuenow={Math.min(Math.max(0, proteinToday), Math.max(1, settings.proteinTargetG))} aria-valuetext={proteinLabel}><div className="h-full rounded-full bg-brand-400" style={{ width: `${proteinPct}%` }} /></div></div>
+              <div><p className="text-xs text-neutral-500">Asupan</p><p className="mt-1 font-semibold tabular-nums">{caloriesLabel}</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100" role="progressbar" aria-label="Asupan yang tercatat" aria-valuemin={0} aria-valuemax={Math.max(1, summary.target)} aria-valuenow={Math.min(Math.max(0, summary.caloriesIn), Math.max(1, summary.target))} aria-valuetext={caloriesLabel}><div className="h-full rounded-full bg-brand-500" style={{ width: `${intakePct}%` }} /></div></div>
+              <div><p className="text-xs text-neutral-500">Protein</p><p className="mt-1 font-semibold tabular-nums">{proteinLabel}</p><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100" role="progressbar" aria-label="Protein yang tercatat" aria-valuemin={0} aria-valuemax={Math.max(1, settings.proteinTargetG)} aria-valuenow={Math.min(Math.max(0, proteinToday), Math.max(1, settings.proteinTargetG))} aria-valuetext={proteinLabel}><div className="h-full rounded-full bg-brand-400" style={{ width: `${proteinPct}%` }} /></div></div>
             </div>
-            {sugarToday.knownMeals > 0 && <div className="mt-3 flex items-baseline justify-between gap-3 border-t border-neutral-100 pt-3 dark:border-neutral-800"><div><p className="text-xs text-neutral-500">Gula tambahan</p><p className="mt-1 font-semibold tabular-nums">{sugarToday.grams} g</p></div><p className="max-w-[65%] text-right text-xs text-neutral-500">{sugarNote(sugarToday, sugarWeek)}</p></div>}
+            {sugarToday.knownMeals > 0 && <div className="mt-3 flex items-baseline justify-between gap-3 border-t border-neutral-100 pt-3"><div><p className="text-xs text-neutral-500">Gula tambahan</p><p className="mt-1 font-semibold tabular-nums">{sugarToday.grams} g</p></div><p className="max-w-[65%] text-right text-xs text-neutral-500">{sugarNote(sugarToday, sugarWeek)}</p></div>}
             <p className="mt-3 text-xs text-neutral-500">Angka perkiraan dari catatanmu; kelengkapan catatan membantu melihat polanya.</p>
           </section>
 
           {evening && closeDay}
 
           <section aria-labelledby="recent-meals-title">
-            <div className="mb-3 flex items-center justify-between gap-2"><h2 id="recent-meals-title" className="font-semibold">Catatan terbaru</h2><Link href="/makan#riwayat" className="text-xs font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300">Lihat semua →</Link></div>
-            {recent.length ? <div className="divide-y divide-neutral-200/70 rounded-2xl bg-white px-4 dark:divide-neutral-800 dark:bg-neutral-900">{recent.map(entry => <Link key={entry.id} href="/makan#riwayat" className="flex min-w-0 items-center gap-3 py-3.5"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"><IconBowl className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold">{entry.foodName}</p><p className="mt-0.5 text-xs text-neutral-500">{mealTime(entry.time, settings.timezone)}{entry.portionNote ? ` · ${entry.portionNote}` : ""}</p></div><span className="shrink-0 text-xs tabular-nums text-neutral-600 dark:text-neutral-300">{entry.calories} kcal</span></Link>)}</div> : <div className="rounded-2xl border border-dashed border-neutral-300 p-4 dark:border-neutral-700"><p className="text-sm text-neutral-500">Belum ada catatan hari ini. Makanan pertamamu bisa mulai dari foto atau tulisan.</p><Link href="/makan" className="mt-2 inline-flex text-sm font-semibold text-brand-700 dark:text-brand-300">Catat makan pertama →</Link></div>}
+            <div className="mb-3 flex items-center justify-between gap-2"><h2 id="recent-meals-title" className="font-semibold">Catatan terbaru</h2><Link href="/makan#riwayat" className="text-xs font-semibold text-brand-700 underline-offset-2 hover:underline">Lihat semua →</Link></div>
+            {recent.length ? <div className="divide-y divide-neutral-200/70 rounded-2xl bg-white px-4">{recent.map(entry => <Link key={entry.id} href="/makan#riwayat" className="flex min-w-0 items-center gap-3 py-3.5"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600"><IconBowl className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold">{entry.foodName}</p><p className="mt-0.5 text-xs text-neutral-500">{mealTime(entry.time, settings.timezone)}{entry.portionNote ? ` · ${entry.portionNote}` : ""}</p></div><span className="shrink-0 text-xs tabular-nums text-neutral-600">{entry.calories} kcal</span></Link>)}</div> : <div className="rounded-2xl border border-dashed border-neutral-300 p-4"><p className="text-sm text-neutral-500">Belum ada catatan hari ini. Makanan pertamamu bisa mulai dari foto atau tulisan.</p><Link href="/makan" className="mt-2 inline-flex text-sm font-semibold text-brand-700">Catat makan pertama →</Link></div>}
           </section>
           {fresh ? <GettingStarted hasMeal={log.meals.length > 0} closed={Boolean(log.foodLogComplete)} /> : <div className="home-coach"><DailyCoach coach={coach} moment={coachMoment} onMomentChange={setCoachMoment} /></div>}
           {!evening && closeDay}
@@ -262,18 +262,18 @@ export default function DashboardPage() {
           <section className={card} aria-labelledby="body-title">
             <h2 id="body-title" className="font-semibold">Tubuh &amp; progress</h2>
             <div className="mt-4 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs text-neutral-500">Berat hari ini</p><p className="mt-1 font-display text-xl">{weightTrend.today !== null ? `${formatMeasure(weightTrend.today)} kg` : "Belum ditimbang"}</p></div><button type="button" onClick={() => setShowWeightForm(value => !value)} aria-expanded={showWeightForm} aria-controls="quick-weight-form" className="flex items-center gap-1.5 rounded-xl border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700"><IconScaleWeight className="h-4 w-4" />Catat berat</button></div>
-              {showWeightForm && <form id="quick-weight-form" onSubmit={saveWeight} className="scroll-mb-24 space-y-2"><label className="block text-xs text-neutral-500" htmlFor="quick-weight">Berat badan (kg)</label><div className="flex gap-2"><input id="quick-weight" autoFocus value={weightInput} onChange={event => setWeightInput(event.target.value)} inputMode="decimal" placeholder="78,4" className="min-w-0 flex-1 rounded-xl border border-neutral-300 bg-transparent px-3 py-2 dark:border-neutral-700" /><button type="submit" disabled={savingWeight || !weightInput} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingWeight ? "Menyimpan..." : "Simpan"}</button></div>{weightError && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{weightError}</p>}</form>}
+              <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs text-neutral-500">Berat hari ini</p><p className="mt-1 font-display text-xl">{weightTrend.today !== null ? `${formatMeasure(weightTrend.today)} kg` : "Belum ditimbang"}</p></div><button type="button" onClick={() => setShowWeightForm(value => !value)} aria-expanded={showWeightForm} aria-controls="quick-weight-form" className="flex items-center gap-1.5 rounded-xl border border-neutral-300 px-3 py-2 text-sm"><IconScaleWeight className="h-4 w-4" />Catat berat</button></div>
+              {showWeightForm && <form id="quick-weight-form" onSubmit={saveWeight} className="scroll-mb-24 space-y-2"><label className="block text-xs text-neutral-500" htmlFor="quick-weight">Berat badan (kg)</label><div className="flex gap-2"><input id="quick-weight" autoFocus value={weightInput} onChange={event => setWeightInput(event.target.value)} inputMode="decimal" placeholder="78,4" className="min-w-0 flex-1 rounded-xl border border-neutral-300 bg-transparent px-3 py-2" /><button type="submit" disabled={savingWeight || !weightInput} className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingWeight ? "Menyimpan..." : "Simpan"}</button></div>{weightError && <p role="alert" className="text-sm text-red-600">{weightError}</p>}</form>}
               <div className="flex items-center justify-between gap-2 text-sm"><span className="text-neutral-500">Lingkar pinggang terakhir</span><span>{data.bodyResponse?.current.waist.last ? `${formatMeasure(data.bodyResponse.current.waist.last.value)} cm` : "Belum dicatat"}</span></div>
-              <Link href="/progress?tab=body" className="inline-flex text-sm font-semibold text-brand-700 dark:text-brand-300">Lihat progress tubuh →</Link>
+              <Link href="/progress?tab=body" className="inline-flex text-sm font-semibold text-brand-700">Lihat progress tubuh →</Link>
             </div>
           </section>
 
           <details className={card}>
             <summary className="cursor-pointer font-semibold">Pelengkap hari ini</summary>
             <div className="mt-4 space-y-5">
-              <div><div className="flex items-start justify-between gap-3"><div className="flex items-start gap-2"><IconTarget className="mt-0.5 h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" /><div><h3 className="text-sm font-semibold">Misi hari ini</h3><p className="mt-1 text-sm text-neutral-500">{challenge.label}</p></div></div><button type="button" role="checkbox" aria-checked={Boolean(log.challengeDone)} aria-label={log.challengeDone ? "Batalkan misi selesai" : "Tandai misi selesai"} onClick={toggleChallenge} disabled={savingChallenge} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-lg disabled:opacity-50 ${log.challengeDone ? "border-brand-600 bg-brand-600 text-white" : "border-neutral-300 text-transparent dark:border-neutral-700"}`}>✓</button></div>{challengeError && <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-300">{challengeError}</p>}</div>
-              <div className="grid gap-3 border-t border-neutral-200 pt-4 text-sm dark:border-neutral-800"><Link href="/plan" className="font-semibold text-brand-700 dark:text-brand-300">{log.plan ? "Lihat rencana harian" : "Atur rencana harian"} →</Link><Link href="/makan/habits">Makanan yang sering dicatat →</Link><Link href="/makan/restaurant">Ide saat makan di luar →</Link></div>
+              <div><div className="flex items-start justify-between gap-3"><div className="flex items-start gap-2"><IconTarget className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /><div><h3 className="text-sm font-semibold">Misi hari ini</h3><p className="mt-1 text-sm text-neutral-500">{challenge.label}</p></div></div><button type="button" role="checkbox" aria-checked={Boolean(log.challengeDone)} aria-label={log.challengeDone ? "Batalkan misi selesai" : "Tandai misi selesai"} onClick={toggleChallenge} disabled={savingChallenge} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-lg disabled:opacity-50 ${log.challengeDone ? "border-brand-600 bg-brand-600 text-white" : "border-neutral-300 text-transparent"}`}>✓</button></div>{challengeError && <p role="alert" className="mt-2 text-sm text-red-600">{challengeError}</p>}</div>
+              <div className="grid gap-3 border-t border-neutral-200 pt-4 text-sm"><Link href="/plan" className="font-semibold text-brand-700">{log.plan ? "Lihat rencana harian" : "Atur rencana harian"} →</Link><Link href="/makan/habits">Makanan yang sering dicatat →</Link><Link href="/makan/restaurant">Ide saat makan di luar →</Link></div>
               {log.plan === "if" && log.eatingWindowHours && <p className="text-xs text-neutral-500">Rencana saat ini: jendela makan {log.eatingWindowHours} jam sejak bangun.</p>}
               {summary.caloriesIn > summary.target && <details><summary className="cursor-pointer text-sm text-neutral-500">Setelah makan lebih banyak dari rencana</summary><div className="mt-3"><RecoveryMode surplusKcal={Math.max(0, summary.caloriesIn - summary.target)} /></div></details>}
             </div>
@@ -290,5 +290,5 @@ function GettingStarted({ hasMeal, closed }: { hasMeal: boolean; closed: boolean
     { label: "Catat makan pertamamu", done: hasMeal },
     { label: "Tutup hari setelah semua makan tercatat", done: closed },
   ];
-  return <section className="rounded-2xl border border-neutral-200/70 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900" aria-labelledby="getting-started-title"><h2 id="getting-started-title" className="font-semibold">Mulai dari sini</h2><ul className="mt-3 space-y-3">{steps.map(step => <li key={step.label} className="flex items-center gap-3 text-sm"><span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${step.done ? "bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-200" : "border border-neutral-300 dark:border-neutral-700"}`} aria-hidden="true">{step.done ? "✓" : ""}</span><span>{step.label}<span className="sr-only">{step.done ? ", selesai" : ", belum selesai"}</span></span></li>)}</ul><p className="mt-3 text-xs leading-relaxed text-neutral-500">Saranmu berkembang dari catatan yang terkumpul. Untuk sekarang, satu catatan sudah jadi awal.</p></section>;
+  return <section className="rounded-2xl border border-neutral-200/70 bg-white p-4" aria-labelledby="getting-started-title"><h2 id="getting-started-title" className="font-semibold">Mulai dari sini</h2><ul className="mt-3 space-y-3">{steps.map(step => <li key={step.label} className="flex items-center gap-3 text-sm"><span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${step.done ? "bg-brand-100 text-brand-800" : "border border-neutral-300"}`} aria-hidden="true">{step.done ? "✓" : ""}</span><span>{step.label}<span className="sr-only">{step.done ? ", selesai" : ", belum selesai"}</span></span></li>)}</ul><p className="mt-3 text-xs leading-relaxed text-neutral-500">Saranmu berkembang dari catatan yang terkumpul. Untuk sekarang, satu catatan sudah jadi awal.</p></section>;
 }

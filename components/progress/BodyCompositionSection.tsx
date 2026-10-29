@@ -28,7 +28,7 @@ export default function BodyCompositionSection() {
 
   const hasPairs = data.composition && data.composition.recent.pairs + data.composition.baseline.pairs > 0;
   return (
-    <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900" aria-labelledby="body-fat-title">
+    <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4" aria-labelledby="body-fat-title">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 id="body-fat-title" className="font-semibold">Body fat &amp; komposisi</h2>
@@ -64,7 +64,7 @@ function CompositionTable({ composition }: { composition: CompositionTrend }) {
       ]
     : [];
   return (
-    <div className="space-y-3 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+    <div className="space-y-3 border-t border-neutral-100 pt-3">
       <p className="text-xs text-neutral-500">
         Rata-rata 14 hari terakhir dibanding 14 hari sebelumnya, hanya dari hari yang punya berat dan body fat.
       </p>
@@ -82,7 +82,7 @@ function CompositionTable({ composition }: { composition: CompositionTrend }) {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.label} className="border-t border-neutral-100 dark:border-neutral-800">
+                <tr key={row.label} className="border-t border-neutral-100">
                   <th scope="row" className="py-1.5 text-left font-normal">{row.label}</th>
                   <td className="py-1.5 text-right">{row.before} {row.unit}</td>
                   <td className="py-1.5 text-right">{row.after} {row.unit}</td>
@@ -91,7 +91,7 @@ function CompositionTable({ composition }: { composition: CompositionTrend }) {
               ))}
             </tbody>
           </table>
-          {composition.statement && <p className="text-sm text-neutral-600 dark:text-neutral-300">{composition.statement}</p>}
+          {composition.statement && <p className="text-sm text-neutral-600">{composition.statement}</p>}
           <p className="text-xs text-neutral-400">
             Sampel {recent.pairs} dan {baseline.pairs} hari{composition.confidence === "low" ? "; masih sedikit, anggap sebagai gambaran awal" : ""}.
           </p>

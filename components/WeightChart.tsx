@@ -38,10 +38,10 @@ export default function WeightChart({ entries }: { entries: WeightEntry[] }) {
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img" aria-label="Grafik tren berat badan">
-      <polyline points={rawPoints} fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-300 dark:text-neutral-700" />
+      <polyline points={rawPoints} fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-300" />
       <polyline points={avgPoints} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-500" />
       {recent.map((e, i) => (
-        <circle key={e.id} cx={xFor(i)} cy={yFor(e.weightKg)} r="2" className="fill-neutral-300 dark:fill-neutral-700" />
+        <circle key={e.id} cx={xFor(i)} cy={yFor(e.weightKg)} r="2" className="fill-neutral-300" />
       ))}
     </svg>
   );

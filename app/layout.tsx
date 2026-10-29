@@ -39,31 +39,24 @@ export const viewport: Viewport = {
   themeColor: "#f8f3e9",
 };
 
-// Runs before first paint so the chosen theme never flashes. "auto" follows the
-// phone setting and keeps following it if that changes.
-const THEME_SCRIPT = `(function(){
+// Runs before first paint so the motion choice never flashes. The app has one
+// look: light, whatever the phone is set to.
+const MOTION_SCRIPT = `(function(){
 function read(k){try{return localStorage.getItem(k)}catch(e){return null}}
-var mq=matchMedia('(prefers-color-scheme: dark)');
 var motion=matchMedia('(prefers-reduced-motion: reduce)');
-function apply(){var t=read('mk_theme')||'auto';
-var d=t==='dark'||(t==='auto'&&mq.matches);
-document.documentElement.classList.toggle('dark',d);
-document.documentElement.style.colorScheme=d?'dark':'light';}
 function applyMotion(){document.documentElement.dataset.motion=read('mk_motion')==='off'||motion.matches?'off':'auto';}
-apply();mq.addEventListener('change',apply);
 applyMotion();motion.addEventListener('change',applyMotion);
-window.addEventListener('mk-theme',apply);
 window.addEventListener('mk-motion',applyMotion);
-window.addEventListener('storage',function(e){if(e.key==='mk_theme')apply();if(e.key==='mk_motion')applyMotion();});
+window.addEventListener('storage',function(e){if(e.key==='mk_motion')applyMotion();});
 })();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" className={`${nunito.variable} ${fredoka.variable}`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: MOTION_SCRIPT }} />
       </head>
-      <body className="min-h-screen bg-neutral-50 font-sans text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100">
+      <body className="min-h-screen bg-neutral-50 font-sans text-neutral-900 antialiased">
         <div className="slothly-shell"><main className="slothly-main">{children}</main></div>
         <BottomNav />
       </body>

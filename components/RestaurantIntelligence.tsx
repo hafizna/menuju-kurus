@@ -51,9 +51,9 @@ function fitLabel(label: RestaurantMeal["fitLabel"]): string {
 }
 
 function fitClass(label: RestaurantMeal["fitLabel"]): string {
-  if (label === "pas") return "bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300";
-  if (label === "masih_masuk") return "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300";
-  return "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300";
+  if (label === "pas") return "bg-brand-50 text-brand-700";
+  if (label === "masih_masuk") return "bg-amber-50 text-amber-700";
+  return "bg-red-50 text-red-700";
 }
 
 export default function RestaurantIntelligence({ onSaved }: { onSaved: () => void }) {
@@ -118,7 +118,7 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
 
   return (
     <div className="space-y-4">
-      <form onSubmit={search} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <form onSubmit={search} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
         <div>
           <div className="text-sm font-semibold">Cari menu Indonesia tanpa foto</div>
           <p className="mt-1 text-xs text-neutral-500">
@@ -130,7 +130,7 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Contoh: nasi Padang ayam bakar, bakso, ayam geprek"
-          className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+          className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm"
         />
 
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -142,7 +142,7 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
                 category === value
                   ? "bg-brand-600 text-white"
-                  : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+                  : "bg-neutral-100 text-neutral-600"
               }`}
             >
               {label}
@@ -155,16 +155,16 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
         </button>
       </form>
 
-      {error && <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
+      {error && <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>}
 
       {result && (
         <>
-          <section className="rounded-2xl bg-brand-50 p-4 dark:bg-brand-950/30">
+          <section className="rounded-2xl bg-brand-50 p-4">
             <div className="text-sm font-medium">Konteks keputusan saat ini</div>
             <div className="mt-1 text-sm">
               Sisa {result.input.remainingCalories} kcal · protein tersisa {result.input.remainingProteinG} g
             </div>
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">{result.strategy.message}</p>
+            <p className="mt-2 text-sm text-neutral-600">{result.strategy.message}</p>
           </section>
 
           {result.strategy.recommendations.length > 0 && (
@@ -174,14 +174,14 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
                   <div className="text-sm font-medium">Asumsi porsi</div>
                   <div className="text-xs text-neutral-500">Koreksi sebelum mencatat.</div>
                 </div>
-                <div className="flex gap-1 rounded-xl bg-neutral-100 p-1 dark:bg-neutral-900">
+                <div className="flex gap-1 rounded-xl bg-neutral-100 p-1">
                   {PORTIONS.map((value) => (
                     <button
                       key={value}
                       type="button"
                       onClick={() => setPortion(value)}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ${
-                        portion === value ? "bg-white text-brand-700 shadow-xs dark:bg-neutral-800 dark:text-brand-300" : "text-neutral-500"
+                        portion === value ? "bg-white text-brand-700 shadow-xs" : "text-neutral-500"
                       }`}
                     >
                       {value}x
@@ -199,7 +199,7 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
                 const adjustedFit = adjustedDelta <= 0 ? "pas" : adjustedDelta <= 150 ? "masih_masuk" : "melewati";
 
                 return (
-                  <article key={meal.id} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+                  <article key={meal.id} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="font-semibold">{meal.name}</div>
@@ -229,8 +229,8 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
                       </div>
                     </div>
 
-                    <div className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600 dark:bg-neutral-800/70 dark:text-neutral-300">
-                      <div className="font-medium text-neutral-700 dark:text-neutral-200">
+                    <div className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600">
+                      <div className="font-medium text-neutral-700">
                         Fullness {"★".repeat(meal.fullnessScore)}{"☆".repeat(5 - meal.fullnessScore)} · keyakinan {meal.confidence}
                       </div>
                       <p className="mt-1">
@@ -247,7 +247,7 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
                       type="button"
                       onClick={() => saveMeal(meal)}
                       disabled={savingId === meal.id}
-                      className="w-full rounded-xl border border-brand-300 py-2.5 text-sm font-medium text-brand-700 disabled:opacity-50 dark:border-brand-800 dark:text-brand-300"
+                      className="w-full rounded-xl border border-brand-300 py-2.5 text-sm font-medium text-brand-700 disabled:opacity-50"
                     >
                       {savingId === meal.id ? "Menyimpan..." : savedId === meal.id ? "Tersimpan ✓" : `Catat ${portion}x porsi`}
                     </button>

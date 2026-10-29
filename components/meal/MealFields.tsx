@@ -18,7 +18,7 @@ export function MealTimeField({ value, onChange, timezone }: { value: string; on
           type="time"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 tabular-nums dark:border-neutral-700 dark:bg-neutral-800"
+          className="rounded-lg border border-neutral-300 px-3 py-1.5 tabular-nums"
         />
         <button type="button" onClick={() => onChange(nowHHMM(timezone))} className="text-xs font-medium text-brand-600">
           Sekarang
@@ -42,7 +42,7 @@ export function Segmented<T extends string>({
   return (
     <div className="flex items-center justify-between gap-3 text-sm">
       <span className="text-neutral-500">{label}</span>
-      <div className="flex gap-1 rounded-xl bg-neutral-100 p-1 dark:bg-neutral-800" role="radiogroup" aria-label={label}>
+      <div className="flex gap-1 rounded-xl bg-neutral-100 p-1" role="radiogroup" aria-label={label}>
         {options.map(([optionValue, text]) => (
           <button
             key={optionValue}
@@ -51,7 +51,7 @@ export function Segmented<T extends string>({
             aria-checked={value === optionValue}
             onClick={() => onChange(optionValue)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              value === optionValue ? "bg-white text-brand-700 shadow-xs dark:bg-neutral-700 dark:text-brand-300" : "text-neutral-500"
+              value === optionValue ? "bg-white text-brand-700 shadow-xs" : "text-neutral-500"
             }`}
           >
             {text}

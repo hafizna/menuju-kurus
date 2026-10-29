@@ -23,7 +23,7 @@ export default function ResponseChart({
   );
   if (!values.length)
     return (
-      <div className="rounded-lg border border-dashed border-neutral-200 p-4 text-sm text-neutral-500 dark:border-neutral-700">
+      <div className="rounded-lg border border-dashed border-neutral-200 p-4 text-sm text-neutral-500">
         Belum ada data {label.toLowerCase()} pada periode ini.
       </div>
     );
@@ -58,7 +58,7 @@ export default function ResponseChart({
           y1={height - pad}
           y2={height - pad}
           stroke="currentColor"
-          className="text-neutral-200 dark:text-neutral-700"
+          className="text-neutral-200"
         />
         <text
           x={0}
@@ -89,7 +89,7 @@ export default function ResponseChart({
                 className={
                   day.review.some((code) => code.startsWith(prefix))
                     ? "text-amber-600"
-                    : "text-brand-600 dark:text-brand-400"
+                    : "text-brand-600"
                 }
               >
                 <title>

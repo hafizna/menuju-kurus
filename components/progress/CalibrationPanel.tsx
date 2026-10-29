@@ -78,14 +78,14 @@ export default function CalibrationPanel() {
     }
   }
   return (
-    <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+    <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4">
       <h2 className="font-semibold">Evaluasi target &amp; estimasi TDEE</h2>
       <p className="text-xs text-neutral-500">
         Evaluasi terpisah memakai 28 hari yang sudah selesai, sampai kemarin.
         Pilihan periode grafik di atas tidak mengubah periode kalibrasi ini.
       </p>
       {message && (
-        <p role="status" className="text-sm text-brand-700 dark:text-brand-300">
+        <p role="status" className="text-sm text-brand-700">
           {message}
         </p>
       )}
@@ -117,13 +117,13 @@ export default function CalibrationPanel() {
             {data.calibration.weightSamples} ukuran berat
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <div className="rounded-xl bg-neutral-50 p-3 dark:bg-neutral-950">
+            <div className="rounded-xl bg-neutral-50 p-3">
               <p className="text-xs text-neutral-500">Target aktif</p>
               <p className="font-semibold">
                 {data.calibration.oldTarget} kcal/hari
               </p>
             </div>
-            <div className="rounded-xl bg-neutral-50 p-3 dark:bg-neutral-950">
+            <div className="rounded-xl bg-neutral-50 p-3">
               <p className="text-xs text-neutral-500">
                 Maintenance dari profil
               </p>
@@ -135,7 +135,7 @@ export default function CalibrationPanel() {
             </div>
           </div>
           {data.calibration.estimatedTdee !== null && (
-            <div className="rounded-xl border border-neutral-200 p-3 dark:border-neutral-700">
+            <div className="rounded-xl border border-neutral-200 p-3">
               <p className="text-sm font-medium">
                 Estimasi dari asupan dan tren: sekitar{" "}
                 {data.calibration.estimatedTdee} kcal/hari
@@ -155,7 +155,7 @@ export default function CalibrationPanel() {
             ))}
           </ul>
           {data.calibration.status === "proposal" && (
-            <div className="space-y-3 rounded-xl border border-brand-200 bg-brand-50 p-3 dark:border-brand-900 dark:bg-brand-950/30">
+            <div className="space-y-3 rounded-xl border border-brand-200 bg-brand-50 p-3">
               <p className="text-sm font-semibold">
                 Usulan target: {data.calibration.oldTarget} →{" "}
                 {data.calibration.proposedTarget} kcal/hari

@@ -14,8 +14,8 @@ function Step({ state, label }: { state: "done" | "active" | "pending"; label: s
           state === "done"
             ? "bg-brand-600 text-white"
             : state === "active"
-              ? "bg-neutral-200 dark:bg-neutral-700"
-              : "bg-neutral-200/60 dark:bg-neutral-800"
+              ? "bg-neutral-200"
+              : "bg-neutral-200/60"
         }`}
       >
         {state === "done" && (
@@ -76,15 +76,15 @@ export default function AnalysisSheet({
 
   return (
     <div ref={dialogRef} className="fixed inset-0 z-40 flex items-end bg-black/40" role="dialog" aria-modal="true" aria-label="Membaca foto makanan">
-      <div className="mx-auto max-h-[94dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-neutral-50 px-5 pb-8 pt-3 dark:bg-neutral-950">
-        <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700" />
+      <div className="mx-auto max-h-[94dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-neutral-50 px-5 pb-8 pt-3">
+        <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-neutral-300" />
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold">Membaca makananmu</h2>
           <button
             type="button"
             onClick={onCancel}
             aria-label="Batalkan"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-200/70 text-lg dark:bg-neutral-800"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-200/70 text-lg"
           >
             ✕
           </button>
@@ -95,15 +95,15 @@ export default function AnalysisSheet({
           <img src={preview} alt="" className="h-52 w-full rounded-2xl object-cover" />
         )}
 
-        <div className="mt-3 rounded-2xl bg-white p-4 shadow-xs dark:bg-neutral-900">
+        <div className="mt-3 rounded-2xl bg-white p-4 shadow-xs">
           {phase === "error" ? (
             <div className="space-y-3 text-center">
               <Mascot mood={mood} className="mx-auto h-16 w-16" />
-              <p role="alert" className="text-sm text-neutral-700 dark:text-neutral-200">
+              <p role="alert" className="text-sm text-neutral-700">
                 {error}
               </p>
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={onRetry} className="rounded-xl border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700">
+                <button onClick={onRetry} className="rounded-xl border border-neutral-300 py-2.5 text-sm font-medium">
                   Coba lagi
                 </button>
                 <button onClick={onManual} className="rounded-xl bg-brand-600 py-2.5 text-sm font-medium text-white">

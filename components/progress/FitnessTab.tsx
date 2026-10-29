@@ -74,7 +74,7 @@ export default function FitnessTab() {
         </Link>
       </div>
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
         <div className="flex items-end justify-between">
           <div>
             <div className="text-sm text-neutral-500">{data.score === null ? "Kenali titik awalmu" : `${data.label} Score`}</div>
@@ -91,7 +91,7 @@ export default function FitnessTab() {
             </div>
           </div>
         </div>
-        <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
+        <p className="mt-3 text-sm text-neutral-600">
           {data.recap}
         </p>
         {!data.baselineReady && <div className="mt-3 space-y-2">
@@ -136,9 +136,9 @@ export default function FitnessTab() {
       </section>
 
       {otherSignals.length > 0 && (
-        <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+        <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
           <div className="mb-2 text-sm font-medium">Dari datamu</div>
-          <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
+          <ul className="space-y-2 text-sm text-neutral-600">
             {otherSignals.map((item, index) => (
               <li key={index} className="flex gap-2">
                 <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-400" />
@@ -152,15 +152,15 @@ export default function FitnessTab() {
       {(data.vo2Max === null || data.restingHeartRate === null) && (
         <p className="px-1 text-xs leading-relaxed text-neutral-500">
           Tidak punya jam tangan? Isi sendiri saja: VO₂ max, detak istirahat, dan rutinitas latihan ada di{" "}
-          <Link href="/settings" className="font-semibold text-brand-700 dark:text-brand-300">Profil → Aktivitas &amp; fitness</Link>.
+          <Link href="/settings" className="font-semibold text-brand-700">Profil → Aktivitas &amp; fitness</Link>.
           Sesi yang kamu catat di Home lewat Gerak hari ini muncul di Kardio dan Latihan beban.
         </p>
       )}
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
         <div className="mb-2 text-sm font-medium">Prioritas berikutnya</div>
         {data.priorities.length ? (
-          <ul className="space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
+          <ul className="space-y-2 text-sm text-neutral-600">
             {data.priorities.map((item, index) => (
               <li key={index} className="flex gap-2">
                 <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-400" />
@@ -175,11 +175,11 @@ export default function FitnessTab() {
         )}
       </section>
 
-      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" />{" "}
+              <IconSparkle className="h-4 w-4 text-brand-600" />{" "}
               {ai?.source === "template" ? "Recap Otomatis" : "Recap AI"}
             </div>
             <div className="text-xs text-neutral-400">Rangkuman dari catatan yang tersedia</div>
@@ -200,10 +200,10 @@ export default function FitnessTab() {
         )}
         {ai && (
           <>
-            <p className="text-sm text-neutral-600 dark:text-neutral-300">
+            <p className="text-sm text-neutral-600">
               {ai.summary}
             </p>
-            <ul className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
+            <ul className="space-y-1 text-sm text-neutral-600">
               {ai.recommendations.map((item, index) => (
                 <li key={index}>• {item}</li>
               ))}
@@ -232,7 +232,7 @@ function Metric({
   extra?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
       <div className="text-xs text-neutral-500">{label}</div>
       <div className="mt-1 text-lg font-bold">{value}</div>
       {note && <div className="text-xs text-neutral-400">{note}</div>}

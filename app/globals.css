@@ -2,7 +2,6 @@
 @import '../components/mascot.css';
 @import '../components/journal.css';
 @import '../components/home.css';
-@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-neutral-50: #f8f3e9;
@@ -36,6 +35,8 @@
 }
 
 :root {
+  /* Light only: forms and scrollbars stay light even when the phone is set to dark. */
+  color-scheme: light;
   --slothly-paper: #f8f3e9;
   --slothly-card: #fffdf7;
   --slothly-ink: #30271f;
@@ -72,42 +73,6 @@
   --kukang-sweat: #8cbbcb;
 }
 
-.dark {
-  --color-neutral-50: #fafafa;
-  --color-neutral-100: #f4f4f5;
-  --color-neutral-200: #e4e4e7;
-  --color-neutral-300: #d4d4d8;
-  --color-neutral-400: #b3b3bc;
-  --color-neutral-500: #9a9aa4;
-  --color-neutral-600: #6c6c76;
-  --color-neutral-700: #3a3a42;
-  --color-neutral-800: #27272d;
-  --color-neutral-900: #18181c;
-  --color-neutral-950: #0c0c0f;
-  --slothly-paper: #0c0c0f;
-  --slothly-card: #18181c;
-  --slothly-ink: #f4f4f5;
-  --slothly-muted: #b3b3bc;
-  --slothly-line: #2b2b32;
-  --slothly-leaf: #a6c694;
-  --slothly-coffee: #d3af87;
-  --canopy-pagi: linear-gradient(135deg, #1b2320, #151a18);
-  --canopy-siang: linear-gradient(135deg, #1a2321, #141a18);
-  --canopy-sore: linear-gradient(135deg, #202025, #18181d);
-  --canopy-malam: linear-gradient(135deg, #1b1d25, #14151b);
-  --canopy-leaf: #829680;
-  --canopy-vein: #c8d1c6;
-  --canopy-branch: #6d7466;
-  --canopy-light: #c7d3bd;
-  --canopy-glow: #a6b8a3;
-  --canopy-moon-cutout: #171a20;
-  --kukang-fur: #bf9c76;
-  --kukang-fur-shadow: #a17c58;
-  --kukang-fur-light: #d9bb93;
-  --kukang-shadow: #d6c1a3;
-  --kukang-note: #cead86;
-}
-
 @layer base {
   *, ::after, ::before, ::backdrop, ::file-selector-button { border-color: var(--slothly-line); }
   h1 { font-family: var(--font-display); letter-spacing: -0.01em; }
@@ -122,7 +87,7 @@ html, body { overscroll-behavior-y: none; }
 body { background: var(--slothly-paper); color: var(--slothly-ink); }
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
-html:not(.dark) .bg-white { background-color: var(--slothly-card); }
+.bg-white { background-color: var(--slothly-card); }
 .slothly-shell { width: 100%; max-width: 1280px; margin: 0 auto; }
 .slothly-main { width: 100%; min-width: 0; margin: 0 auto; padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
 .slothly-canopy { color: var(--slothly-ink); }
@@ -137,7 +102,6 @@ html:not(.dark) .bg-white { background-color: var(--slothly-card); }
 .slothly-nav-icon { display: flex; align-items: center; justify-content: center; width: 42px; height: 29px; border-radius: 10px; transition: background-color .18s ease; }
 .slothly-nav-link[aria-current="page"] { color: var(--slothly-leaf); }
 .slothly-nav-link[aria-current="page"] .slothly-nav-icon { background: var(--color-brand-100); }
-.dark .slothly-nav-link[aria-current="page"] .slothly-nav-icon { background: var(--color-brand-900); }
 
 @media (min-width: 640px) { .slothly-shell { padding: 24px 20px 0; } }
 @media (min-width: 960px) {
@@ -150,8 +114,7 @@ html:not(.dark) .bg-white { background-color: var(--slothly-card); }
   .slothly-nav-items { display: flex; flex-direction: column; gap: 5px; margin: 0; padding: 0; }
   .slothly-nav-link { position: relative; flex-direction: row; justify-content: flex-start; gap: 8px; min-height: 50px; padding: 8px; border-radius: 12px; font-size: var(--text-sm); }
   .slothly-nav-link[aria-current="page"] { background: var(--color-brand-100); }
-  .dark .slothly-nav-link[aria-current="page"] { background: var(--color-brand-900); }
-  .slothly-nav-link[aria-current="page"]::before { content: ""; position: absolute; inset: 15px auto 15px -7px; width: 3px; border-radius: 3px; background: var(--slothly-leaf); }
+    .slothly-nav-link[aria-current="page"]::before { content: ""; position: absolute; inset: 15px auto 15px -7px; width: 3px; border-radius: 3px; background: var(--slothly-leaf); }
   .slothly-nav-link:hover { color: var(--slothly-ink); }
 }
 
