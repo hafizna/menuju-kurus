@@ -29,7 +29,7 @@ Empat tab di bottom nav, disusun sebagai alur keputusan harian, bukan daftar fit
 
 - **Home** (`/`) — status hari ini dan Personal Adaptive Coach dengan konteks Sekarang, Lapar, Sangat lapar, Craving, atau Makan di luar.
 - **Makan** (`/makan`) — tiga konteks: Catat (foto + Nutrition Intelligence), Restoran (menu Indonesia tanpa foto), dan Kebiasaan (quick add + pola 28 hari), plus riwayat makan hari ini.
-- **Progress** (`/progress`) — tiga tab menurut pertanyaannya. **Ringkasan**: review 7 hari dengan ringkasan AI dan fokus mingguan, lalu pola jangka panjang dan evaluasi target. **Tubuh**: check-in, perubahan, body fat dan komposisi, riwayat, grafik, dan avatar skematis. **Kebugaran**: VO₂ max, detak istirahat, serta kardio dan latihan beban dari catatan Gerak hari ini. Tautan lama `?tab=weight` membuka Tubuh dan `?tab=weekly` membuka Ringkasan.
+- **Progress** (`/progress`) — tiga tab menurut pertanyaannya. **Ringkasan**: review 7 hari dengan ringkasan AI dan fokus mingguan, lalu pola jangka panjang dan evaluasi target. **Tubuh**: pencatatan ukuran, perubahan, body fat dan komposisi, riwayat, grafik, dan avatar skematis. **Kebugaran**: VO₂ max, detak istirahat, serta kardio dan latihan beban dari catatan Gerak hari ini. Tautan lama `?tab=weight` membuka Tubuh dan `?tab=weekly` membuka Ringkasan.
 - **Profil** (`/settings`) — "Program Saya": Program & target, Data tubuh, Aktivitas & fitness, Integrasi, Akun.
 
 Rencana harian (`/plan`, pilih Intermittent Fasting atau Defisit Kalori berdasarkan jam bangun) diakses kontekstual dari Home, bukan sebagai tab tersendiri.

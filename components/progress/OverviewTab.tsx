@@ -86,7 +86,7 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
           onClick={onCheckIn}
           className="mt-4 rounded-xl bg-white px-4 py-2 text-sm font-medium text-brand-800"
         >
-          {waistDue.due ? "Check-in tubuh jika berkenan" : "Lihat ukuran tubuh"}
+          {waistDue.due ? "Catat ukuran tubuh jika berkenan" : "Lihat ukuran tubuh"}
         </button>
       </section>
       <section id="minggu-ini" aria-labelledby="week-title" className="scroll-mt-4 space-y-3">

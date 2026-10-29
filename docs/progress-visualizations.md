@@ -59,7 +59,7 @@ Tidak menyimpulkan lemak visceral berkurang atau otot terjaga dari tabel ini.
 | Visual | Manfaat | Aturan |
 |---|---|---|
 | Berat: titik + rata-rata 7 hari | Memisahkan variasi harian dari tren | Tampilkan jumlah sampel; periode kosong menjadi gap; jangan interpolasi data hilang sebagai observasi |
-| Pinggang: titik bertanggal | Melihat perubahan check-in | Tidak dismoothing seperti data harian; tampilkan jarak antarukur dan panduan konsistensi |
+| Pinggang: titik bertanggal | Melihat perubahan ukuran | Tidak dismoothing seperti data harian; tampilkan jarak antarukur dan panduan konsistensi |
 | Kartu perubahan periode | Ringkasan cepat | Tanggal pembanding, unit, dan sumber eksplisit; jangan membuat persen tanpa baseline valid |
 | Kalender kelengkapan catatan | Menjelaskan kesiapan insight | Bedakan lengkap, parsial, dan kosong; jangan menjadikannya hukuman atau streak defisit |
 | Asupan vs target | Mendukung keputusan makan | Hari parsial berlabel; aktivitas tidak ditambahkan otomatis ke target |
@@ -75,7 +75,7 @@ Urutan implementasi: kartu perubahan + grafik berat/pinggang → kelengkapan dat
 flowchart TD
   A[Catatan makan dan protein] --> D[Kecukupan data dan model energi]
   B[Aktivitas manual / Apple Health] --> D
-  C[Berat dan check-in lingkar tubuh] --> E[Tren tubuh]
+  C[Berat dan ukuran lingkar tubuh] --> E[Tren tubuh]
   D --> F[Ringkasan Progress dengan periode selaras]
   E --> F
   C --> G[Avatar skematis opsional]

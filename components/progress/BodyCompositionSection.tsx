@@ -45,7 +45,7 @@ export default function BodyCompositionSection() {
       </div>
       {data.bodyFatLatest === null && (
         <p className="text-sm leading-relaxed text-neutral-500">
-          Body fat bisa diisi lewat Check-in tubuh di atas, atau masuk otomatis dari timbangan pintar yang menulis ke Apple Health.
+          Body fat bisa diisi lewat Catat ukuran tubuh di atas, atau masuk otomatis dari timbangan pintar yang menulis ke Apple Health.
         </p>
       )}
       {hasPairs && data.composition && <CompositionTable composition={data.composition} />}

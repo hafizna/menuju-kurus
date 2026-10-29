@@ -121,7 +121,7 @@ test("weight smoothing uses a calendar window, not the last seven entries", () =
   );
 });
 
-test("check-in cadence distinguishes weekly waist and optional fortnightly measurements", () => {
+test("measurement cadence distinguishes weekly waist and optional fortnightly measurements", () => {
   const snapshots = [
     { date: "2026-09-01", waistCm: reading(90), hipCm: reading(100) },
   ];
