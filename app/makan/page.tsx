@@ -56,7 +56,7 @@ function MakanContent() {
 
   return (
     <div className="journal-page journal-page--meal journal-content space-y-4 p-4">
-      <JournalHeader scene="meal" kicker="Catatan makan" title="Catat sedikit, makin paham." description="Foto, cek porsi, lalu simpan. Satu catatan setiap kali." />
+      <JournalHeader scene="meal" kicker="Catat makananmu hari ini" title="Kenali kalori dari setiap makananmu." description="Foto, cek porsi, lalu simpan. Satu catatan setiap kali." />
       {loadError && <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><p>{loadError} {today ? "Ringkasan di bawah memakai data terakhir." : "Riwayat belum tersedia."}</p><button onClick={reload} className="mt-2 font-semibold underline">Coba muat lagi</button></div>}
       <TodayBar summary={today?.summary ?? null} />
 

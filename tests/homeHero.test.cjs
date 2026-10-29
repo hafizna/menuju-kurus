@@ -15,21 +15,21 @@ test('a completed log is acknowledged at any hour', () => {
 
 test('a first run gets a welcome until the first meal, even late at night', () => {
   for (const localHour of [6, 14, 20, 23]) {
-    assert.equal(hero({ localHour, firstRun: true }).headline, 'Mulai dari satu catatan.');
+    assert.equal(hero({ localHour, firstRun: true }).headline, 'Yuk, catat makan pertamamu hari ini.');
   }
 });
 
 test('a returning user with an empty day is not told the day is already going', () => {
-  assert.equal(hero({ localHour: 8 }).headline, 'Mulai dari satu catatan.');
-  assert.equal(hero({ localHour: 14 }).headline, 'Mulai dari satu catatan.');
+  assert.equal(hero({ localHour: 8 }).headline, 'Yuk, catat makan pertamamu hari ini.');
+  assert.equal(hero({ localHour: 14 }).headline, 'Yuk, catat makan pertamamu hari ini.');
   assert.equal(hero({ localHour: 19 }).headline, 'Belum ada catatan hari ini.');
 });
 
 test('a partly logged day follows the time of day', () => {
-  assert.equal(hero({ localHour: 10, mealCount: 1 }).headline, 'Hari ini masih berjalan.');
-  assert.equal(hero({ localHour: 17, mealCount: 1 }).headline, 'Hari ini masih berjalan.');
-  assert.equal(hero({ localHour: 18, mealCount: 1 }).headline, 'Hari ini hampir selesai.');
-  assert.equal(hero({ localHour: 21, mealCount: 1 }).headline, 'Hari ini hampir selesai.');
+  assert.equal(hero({ localHour: 10, mealCount: 1 }).headline, 'Sudah makan apa saja hari ini?');
+  assert.equal(hero({ localHour: 17, mealCount: 1 }).headline, 'Sudah makan apa saja hari ini?');
+  assert.equal(hero({ localHour: 18, mealCount: 1 }).headline, 'Ada yang belum dicatat hari ini?');
+  assert.equal(hero({ localHour: 21, mealCount: 1 }).headline, 'Ada yang belum dicatat hari ini?');
 });
 
 test('the rest window matches the mascot night, with or without meals', () => {
@@ -47,8 +47,8 @@ test('the rest window matches the mascot night, with or without meals', () => {
 
 test('an invalid hour falls back to daytime copy instead of inventing a night', () => {
   for (const localHour of [NaN, Infinity, -1, 24]) {
-    assert.equal(hero({ localHour, mealCount: 1 }).headline, 'Hari ini masih berjalan.');
-    assert.equal(hero({ localHour }).headline, 'Mulai dari satu catatan.');
+    assert.equal(hero({ localHour, mealCount: 1 }).headline, 'Sudah makan apa saja hari ini?');
+    assert.equal(hero({ localHour }).headline, 'Yuk, catat makan pertamamu hari ini.');
   }
 });
 
