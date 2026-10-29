@@ -108,6 +108,9 @@ module.exports = async function verifyDescribe({ page, base, store, today, proje
     assert.equal(await page.locator("#describe-text").count(), 0, "the form came back after saving");
 
     // 5. The history shows what was written and what it was made of; a correction opens the same review.
+    const items = page.locator('[aria-controls="riwayat-items"]');
+    await items.waitFor();
+    if ((await items.getAttribute("aria-expanded")) !== "true") await items.click();
     await page.locator('[aria-controls^="detail-"]').filter({ hasText: "Nasi + telur dadar" }).click();
     await page.getByText(`Yang kamu tulis: ${WRITTEN}`, { exact: true }).waitFor();
     await page.getByRole("list", { name: "Rincian bahan" }).waitFor();

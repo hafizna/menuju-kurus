@@ -155,9 +155,13 @@ html:not(.dark) .bg-white { background-color: var(--slothly-card); }
   .slothly-nav-link:hover { color: var(--slothly-ink); }
 }
 
+/* The rings of the day recap fill in once; motion off or reduced shows them already filled. */
+.day-ring { transition: stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1); }
 html[data-motion="off"] .kukang-motion,
 html[data-motion="off"] .sky-drift { animation: none !important; }
+html[data-motion="off"] .day-ring { transition: none; }
 @media (prefers-reduced-motion: reduce) {
   .kukang-motion, .sky-drift { animation: none !important; }
+  .day-ring { transition: none; }
   *, ::before, ::after { scroll-behavior: auto !important; }
 }

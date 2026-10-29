@@ -27,6 +27,12 @@ const fourEggs = () => analysis(component("Telur dadar", "other", 240, 560, 28, 
 
 module.exports = async function verifyMealCorrection({ page, base, store, today, offset }) {
   const dayKey = (date) => `mk:u3:day:${date}`;
+  // The history shows a day as rings first; the meals open when the card is tapped.
+  const openItems = async () => {
+    const toggle = page.locator('[aria-controls="riwayat-items"]');
+    await toggle.waitFor();
+    if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  };
   const meals = (date) => JSON.parse(store.get(dayKey(date))).meals;
   const uploads = [];
   const refines = [];
@@ -75,6 +81,7 @@ module.exports = async function verifyMealCorrection({ page, base, store, today,
     assert.match(saved.portionNote, /protein dikoreksi manual/);
 
     // 2. The history shows what the meal is made of.
+    await openItems();
     const row = page.locator('[aria-controls^="detail-"]').filter({ hasText: "Telur dadar + nasi" });
     await row.click();
     const detail = page.getByRole("list", { name: "Rincian bahan" });
@@ -126,6 +133,8 @@ module.exports = async function verifyMealCorrection({ page, base, store, today,
     assert.equal(await chips.count(), 7);
     await chips.filter({ hasText: "Kemarin" }).click();
     await page.getByRole("heading", { name: "Riwayat Kemarin", exact: true }).waitFor();
+    assert.equal(await page.locator('[aria-controls="riwayat-items"]').getAttribute("aria-expanded"), "false", "another day should start as rings, not as a list");
+    await openItems();
     await page.locator('[aria-controls^="detail-"]').first().click();
     await page.getByText("Dicatat manual, jadi tidak ada rincian bahan.").waitFor();
     await page.getByRole("button", { name: "Koreksi", exact: true }).click();
@@ -150,6 +159,7 @@ module.exports = async function verifyMealCorrection({ page, base, store, today,
 
     // 5. Clean up the meal added here.
     await page.getByRole("group", { name: "Pilih hari" }).getByRole("button", { name: "Hari ini", exact: true }).click();
+    await openItems();
     await page.getByRole("button", { name: /^Hapus Telur dadar/ }).click();
     // The saved-notice banner repeats the name, so wait on the stored log instead of the page text.
     for (let i = 0; i < 40 && meals(today).some((meal) => meal.id === saved.id); i++) await page.waitForTimeout(250);
