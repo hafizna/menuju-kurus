@@ -813,7 +813,7 @@ function ManualForm({ draft, onChange, onSaved, date, timezone, lockKey, saveOri
   );
 }
 
-// ---------- Cari makan (satiety / hunger-mode recommendation) ----------
+// ---------- Ide makan (satiety / hunger-mode recommendation) ----------
 
 const INTENTS = [
   ["hungry", "😩 Lapar"], ["sweet", "🍫 Manis"], ["savory", "🧂 Gurih"],

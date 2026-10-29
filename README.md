@@ -18,17 +18,16 @@ Tampilan **Rumah Kukang** memakai ilustrasi kanopi dan maskot SVG orisinal, deng
 5. **Personal Adaptive Coach & Recovery Mode.** Meranking fokus berikutnya dari status hari ini, budget mingguan, tren berat, pola 28 hari, dan konteks lapar/craving/makan di luar—tanpa puasa kompensasi atau olahraga sebagai hukuman.
 6. **Fitness Intelligence.** Goal profile `weight_loss`, `very_lean`, `athletic`, atau `muscle_gain`, disertai VO₂ max, resting heart rate, cardio minutes, strength days, goal score, dan recap AI opsional. Dari riwayat Apple Health, tab Fitness juga membaca komposisi tubuh (massa lemak dan massa bebas lemak, estimasi), tren detak istirahat dan VO₂ max, serta kesegaran datanya; lihat [kebijakan](docs/body-response-data-policy.md#komposisi-tubuh-dan-tren-fitness).
 7. **Nutrition Intelligence / Satiety Intelligence.** Menjawab “apa keputusan makan terbaik saat ini?” berdasarkan sisa kalori, sisa protein, goal, craving, objective, dan bahan yang tersedia.
-8. **Restaurant Intelligence.** Cari menu Indonesia tanpa foto, lihat asumsi porsi dan ranking kontekstual, lalu simpan sebagai estimasi manual.
-9. **Habit Intelligence.** Pelajari menu berulang dan waktu makan dalam rolling 28 hari, lalu quick add dari rata-rata catatan pengguna sendiri.
-10. **AI recap manual.** Gemini (foto makanan dan, secara default, recap teks) hanya dipanggil saat user menekan tombol, agar penggunaan tetap terkontrol. Tanpa kunci AI sama sekali, recap memakai template gratis.
-11. **Hingga lima user terpisah.** Satu deployment dapat dipakai hingga lima orang, masing-masing dengan login sendiri (kode undangan dari admin + PIN 6 digit buatan sendiri), settings, Redis keys, dan Health Sync token terpisah.
+8. **Habit Intelligence.** Pelajari menu berulang dan waktu makan dalam rolling 28 hari, lalu quick add dari rata-rata catatan pengguna sendiri.
+9. **AI recap manual.** Gemini (foto makanan dan, secara default, recap teks) hanya dipanggil saat user menekan tombol, agar penggunaan tetap terkontrol. Tanpa kunci AI sama sekali, recap memakai template gratis.
+10. **Hingga lima user terpisah.** Satu deployment dapat dipakai hingga lima orang, masing-masing dengan login sendiri (kode undangan dari admin + PIN 6 digit buatan sendiri), settings, Redis keys, dan Health Sync token terpisah.
 
 ## Navigasi
 
 Empat tab di bottom nav, disusun sebagai alur keputusan harian, bukan daftar fitur:
 
 - **Home** (`/`) — status hari ini dan Personal Adaptive Coach dengan konteks Sekarang, Lapar, Sangat lapar, Craving, atau Makan di luar.
-- **Makan** (`/makan`) — tiga konteks: Catat (foto + Nutrition Intelligence), Restoran (menu Indonesia tanpa foto), dan Kebiasaan (quick add + pola 28 hari), plus riwayat makan hari ini.
+- **Makan** (`/makan`) — tiga konteks: Catat (foto, tulis & hitung, atau isi manual), Ide makan (saran dari Satiety Intelligence), dan Favorit (quick add + pola 28 hari), plus riwayat makan per hari. Alamat lama `/makan/restaurant` mengarah ke Ide makan.
 - **Progress** (`/progress`) — tiga tab menurut pertanyaannya. **Ringkasan**: review 7 hari dengan ringkasan AI dan fokus mingguan, lalu pola jangka panjang dan evaluasi target. **Tubuh**: pencatatan ukuran, perubahan, body fat dan komposisi, riwayat, grafik, dan avatar skematis. **Kebugaran**: VO₂ max, detak istirahat, serta kardio dan latihan beban dari catatan Gerak hari ini. Tautan lama `?tab=weight` membuka Tubuh dan `?tab=weekly` membuka Ringkasan.
 - **Profil** (`/settings`) — "Program Saya": Program & target, Data tubuh, Aktivitas & fitness, Integrasi, Akun.
 
@@ -42,14 +41,14 @@ Tersedia langsung di **Home**:
 - Pengguna dapat memberi konteks langsung: lapar, sangat lapar, craving, atau makan di luar.
 - Maksimal tiga prioritas ditentukan oleh engine TypeScript lokal dan selalu disertai dasar data.
 - Menu kebiasaan hanya digunakan untuk personalisasi saat data sudah cukup.
-- Coach dapat mengarahkan ke Satiety Intelligence, Restaurant Intelligence, Habit quick add, rencana harian, atau grafik berat.
+- Coach dapat mengarahkan ke Satiety Intelligence, Tulis & hitung, Habit quick add, rencana harian, atau grafik berat.
 - Menu yang melebihi sisa budget tidak dilarang; aplikasi menjelaskan pilihan porsi dan trade-off-nya.
 - Penurunan berat yang terlalu cepat memicu saran untuk tidak menambah defisit.
 - Tingkat personalisasi ditampilkan sebagai awal, sedang, atau tinggi berdasarkan kesiapan pola dan tren berat.
 
 ## Nutrition Intelligence
 
-Tersedia di tab **Makan → Catat**, mode "Butuh rekomendasi", menyediakan:
+Tersedia di tab **Makan → Ide makan**, menyediakan:
 
 - Hunger mode: lapar, manis, gurih, renyah, comfort food, atau cepat dibuat.
 - Objective filters: volume besar, protein tinggi, serat tinggi, kalori tipis, dan vegetarian.
@@ -62,19 +61,9 @@ Tersedia di tab **Makan → Catat**, mode "Butuh rekomendasi", menyediakan:
 
 Fullness Score adalah heuristik produk, bukan pengukuran klinis. Rekomendasi tidak dimaksudkan untuk diagnosis atau terapi medis.
 
-## Restaurant Intelligence
-
-Tersedia di **Makan → Restoran**:
-
-- Pencarian teks untuk menu warteg, rumah makan Padang, ayam, bakso/mi, soto, fast food, dan kafe.
-- Estimasi kalori dan makro dari library lokal, bukan keputusan AI.
-- Ranking berdasarkan sisa kalori, sisa protein, fullness, goal aktif, kategori, dan kecocokan pencarian.
-- Koreksi porsi `0.5x`, `0.75x`, `1x`, atau `1.25x` sebelum disimpan.
-- Asumsi porsi dan ketidakpastian ditampilkan secara transparan.
-
 ## Habit Intelligence
 
-Tersedia di **Makan → Kebiasaan**:
+Tersedia di **Makan → Favorit**:
 
 - Menganalisis rolling 28 hari tanpa menyimpan profil kebiasaan baru di luar log yang sudah ada.
 - Menu masuk quick add setelah muncul minimal dua kali.
@@ -319,7 +308,7 @@ Lihat [`ROADMAP.md`](./ROADMAP.md). Fase integrasi Sprint 7–10 telah selesai.
 
 - Maksimal lima user; akses hanya lewat kode undangan dari admin, bukan registrasi publik/terbuka.
 - Foto makanan tidak disimpan.
-- Estimasi foto, menu restoran, MET, VO₂ max, body fat, Fullness Score, dan ETA berat adalah perkiraan.
+- Estimasi foto dan tulisan makanan, MET, VO₂ max, body fat, Fullness Score, dan ETA berat adalah perkiraan.
 - Habit Intelligence dan Adaptive Coach bergantung pada konsistensi dan kualitas catatan pengguna.
 - Konteks lapar/craving dipilih manual dan tidak disimpan sebagai diagnosis atau profil psikologis.
 - Health sync masih melalui Shortcuts, bukan aplikasi iOS native.

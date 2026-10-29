@@ -18,7 +18,9 @@ Sprint awal membangun calorie tracking, weight intelligence, health score, weekl
 - Setiap field independen dan opsional — field yang tidak dikirim di satu sync tidak menghapus nilai dari sync sebelumnya. Konflik diselesaikan secara eksplisit (overwrite per field), bukan menumpuk nilai setiap sync.
 - Tidak mencakup "strength days" otomatis — Shortcuts tidak punya cara reliable menghitung hari latihan beban dari HealthKit, jadi field itu tetap manual di Settings.
 
-### Sprint 8 — Restaurant Intelligence ✅
+### Sprint 8 — Restaurant Intelligence ✅ (dihapus Oktober 2026)
+
+> Tab Restoran dibuang karena tumpang tindih dengan Ide makan; menu makan di luar kini dihitung lewat **Tulis & hitung**. Kode dan datanya masih ada di riwayat git.
 
 - Pencarian menu restoran Indonesia tanpa foto.
 - Library lokal untuk warteg, rumah makan Padang, ayam, bakso/mi, soto, fast food, dan kafe.
@@ -113,3 +115,7 @@ Produk pembanding umumnya unggul pada satu domain: logging, detail nutrisi, adap
 - AI explanation tanpa menyerahkan logika keputusan kepada chatbot.
 
 Kombinasi ini membuat produk lebih dekat ke personal nutrition decision assistant daripada aplikasi diet konvensional.
+
+## Ide pengembangan nanti
+
+- **Ide makan dari foto bahan di rumah.** Pengguna memotret bahan dapur, app mengenali bahannya (daftar bisa diedit), lalu menyarankan menu ideal lengkap dengan porsi dan pengecekan kalori/protein terhadap sisa hari itu. Belum ada kemampuan membaca bahan dari foto; Ide makan sekarang hanya menerima daftar bahan yang diketik.
