@@ -253,19 +253,19 @@ export default function BodyTab() {
         disabled={busy}
         className="w-full rounded-xl bg-brand-600 px-4 py-3 font-medium text-white disabled:opacity-50"
       >
-        + Check-in tubuh
+        + Catat ukuran tubuh
       </button>
       {showReminder && (
         <section className="rounded-2xl border border-brand-100 bg-brand-50 p-4 dark:border-brand-900 dark:bg-brand-950/30">
           <div className="flex items-start justify-between gap-3">
             <h2 className="text-sm font-semibold">
               {waistDue.due
-                ? "Waktunya check-in pinggang, jika berkenan"
-                : "Check-in tubuh tidak perlu setiap hari"}
+                ? "Waktunya mengukur pinggang, jika berkenan"
+                : "Mengukur tubuh tidak perlu setiap hari"}
             </h2>
             <button
               type="button"
-              aria-label="Sembunyikan pengingat check-in pada perangkat ini"
+              aria-label="Sembunyikan pengingat ukur tubuh pada perangkat ini"
               onClick={() => {
                 setShowReminder(false);
                 try {
@@ -306,7 +306,7 @@ export default function BodyTab() {
             } catch {}
           }}
         >
-          Tampilkan pengingat check-in
+          Tampilkan pengingat ukur tubuh
         </button>
       )}
       {showForm && (

@@ -552,7 +552,7 @@ let child, browser;
     .getByRole("checkbox", { name: "Tampilkan ilustrasi tubuh" })
     .check();
   await page
-    .getByRole("button", { name: "+ Check-in tubuh", exact: true })
+    .getByRole("button", { name: "+ Catat ukuran tubuh", exact: true })
     .click();
   await page.getByLabel("Pinggang (cm)", { exact: true }).fill("89");
   await page
@@ -1168,7 +1168,7 @@ let child, browser;
   assert.deepEqual(apiErrors, []);
   assert.deepEqual(browserErrors, []);
   console.log(
-    "Browser: PASS — third-user login, Rumah Kukang mobile/desktop, meal draft across mode/route/reload, photo corrections and override, reviewed recent meal, save/undo failure and retry, today failure/retry, scoped session draft without photos, calibration keep/apply/context/stale proposal/cooldown/Home target, Body Response 14/28/56-day selection and failure/retry, body comparison/check-in/deletion, keyboard navigation, Fitness/Weekly regression, empty/missing-height states, 320px/mobile/desktop layout, persisted motion toggle and OS reduced-motion, optional-name/athletic onboarding validation.",
+    "Browser: PASS — third-user login, Rumah Kukang mobile/desktop, meal draft across mode/route/reload, photo corrections and override, reviewed recent meal, save/undo failure and retry, today failure/retry, scoped session draft without photos, calibration keep/apply/context/stale proposal/cooldown/Home target, Body Response 14/28/56-day selection and failure/retry, body comparison/measurement entry/deletion, keyboard navigation, Fitness/Weekly regression, empty/missing-height states, 320px/mobile/desktop layout, persisted motion toggle and OS reduced-motion, optional-name/athletic onboarding validation.",
   );
   console.log(
     "Health connection: PASS — unauthenticated management denied, public signed v2 Shortcut downloads, pairing preparation failure/retry without rotating access, direct single-use-code handoff and native-account response, no browser Bearer/copy flow, installed/custom Shortcut names and persistence, pairing/test versus receipt status, historical timestamp/timezone preservation, independent weight/body-fat history, retry deduplication, secret-free status/reload/storage, 320px/light/dark layouts, additive installations and full revocation including pending codes. Synthetic Redis REST, native redeem requests, and Health samples used; real Upstash/Gemini/HealthKit/device access not tested.",

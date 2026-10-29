@@ -68,9 +68,9 @@ Positioning tetap personal nutrition decision assistant. Pengukuran tubuh memper
 - Prioritas: berat dan lingkar pinggang. Pinggul, paha, dan body fat opsional. BMI dan waist-to-height ratio menjadi detail kontekstual; WHR/WTR bukan fokus utama.
 - Riwayat pengukuran bertanggal, source per field, timestamp, satuan, serta edit/koreksi. Nilai parsial tidak menghapus field lain. Integrasikan riwayat berat dan Health Sync yang ada tanpa menggandakan catatan.
 - Rasio dihitung dari pengukuran yang sesuai waktu dan tinggi referensinya; jangan diam-diam memasangkan pinggang baru dengan pinggul lama. Simpan konteks tinggi yang diperlukan agar riwayat tidak berubah tanpa penjelasan.
-- Check-in pinggang mingguan; pinggul/paha dua mingguan opsional, dengan panduan posisi ukur konsisten. Pengingat dapat diabaikan.
+- Pengukuran pinggang mingguan; pinggul/paha dua mingguan opsional, dengan panduan posisi ukur konsisten. Pengingat dapat diabaikan.
 - Avatar skematis opsional berdasarkan ukuran yang tersedia, dengan perbandingan dua tanggal dan label angka. BMI tidak mengubah bentuk avatar. Spesifikasi di [Progress visualizations](docs/progress-visualizations.md).
-- Implementasi: `/api/body` menyatukan riwayat berat lama dan check-in tambahan; tinggi/sumber/waktu per field; Progress empat tab, grafik kalender, koreksi/hapus per ukuran, avatar opsional, dan sinkronisasi body fat mandiri.
+- Implementasi: `/api/body` menyatukan riwayat berat lama dan ukuran tubuh tambahan; tinggi/sumber/waktu per field; Progress empat tab, grafik kalender, koreksi/hapus per ukuran, avatar opsional, dan sinkronisasi body fat mandiri.
 - Acceptance: nilai hilang tidak direka; ukuran dan tanggal sumber terlihat; avatar tidak mengklaim bentuk anatomis, massa otot, atau lemak visceral; alur mobile dan tabel alternatif dapat digunakan tanpa visual.
 
 ### Sprint 13 — Body Response Intelligence (implementasi lokal)
