@@ -56,7 +56,7 @@ export default function BodyAvatar({
   };
   const band = focus ? BANDS[focus] : null;
   return (
-    <figure className="min-w-0 rounded-2xl bg-neutral-50 p-3 dark:bg-neutral-950">
+    <figure className="min-w-0 rounded-2xl bg-neutral-50 p-3">
       <figcaption className="text-center text-xs font-medium">
         {snapshot.date}
       </figcaption>
@@ -84,12 +84,12 @@ export default function BodyAvatar({
               fill="currentColor"
               stroke="none"
               opacity={0.14}
-              className="text-brand-600 dark:text-brand-400"
+              className="text-brand-600"
               data-focus={focus}
             />
           )}
           <g
-            className="text-neutral-300 dark:text-neutral-700"
+            className="text-neutral-300"
             strokeDasharray="4 4"
           >
             <circle cx={90} cy={28} r={15} />
@@ -99,8 +99,8 @@ export default function BodyAvatar({
             d={`M65 89 Q${90 - waist} 102 ${90 - waist} 119 M115 89 Q${90 + waist} 102 ${90 + waist} 119`}
             className={
               known("waistCm")
-                ? "text-brand-600 dark:text-brand-400"
-                : "text-neutral-300 dark:text-neutral-700"
+                ? "text-brand-600"
+                : "text-neutral-300"
             }
             strokeWidth={weight("waistCm")}
             strokeDasharray={known("waistCm") ? undefined : "4 4"}
@@ -109,8 +109,8 @@ export default function BodyAvatar({
             d={`M${90 - waist} 119 Q${90 - hip} 133 ${90 - hip} 150 L73 158 M${90 + waist} 119 Q${90 + hip} 133 ${90 + hip} 150 L107 158`}
             className={
               known("hipCm")
-                ? "text-brand-600 dark:text-brand-400"
-                : "text-neutral-300 dark:text-neutral-700"
+                ? "text-brand-600"
+                : "text-neutral-300"
             }
             strokeWidth={weight("hipCm")}
             strokeDasharray={known("hipCm") ? undefined : "4 4"}
@@ -118,8 +118,8 @@ export default function BodyAvatar({
           <g
             className={
               known("thighCm")
-                ? "text-brand-600 dark:text-brand-400"
-                : "text-neutral-300 dark:text-neutral-700"
+                ? "text-brand-600"
+                : "text-neutral-300"
             }
             strokeWidth={weight("thighCm")}
             strokeDasharray={known("thighCm") ? undefined : "4 4"}
@@ -129,7 +129,7 @@ export default function BodyAvatar({
             />
           </g>
           <g
-            className="text-neutral-300 dark:text-neutral-700"
+            className="text-neutral-300"
             strokeDasharray="4 4"
           >
             <path d="M67 198 L64 239 L58 246 L79 246 L81 198 M99 198 L101 246 L122 246 L116 239 L113 198" />
@@ -170,12 +170,12 @@ export default function BodyAvatar({
                   onClick={() => onFocus(field)}
                   className={`flex min-h-9 w-full flex-col items-start justify-center rounded-lg px-2 py-1 text-left transition-colors ${
                     active
-                      ? "bg-brand-100 font-medium text-brand-800 dark:bg-brand-900 dark:text-brand-200"
-                      : "hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                      ? "bg-brand-100 font-medium text-brand-800"
+                      : "hover:bg-neutral-100"
                   }`}
                 >
                   <span>{text}</span>
-                  {delta && <span className="font-medium tabular-nums text-brand-700 dark:text-brand-300">{delta}</span>}
+                  {delta && <span className="font-medium tabular-nums text-brand-700">{delta}</span>}
                 </button>
               ) : (
                 <span>{delta ? `${text} (${delta})` : text}</span>

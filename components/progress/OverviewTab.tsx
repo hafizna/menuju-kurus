@@ -98,7 +98,7 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">Periode pengukuran</h3>
         <div
-          className="flex rounded-xl bg-neutral-100 p-1 dark:bg-neutral-900"
+          className="flex rounded-xl bg-neutral-100 p-1"
           role="group"
           aria-label="Periode pengukuran"
         >
@@ -108,15 +108,15 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
               type="button"
               aria-pressed={days === value}
               onClick={() => setDays(value)}
-              className={`rounded-lg px-3 py-2 text-xs ${days === value ? "bg-white shadow-xs dark:bg-neutral-800" : "text-neutral-500"}`}
+              className={`rounded-lg px-3 py-2 text-xs ${days === value ? "bg-white shadow-xs" : "text-neutral-500"}`}
             >
               {value} hari
             </button>
           ))}
         </div>
       </div>
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 text-sm text-neutral-600 shadow-xs dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-        <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">{analysisReady ? "Pola mulai bisa dibaca" : "Bangun catatan sedikit demi sedikit"}</h3>
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 text-sm text-neutral-600 shadow-xs">
+        <h3 className="font-semibold text-neutral-900">{analysisReady ? "Pola mulai bisa dibaca" : "Bangun catatan sedikit demi sedikit"}</h3>
         {report ? <>
           <p className="mt-1">{report.current.start} — {report.current.end} · {report.current.food.observedDays}/{days} hari asupan lengkap · {report.current.weight.observedDays} ukuran berat.</p>
           {analysisReady ? <p className="mt-2">Data cukup untuk deskripsi terbatas. Lihat detail bila ingin meninjau grafik dan sumber angkanya.</p> : <>
@@ -125,11 +125,11 @@ export default function OverviewTab({ onCheckIn }: { onCheckIn: () => void }) {
           </>}
         </> : <p role="status" className="mt-1">{reportError || "Memeriksa catatan yang tersedia..."}</p>}
       </section>
-      <details key={days} className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <details key={days} className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
         <summary className="cursor-pointer text-sm font-medium">Lihat analisis dan grafik {days} hari{analysisReady ? "" : " · data masih dikumpulkan"}</summary>
         <div className="mt-4 space-y-4">{report || reportError ? <BodyResponsePanel period={days} initialReport={report ?? undefined} onReport={onReport} /> : <p role="status" className="text-sm text-neutral-500">Memuat analisis...</p>}</div>
       </details>
-      <details className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <details className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
         <summary className="cursor-pointer text-sm font-medium">Evaluasi target · periode terpisah 28 hari</summary>
         <div className="mt-4"><CalibrationPanel /></div>
       </details>

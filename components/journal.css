@@ -5,11 +5,6 @@
   --journal-shadow: 0 5px 18px rgb(40 48 35 / 4%), 0 1px 2px rgb(40 48 35 / 3%);
 }
 
-.dark .journal-page {
-  --journal-wash: color-mix(in srgb, var(--slothly-leaf) 5%, var(--slothly-card));
-  --journal-shadow: 0 7px 24px rgb(0 0 0 / 13%), inset 0 1px 0 rgb(255 255 255 / 2%);
-}
-
 .journal-header {
   position: relative;
   display: grid;

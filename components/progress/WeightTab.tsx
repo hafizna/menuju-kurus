@@ -70,7 +70,7 @@ export default function WeightTab() {
           + Timbang Hari Ini
         </button>
       ) : (
-        <form onSubmit={save} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+        <form onSubmit={save} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
           <div className="flex items-center gap-2">
             <input
               autoFocus
@@ -78,7 +78,7 @@ export default function WeightTab() {
               onChange={(e) => setWeightInput(e.target.value)}
               inputMode="decimal"
               placeholder="78.4"
-              className="flex-1 rounded-lg border border-neutral-300 px-3 py-3 text-center text-2xl dark:border-neutral-700 dark:bg-neutral-800"
+              className="flex-1 rounded-lg border border-neutral-300 px-3 py-3 text-center text-2xl"
             />
             <span className="text-neutral-500">kg</span>
           </div>
@@ -90,13 +90,13 @@ export default function WeightTab() {
                 onChange={(e) => setBodyFatInput(e.target.value)}
                 inputMode="decimal"
                 placeholder="Body fat % (opsional)"
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
               />
               <input
                 value={noteInput}
                 onChange={(e) => setNoteInput(e.target.value)}
                 placeholder="Catatan (opsional)"
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
               />
             </div>
           ) : (
@@ -109,7 +109,7 @@ export default function WeightTab() {
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="flex-1 rounded-xl border border-neutral-300 py-3 text-sm font-medium dark:border-neutral-700"
+              className="flex-1 rounded-xl border border-neutral-300 py-3 text-sm font-medium"
             >
               Batal
             </button>
@@ -125,7 +125,7 @@ export default function WeightTab() {
       )}
 
       {trend && (
-        <div className="grid grid-cols-2 divide-x divide-y divide-neutral-100 rounded-2xl border border-neutral-100 bg-white shadow-xs dark:divide-neutral-800 dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="grid grid-cols-2 divide-x divide-y divide-neutral-100 rounded-2xl border border-neutral-100 bg-white shadow-xs">
           <StatTile label="Hari ini" value={trend.today !== null ? `${trend.today} kg` : "-"} />
           <StatTile label="Rata-rata 7 hari" value={trend.avg7 !== null ? `${trend.avg7} kg` : "-"} />
           <StatTile label="Rata-rata 14 hari" value={trend.avg14 !== null ? `${trend.avg14} kg` : "-"} />
@@ -145,7 +145,7 @@ export default function WeightTab() {
 
       {trend && <WeightForecastCard trend={trend} />}
 
-      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
         <div className="mb-2 text-sm font-medium text-neutral-500">Grafik 30 catatan terakhir</div>
         <WeightChart entries={entries} />
       </section>
@@ -158,7 +158,7 @@ export default function WeightTab() {
             .reverse()
             .slice(0, 14)
             .map((e) => (
-              <div key={e.id} className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+              <div key={e.id} className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3 shadow-xs">
                 <div>
                   <div className="text-sm font-medium">{e.weightKg} kg</div>
                   <div className="text-xs text-neutral-500">

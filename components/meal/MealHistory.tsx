@@ -116,7 +116,7 @@ export default function MealHistory({ todayDate, todayLog, timezone, targets, on
             type="button"
             aria-pressed={day === date}
             onClick={() => { setSelected(day === todayDate ? null : day); setOpenId(null); setItemsOpen(false); setCompleteError(""); setFailed(null); setNotice(""); }}
-            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${day === date ? "border-brand-600 bg-brand-600 text-white" : "border-neutral-300 text-neutral-600 dark:border-neutral-700 dark:text-neutral-300"}`}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${day === date ? "border-brand-600 bg-brand-600 text-white" : "border-neutral-300 text-neutral-600"}`}
           >
             {dayLabel(day, todayDate)}
           </button>
@@ -124,12 +124,12 @@ export default function MealHistory({ todayDate, todayLog, timezone, targets, on
       </div>
       <p className="px-1 text-xs text-neutral-500">Ketuk ringkasan untuk melihat tiap makanan, lalu ketuk makanan untuk rincian dan koreksi. Bisa sampai {DAYS - 1} hari ke belakang.</p>
 
-      {notice && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800 dark:bg-brand-950/30 dark:text-brand-200">{notice}</p>}
-      {failed && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{failed.message} <button type="button" disabled={Boolean(removing)} onClick={() => removeEntry(failed.type, failed.id)} className="font-semibold underline">Coba hapus lagi</button></p>}
-      {loadError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{loadError} <button type="button" onClick={() => selected && void loadPast(selected)} className="font-semibold underline">Coba lagi</button></p>}
+      {notice && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800">{notice}</p>}
+      {failed && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{failed.message} <button type="button" disabled={Boolean(removing)} onClick={() => removeEntry(failed.type, failed.id)} className="font-semibold underline">Coba hapus lagi</button></p>}
+      {loadError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{loadError} <button type="button" onClick={() => selected && void loadPast(selected)} className="font-semibold underline">Coba lagi</button></p>}
       {!log && !loadError && !isToday && <p role="status" className="p-3 text-sm text-neutral-500">Memuat…</p>}
       {log && entries.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-neutral-200 p-4 text-sm text-neutral-500 dark:border-neutral-700">
+        <p className="rounded-2xl border border-dashed border-neutral-200 p-4 text-sm text-neutral-500">
           {isToday ? "Belum ada catatan hari ini. Mulai dengan satu makanan saja." : "Tidak ada catatan pada hari ini."}
         </p>
       )}
@@ -151,7 +151,7 @@ export default function MealHistory({ todayDate, todayLog, timezone, targets, on
         const open = entry.kind === "meal" && openId === entry.id;
         const heading = (
           <>
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${entry.kind === "meal" ? "bg-brand-50 text-brand-600 dark:bg-brand-950/40" : "bg-orange-50 text-orange-600 dark:bg-orange-950/40"}`}>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${entry.kind === "meal" ? "bg-brand-50 text-brand-600" : "bg-orange-50 text-orange-600"}`}>
               {entry.kind === "meal" ? <IconBowl className="h-4 w-4" /> : <IconBolt className="h-4 w-4" />}
             </span>
             <span className="min-w-0">
@@ -165,7 +165,7 @@ export default function MealHistory({ todayDate, todayLog, timezone, targets, on
           </>
         );
         return (
-          <div key={entry.id} className="rounded-xl border border-neutral-100 bg-white shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+          <div key={entry.id} className="rounded-xl border border-neutral-100 bg-white shadow-xs">
             <div className="flex items-center justify-between gap-2 px-4 py-3">
               {entry.kind === "meal" ? (
                 <button type="button" aria-expanded={open} aria-controls={`detail-${entry.id}`} onClick={() => setOpenId(open ? null : entry.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">{heading}</button>
@@ -212,16 +212,16 @@ function MealDetail({ id, meal, onFix }: { id: string; meal: MealEntry; onFix: (
   const breakdown = meal.breakdown;
   const components = breakdown ? adjustMeal(breakdown.analysis, breakdown.adjust).components : [];
   return (
-    <div id={id} className="space-y-2 border-t border-neutral-100 px-4 py-3 text-xs dark:border-neutral-800">
-      <p className="tabular-nums text-neutral-600 dark:text-neutral-300">
+    <div id={id} className="space-y-2 border-t border-neutral-100 px-4 py-3 text-xs">
+      <p className="tabular-nums text-neutral-600">
         Protein {meal.protein_g} g · Karbo {meal.carbs_g} g · Lemak {meal.fat_g} g
         {meal.sugar_g !== undefined && ` · Gula tambahan ${meal.sugar_g} g`}
       </p>
       {components.length > 0 ? (
-        <ul className="space-y-1 rounded-lg bg-neutral-50 p-2.5 dark:bg-neutral-800/60" aria-label="Rincian bahan">
+        <ul className="space-y-1 rounded-lg bg-neutral-50 p-2.5" aria-label="Rincian bahan">
           {components.map((component, index) => (
             <li key={index} className="flex justify-between gap-3">
-              <span className="min-w-0 truncate text-neutral-600 dark:text-neutral-300">
+              <span className="min-w-0 truncate text-neutral-600">
                 {component.name}
                 {component.grams > 0 && <span className="text-neutral-400"> · ±{component.grams} g</span>}
               </span>
@@ -241,7 +241,7 @@ function MealDetail({ id, meal, onFix }: { id: string; meal: MealEntry; onFix: (
       )}
       {meal.portionNote && <p className="text-neutral-500">{meal.portionNote}</p>}
       {meal.editedAt && <p className="text-neutral-400">Dikoreksi {new Date(meal.editedAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</p>}
-      <button type="button" onClick={(event) => onFix(event.currentTarget)} className="rounded-lg border border-brand-600 px-3 py-2 text-sm font-semibold text-brand-700 dark:text-brand-300">Koreksi</button>
+      <button type="button" onClick={(event) => onFix(event.currentTarget)} className="rounded-lg border border-brand-600 px-3 py-2 text-sm font-semibold text-brand-700">Koreksi</button>
     </div>
   );
 }

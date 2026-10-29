@@ -26,7 +26,6 @@ module.exports = async function verifyLoader({ page: main, base, projectRoot }) 
     await Promise.all(held.splice(0).map(route => route.continue()));
   };
   const capture = name => page.screenshot({ path: path.join(projectRoot, `.next/validation/loader-${name}.png`) });
-  const setTheme = theme => page.evaluate(theme => { localStorage.setItem("mk_theme", theme); window.dispatchEvent(new Event("mk-theme")); }, theme);
   const loader = () => page.locator(".kukang-loader");
   const noOverflow = message => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth).then(ok => assert.equal(ok, true, message));
 
@@ -63,12 +62,9 @@ module.exports = async function verifyLoader({ page: main, base, projectRoot }) 
       await capture(`${mood}-light`);
 
       if (mood === "juggle") {
-        await setTheme("dark");
-        await capture("juggle-dark");
         await page.setViewportSize({ width: 320, height: 640 });
         await noOverflow("loader 320px overflow");
         await page.setViewportSize({ width: 390, height: 844 });
-        await setTheme("light");
       }
       if (mood === "header") {
         // With reduced motion the picture stays put but the words still say it is loading.

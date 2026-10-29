@@ -7,8 +7,8 @@ import {
   activityKind, describeActivity, estimateActivityKcal, validDurationMin,
 } from "@/lib/activity";
 
-const chip = "flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border border-neutral-300 px-3 text-sm transition-colors peer-checked:border-brand-600 peer-checked:bg-brand-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-focus-visible:ring-offset-2 dark:border-neutral-700";
-const field = "rounded-xl border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700";
+const chip = "flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border border-neutral-300 px-3 text-sm transition-colors peer-checked:border-brand-600 peer-checked:bg-brand-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-focus-visible:ring-offset-2";
+const field = "rounded-xl border border-neutral-300 bg-transparent px-3 py-2 text-sm";
 
 interface Props {
   burns: BurnEntry[];
@@ -69,18 +69,18 @@ export default function ActivityCard({ burns, date, weightKg, onChanged }: Props
   }
 
   return (
-    <section className="home-card rounded-2xl border border-neutral-200/70 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900" aria-labelledby="activity-title">
+    <section className="home-card rounded-2xl border border-neutral-200/70 bg-white p-4" aria-labelledby="activity-title">
       <h2 id="activity-title" className="font-semibold">Gerak hari ini</h2>
       <p className="mt-1 text-xs leading-relaxed text-neutral-500">Apa pun yang bikin badan bergerak. Hanya catatan, tidak menambah jatah makan.</p>
 
       {burns.length > 0 && (
-        <ul className="mt-3 divide-y divide-neutral-100 dark:divide-neutral-800" aria-label="Aktivitas tercatat hari ini">
+        <ul className="mt-3 divide-y divide-neutral-100" aria-label="Aktivitas tercatat hari ini">
           {burns.map(entry => (
             <li key={entry.id} className="flex items-center justify-between gap-2 py-2 text-sm">
               <span className="min-w-0 break-words">{entry.source === "shortcuts" ? "Apple Watch" : describeActivity(entry.label, entry.durationMin)}</span>
               <span className="flex shrink-0 items-center gap-1">
-                <span className="tabular-nums text-neutral-600 dark:text-neutral-300">{entry.calories} kcal</span>
-                {entry.source === "manual" && <button type="button" onClick={() => void remove(entry)} disabled={Boolean(removing)} aria-label={`Hapus ${describeActivity(entry.label, entry.durationMin)}`} className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950/30">{removing === entry.id ? "…" : "✕"}</button>}
+                <span className="tabular-nums text-neutral-600">{entry.calories} kcal</span>
+                {entry.source === "manual" && <button type="button" onClick={() => void remove(entry)} disabled={Boolean(removing)} aria-label={`Hapus ${describeActivity(entry.label, entry.durationMin)}`} className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50">{removing === entry.id ? "…" : "✕"}</button>}
               </span>
             </li>
           ))}
@@ -116,7 +116,7 @@ export default function ActivityCard({ burns, date, weightKg, onChanged }: Props
               <span aria-hidden="true">mnt</span>
             </label>
           </div>
-          {Boolean(typed) && !minutesOk && <p className="mt-1 text-xs text-red-600 dark:text-red-300">Isi 1 sampai {MAX_ACTIVITY_MINUTES} menit.</p>}
+          {Boolean(typed) && !minutesOk && <p className="mt-1 text-xs text-red-600">Isi 1 sampai {MAX_ACTIVITY_MINUTES} menit.</p>}
         </fieldset>
 
         <div>
@@ -130,8 +130,8 @@ export default function ActivityCard({ burns, date, weightKg, onChanged }: Props
 
         <button type="submit" disabled={!ready || saving} className="w-full rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Menyimpan..." : "Simpan gerak"}</button>
         {!ready && !saving && <p className="-mt-2 text-center text-xs text-neutral-500">Pilih jenis dan lamanya dulu.</p>}
-        {error && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{error}</p>}
-        {notice && <p role="status" className="text-sm text-brand-700 dark:text-brand-300">{notice}</p>}
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+        {notice && <p role="status" className="text-sm text-brand-700">{notice}</p>}
       </form>
     </section>
   );

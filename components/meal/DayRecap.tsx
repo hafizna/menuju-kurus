@@ -13,7 +13,7 @@ function Ring({ name, radius, stroke, fill, overflow = 0, ready, bar }: { name: 
   const arc = (share: number) => (ready ? circumference * (1 - share) : circumference);
   return (
     <>
-      <circle cx="56" cy="56" r={radius} fill="none" strokeWidth={stroke} className="stroke-neutral-200 dark:stroke-neutral-700" />
+      <circle cx="56" cy="56" r={radius} fill="none" strokeWidth={stroke} className="stroke-neutral-200" />
       <circle
         data-ring={name}
         cx="56" cy="56" r={radius} fill="none" strokeWidth={stroke} strokeLinecap="round"
@@ -26,7 +26,7 @@ function Ring({ name, radius, stroke, fill, overflow = 0, ready, bar }: { name: 
           data-ring={`${name}-over`}
           cx="56" cy="56" r={radius} fill="none" strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={circumference} strokeDashoffset={arc(overflow)}
-          className="day-ring stroke-red-600 dark:stroke-red-400"
+          className="day-ring stroke-red-600"
         />
       )}
     </>
@@ -64,18 +64,18 @@ export default function DayRecap({ recap, open, onToggle, controls, isToday, com
   ].filter(Boolean).join(" · ");
 
   return (
-    <div className="rounded-2xl border border-neutral-100 bg-white shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="rounded-2xl border border-neutral-100 bg-white shadow-xs">
       <button type="button" aria-expanded={open} aria-controls={controls} onClick={onToggle} className="block w-full rounded-2xl p-4 text-left">
         <span className="flex items-center gap-4">
           <svg viewBox="0 0 112 112" className="h-24 w-24 shrink-0 -rotate-90" aria-hidden="true">
-            <Ring name="calories" {...RINGS[0]} fill={recap.kcalFill} overflow={recap.kcalOverflow} ready={ready} bar="stroke-brand-600 dark:stroke-brand-400" />
+            <Ring name="calories" {...RINGS[0]} fill={recap.kcalFill} overflow={recap.kcalOverflow} ready={ready} bar="stroke-brand-600" />
             <Ring name="protein" {...RINGS[1]} fill={recap.proteinFill} ready={ready} bar="stroke-sky-500" />
           </svg>
           <span className="min-w-0 flex-1 space-y-2.5">
             <span className="block">
-              <span className="flex items-center gap-1.5 text-xs text-neutral-500"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand-600 dark:bg-brand-400" />Kalori</span>
+              <span className="flex items-center gap-1.5 text-xs text-neutral-500"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand-600" />Kalori</span>
               <span className="mt-0.5 block text-sm font-semibold tabular-nums">{recap.caloriesIn.toLocaleString("id-ID")} / {recap.kcalTarget.toLocaleString("id-ID")} kcal</span>
-              <span className={`block text-xs ${over ? "text-red-700 dark:text-red-300" : "text-neutral-500"}`}>{kcal.headline}{kcal.detail && ` · ${kcal.detail}`}</span>
+              <span className={`block text-xs ${over ? "text-red-700" : "text-neutral-500"}`}>{kcal.headline}{kcal.detail && ` · ${kcal.detail}`}</span>
             </span>
             <span className="block">
               <span className="flex items-center gap-1.5 text-xs text-neutral-500"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-sky-500" />Protein</span>
@@ -84,9 +84,9 @@ export default function DayRecap({ recap, open, onToggle, controls, isToday, com
             </span>
           </span>
         </span>
-        <span className="mt-3 flex items-center justify-between gap-3 border-t border-neutral-100 pt-3 text-xs text-neutral-500 dark:border-neutral-800">
+        <span className="mt-3 flex items-center justify-between gap-3 border-t border-neutral-100 pt-3 text-xs text-neutral-500">
           <span className="min-w-0">{things}</span>
-          <span className="flex shrink-0 items-center gap-1 font-semibold text-brand-700 dark:text-brand-300">
+          <span className="flex shrink-0 items-center gap-1 font-semibold text-brand-700">
             {open ? "Tutup rincian" : "Lihat per makanan"}
             <svg aria-hidden="true" viewBox="0 0 12 12" className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`}>
               <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
@@ -96,17 +96,17 @@ export default function DayRecap({ recap, open, onToggle, controls, isToday, com
       </button>
 
       {(recap.proteinUnknown > 0 || (recap.status !== "complete" && recap.mealCount > 0)) && (
-        <div className="space-y-2 border-t border-neutral-100 px-4 py-3 text-xs text-neutral-500 dark:border-neutral-800">
+        <div className="space-y-2 border-t border-neutral-100 px-4 py-3 text-xs text-neutral-500">
           {recap.proteinUnknown > 0 && <p>{recap.proteinUnknown} makanan dicatat manual tanpa protein, jadi protein bisa lebih tinggi dari angka ini.</p>}
           {recap.status !== "complete" && recap.mealCount > 0 && (
             <div className="flex items-center justify-between gap-3">
               <p>Catatan {day} belum ditandai lengkap, jadi angkanya masih sementara.</p>
-              <button type="button" onClick={onComplete} disabled={completing} className="shrink-0 rounded-lg border border-brand-600 px-3 py-2 font-semibold text-brand-700 disabled:opacity-50 dark:text-brand-300">
+              <button type="button" onClick={onComplete} disabled={completing} className="shrink-0 rounded-lg border border-brand-600 px-3 py-2 font-semibold text-brand-700 disabled:opacity-50">
                 {completing ? "Menyimpan…" : "Tandai lengkap"}
               </button>
             </div>
           )}
-          {completeError && <p role="alert" className="text-red-600 dark:text-red-400">{completeError}</p>}
+          {completeError && <p role="alert" className="text-red-600">{completeError}</p>}
         </div>
       )}
     </div>

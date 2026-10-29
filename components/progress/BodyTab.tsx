@@ -238,13 +238,13 @@ export default function BodyTab() {
       {error && (
         <p
           role="alert"
-          className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950"
+          className="rounded-xl bg-red-50 p-3 text-sm text-red-700"
         >
           {error}
         </p>
       )}
       {notice && (
-        <p role="status" className="text-sm text-brand-700 dark:text-brand-400">
+        <p role="status" className="text-sm text-brand-700">
           {notice}
         </p>
       )}
@@ -256,7 +256,7 @@ export default function BodyTab() {
         + Catat ukuran tubuh
       </button>
       {showReminder && (
-        <section className="rounded-2xl border border-brand-100 bg-brand-50 p-4 dark:border-brand-900 dark:bg-brand-950/30">
+        <section className="rounded-2xl border border-brand-100 bg-brand-50 p-4">
           <div className="flex items-start justify-between gap-3">
             <h2 className="text-sm font-semibold">
               {waistDue.due
@@ -277,7 +277,7 @@ export default function BodyTab() {
               Sembunyikan
             </button>
           </div>
-          <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-300">
+          <p className="mt-2 text-xs text-neutral-600">
             Pinggang:{" "}
             {waistDue.lastDate
               ? `terakhir ${waistDue.lastDate} (${waistDue.days} hari lalu)`
@@ -312,7 +312,7 @@ export default function BodyTab() {
       {showForm && (
         <form
           onSubmit={save}
-          className="space-y-4 rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+          className="space-y-4 rounded-2xl border border-neutral-100 bg-white p-4"
         >
           <h2 className="font-semibold">Catat atau koreksi ukuran</h2>
           <label className="block text-sm">
@@ -324,7 +324,7 @@ export default function BodyTab() {
               value={date}
               onChange={(event) => prepareForm(event.target.value)}
               disabled={busy}
-              className="mt-1 block w-full rounded-lg border border-neutral-300 bg-transparent p-2 dark:border-neutral-700"
+              className="mt-1 block w-full rounded-lg border border-neutral-300 bg-transparent p-2"
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -352,7 +352,7 @@ export default function BodyTab() {
                       current.includes(field) ? current : [...current, field],
                     );
                   }}
-                  className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent p-2 dark:border-neutral-700"
+                  className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent p-2"
                 />
               </label>
             ))}
@@ -368,7 +368,7 @@ export default function BodyTab() {
               value={height}
               onChange={(event) => setHeight(event.target.value)}
               disabled={busy}
-              className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent p-2 dark:border-neutral-700"
+              className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent p-2"
             />
           </label>
           <p className="text-xs text-neutral-500">
@@ -377,7 +377,7 @@ export default function BodyTab() {
             mengubah tinggi di Profil. Untuk menambahkan tinggi ke ukuran lama,
             ubah atau isi ulang ukuran tersebut.
           </p>
-          <details className="text-xs text-neutral-600 dark:text-neutral-300">
+          <details className="text-xs text-neutral-600">
             <summary className="cursor-pointer font-medium">
               Panduan pengukuran konsisten
             </summary>
@@ -406,7 +406,7 @@ export default function BodyTab() {
               type="button"
               disabled={busy}
               onClick={() => setShowForm(false)}
-              className="flex-1 rounded-lg border border-neutral-300 p-2 dark:border-neutral-700"
+              className="flex-1 rounded-lg border border-neutral-300 p-2"
             >
               Batal
             </button>
@@ -421,7 +421,7 @@ export default function BodyTab() {
         </form>
       )}
       {!snapshots.length ? (
-        <section className="rounded-2xl border border-dashed border-neutral-300 p-6 text-center dark:border-neutral-700">
+        <section className="rounded-2xl border border-dashed border-neutral-300 p-6 text-center">
           <h2 className="font-semibold">Mulai dari berat atau pinggang</h2>
           <p className="mt-2 text-sm text-neutral-500">
             Satu ukuran sudah cukup untuk baseline. Pinggul, paha, dan body fat
@@ -433,7 +433,7 @@ export default function BodyTab() {
         <>
           <BodyChangeCard snapshots={snapshots} today={data.today} />
           <BodyCompositionSection />
-          <section className="space-y-4 rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+          <section className="space-y-4 rounded-2xl border border-neutral-100 bg-white p-4">
             <h2 className="font-semibold">Bandingkan dua tanggal</h2>
             {comparable ? (
               <>
@@ -449,7 +449,7 @@ export default function BodyTab() {
                   <select
                     value={value}
                     onChange={(event) => setter(event.target.value)}
-                    className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent p-2 text-sm text-neutral-900 dark:border-neutral-700 dark:text-neutral-100"
+                    className="mt-1 w-full rounded-lg border border-neutral-300 bg-transparent p-2 text-sm text-neutral-900"
                   >
                     {snapshots.map((entry) => (
                       <option key={entry.date} value={entry.date}>
@@ -483,7 +483,7 @@ export default function BodyTab() {
                   {comparisonRows(before, after).map((row) => (
                     <tr
                       key={row.field}
-                      className="border-t border-neutral-100 dark:border-neutral-800"
+                      className="border-t border-neutral-100"
                     >
                       <th className="py-3 font-medium">
                         {BODY_LABELS[row.field].label}
@@ -553,7 +553,7 @@ export default function BodyTab() {
             {showAvatar && focusRow && (
               <p
                 role="status"
-                className="rounded-xl bg-brand-50 px-3 py-2 text-xs leading-relaxed text-brand-800 dark:bg-brand-950/40 dark:text-brand-200"
+                className="rounded-xl bg-brand-50 px-3 py-2 text-xs leading-relaxed text-brand-800"
               >
                 <span className="font-semibold">
                   {BODY_LABELS[focusRow.field].label}
@@ -618,7 +618,7 @@ export default function BodyTab() {
             )}
           </section>
           <WeightForecastCard trend={data.weightTrend} />
-          <section className="rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+          <section className="rounded-2xl border border-neutral-100 bg-white p-4">
             <h2 className="mb-2 text-sm font-semibold">
               Berat · 30 tanggal terakhir
             </h2>
@@ -631,7 +631,7 @@ export default function BodyTab() {
               .
             </p>
           </section>
-          <section className="rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+          <section className="rounded-2xl border border-neutral-100 bg-white p-4">
             <h2 className="mb-2 text-sm font-semibold">
               Pinggang · 30 tanggal terakhir
             </h2>
@@ -645,7 +645,7 @@ export default function BodyTab() {
               .map((entry) => (
                 <details
                   key={entry.date}
-                  className="rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+                  className="rounded-2xl border border-neutral-100 bg-white p-4"
                 >
                   <summary className="cursor-pointer text-sm font-medium">
                     {entry.date} ·{" "}
@@ -682,7 +682,7 @@ export default function BodyTab() {
                             disabled={busy}
                             onClick={() => void remove(entry.date, field)}
                             aria-label={`Hapus ${BODY_LABELS[field].label} tanggal ${entry.date}`}
-                            className="rounded-lg border border-neutral-200 px-2 py-1 text-xs dark:border-neutral-700"
+                            className="rounded-lg border border-neutral-200 px-2 py-1 text-xs"
                           >
                             Hapus
                           </button>
@@ -694,7 +694,7 @@ export default function BodyTab() {
                     type="button"
                     disabled={busy}
                     onClick={() => prepareForm(entry.date)}
-                    className="mt-3 rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700"
+                    className="mt-3 rounded-lg border border-neutral-300 px-3 py-2 text-sm"
                   >
                     Koreksi tanggal ini
                   </button>

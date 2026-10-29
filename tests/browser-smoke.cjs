@@ -246,6 +246,7 @@ let child, browser;
   await require("./describe-browser.cjs")({ page, base, store, today, projectRoot });
   await require("./repeat-meals-browser.cjs")({ page, base, today, projectRoot });
   await require("./day-recap-browser.cjs")({ page, base, store, today, offset, projectRoot });
+  await require("./light-only-browser.cjs")({ page, base });
 
   // A draft survives the recommendation mode, other meal routes and a reload.
   await page.goto(`${base}/makan`);
@@ -1125,13 +1126,7 @@ let child, browser;
   await page.setViewportSize({ width: 320, height: 720 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "Health setup mobile overflow");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.evaluate(() => { localStorage.setItem("mk_theme", "light"); window.dispatchEvent(new Event("mk-theme")); });
-  await page.waitForFunction(() => !document.documentElement.classList.contains("dark"));
   await page.screenshot({ path: path.join(projectRoot, ".next/validation/health-connection-mobile.png"), fullPage: true });
-  await page.evaluate(() => { localStorage.setItem("mk_theme", "dark"); window.dispatchEvent(new Event("mk-theme")); });
-  await page.waitForFunction(() => document.documentElement.classList.contains("dark"));
-  await page.screenshot({ path: path.join(projectRoot, ".next/validation/health-connection-dark.png"), fullPage: true });
-  await page.evaluate(() => { localStorage.setItem("mk_theme", "light"); window.dispatchEvent(new Event("mk-theme")); });
 
   await page.locator("summary").filter({ hasText: "Kelola koneksi" }).click();
   // Pairing another installation is additive; merely preparing or redeeming a
@@ -1171,7 +1166,7 @@ let child, browser;
     "Browser: PASS — third-user login, Rumah Kukang mobile/desktop, meal draft across mode/route/reload, photo corrections and override, reviewed recent meal, save/undo failure and retry, today failure/retry, scoped session draft without photos, calibration keep/apply/context/stale proposal/cooldown/Home target, Body Response 14/28/56-day selection and failure/retry, body comparison/measurement entry/deletion, keyboard navigation, Fitness/Weekly regression, empty/missing-height states, 320px/mobile/desktop layout, persisted motion toggle and OS reduced-motion, optional-name/athletic onboarding validation.",
   );
   console.log(
-    "Health connection: PASS — unauthenticated management denied, public signed v2 Shortcut downloads, pairing preparation failure/retry without rotating access, direct single-use-code handoff and native-account response, no browser Bearer/copy flow, installed/custom Shortcut names and persistence, pairing/test versus receipt status, historical timestamp/timezone preservation, independent weight/body-fat history, retry deduplication, secret-free status/reload/storage, 320px/light/dark layouts, additive installations and full revocation including pending codes. Synthetic Redis REST, native redeem requests, and Health samples used; real Upstash/Gemini/HealthKit/device access not tested.",
+    "Health connection: PASS — unauthenticated management denied, public signed v2 Shortcut downloads, pairing preparation failure/retry without rotating access, direct single-use-code handoff and native-account response, no browser Bearer/copy flow, installed/custom Shortcut names and persistence, pairing/test versus receipt status, historical timestamp/timezone preservation, independent weight/body-fat history, retry deduplication, secret-free status/reload/storage, 320px layout, additive installations and full revocation including pending codes. Synthetic Redis REST, native redeem requests, and Health samples used; real Upstash/Gemini/HealthKit/device access not tested.",
   );
 })()
   .catch(async (error) => {

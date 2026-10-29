@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BODY_LABELS, bodyChanges, type BodySnapshot } from "@/lib/body";
 
-const chip = "flex min-h-10 cursor-pointer items-center rounded-full border border-neutral-300 px-3.5 text-sm transition-colors peer-checked:border-brand-600 peer-checked:bg-brand-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-focus-visible:ring-offset-2 dark:border-neutral-700";
+const chip = "flex min-h-10 cursor-pointer items-center rounded-full border border-neutral-300 px-3.5 text-sm transition-colors peer-checked:border-brand-600 peer-checked:bg-brand-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-focus-visible:ring-offset-2";
 const PERIODS = [
   { id: "all", label: "Sejak mulai", days: null },
   { id: "30", label: "30 hari", days: 30 },
@@ -19,7 +19,7 @@ export default function BodyChangeCard({ snapshots, today }: { snapshots: BodySn
   const { changes, missing } = bodyChanges(snapshots, days, today);
 
   return (
-    <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900" aria-labelledby="body-change-title">
+    <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4" aria-labelledby="body-change-title">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="body-change-title" className="font-semibold">Perubahanmu</h2>
         <fieldset>
@@ -36,7 +36,7 @@ export default function BodyChangeCard({ snapshots, today }: { snapshots: BodySn
       </div>
 
       {changes.length > 0 ? (
-        <ul className="divide-y divide-neutral-100 dark:divide-neutral-800" aria-label="Perubahan ukuran">
+        <ul className="divide-y divide-neutral-100" aria-label="Perubahan ukuran">
           {changes.map((change) => {
             const meta = BODY_LABELS[change.field];
             const size = Math.round(Math.abs(change.delta) * 10) / 10;

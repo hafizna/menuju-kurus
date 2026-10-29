@@ -22,7 +22,7 @@ export default function WeightForecastCard({ trend }: { trend: WeightTrend }) {
   if (!forecast) return null;
 
   return (
-    <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+    <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <div className="text-sm font-medium">🧭 Perkiraan menuju target</div>
@@ -37,9 +37,9 @@ export default function WeightForecastCard({ trend }: { trend: WeightTrend }) {
       </div>
 
       {forecast.status === "ready" && forecast.estimatedDate ? (
-        <div className="rounded-xl bg-brand-50 p-3 dark:bg-brand-950/30">
+        <div className="rounded-xl bg-brand-50 p-3">
           <div className="text-xs text-neutral-500">Dengan pace saat ini</div>
-          <div className="text-xl font-bold text-brand-700 dark:text-brand-300">
+          <div className="text-xl font-bold text-brand-700">
             {new Date(forecast.estimatedDate).toLocaleDateString("id-ID", {
               day: "numeric",
               month: "long",
@@ -49,7 +49,7 @@ export default function WeightForecastCard({ trend }: { trend: WeightTrend }) {
           <div className="text-xs text-neutral-500">sekitar {forecast.estimatedWeeks} minggu</div>
         </div>
       ) : (
-        <div className="rounded-xl bg-neutral-50 p-3 text-sm text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+        <div className="rounded-xl bg-neutral-50 p-3 text-sm text-neutral-600">
           {forecast.status === "goal-reached" ? "🎉 " : forecast.status === "moving-away" ? "↗️ " : "📊 "}
           {forecast.message}
         </div>

@@ -70,7 +70,7 @@ function LoginScreen() {
         <p className="font-display mt-1 text-lg font-medium text-white/90">sehat pelan-pelan, tanpa drama</p>
       </div>
 
-      <div className="rounded-t-3xl bg-neutral-50 px-6 pb-10 pt-8 dark:bg-neutral-950">
+      <div className="rounded-t-3xl bg-neutral-50 px-6 pb-10 pt-8">
         <div className="mx-auto w-full max-w-xs">
           {error && <p className="mb-4 text-center text-sm text-red-500">{error}</p>}
 
@@ -92,7 +92,7 @@ function LoginScreen() {
                   setMode("invite");
                   setError("");
                 }}
-                className="w-full rounded-xl border border-neutral-200 bg-white py-3.5 font-medium text-neutral-700 shadow-xs dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
+                className="w-full rounded-xl border border-neutral-200 bg-white py-3.5 font-medium text-neutral-700 shadow-xs"
               >
                 Punya kode undangan
               </button>
@@ -113,7 +113,7 @@ function LoginScreen() {
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                 placeholder="••••••"
-                className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-xl tracking-[0.5em] outline-hidden focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-900"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-xl tracking-[0.5em] outline-hidden focus:border-brand-500"
               />
               <button
                 type="submit"
@@ -146,7 +146,7 @@ function LoginScreen() {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="kode undangan"
-                className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-lg outline-hidden focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-900"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-lg outline-hidden focus:border-brand-500"
               />
               <button
                 type="submit"

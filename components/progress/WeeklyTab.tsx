@@ -128,7 +128,7 @@ export default function WeeklyTab() {
     <div className="space-y-4">
       {loadError && <p role="alert" className="text-sm text-red-500">{loadError}</p>}
       {weekly && (
-        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
           <div className="text-sm font-semibold">Review 7 hari terakhir</div>
           <p className="text-xs text-neutral-500">{weekly.review.periodStart} — {weekly.review.periodEnd} · termasuk hari ini, yang masih bisa bertambah.</p>
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -155,10 +155,10 @@ export default function WeeklyTab() {
           </div>
           <p className="text-xs text-neutral-500">Rata-rata dari {weekly.review.completedDays}/{weekly.review.totalDays} hari lengkap. Rentang feedback 80–100% target merupakan heuristik, bukan batas kecukupan medis.</p>
           <dl className="grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-lg bg-neutral-50 p-2 dark:bg-neutral-950"><dt>Di bawah rentang</dt><dd className="mt-1 font-semibold">{weekly.review.belowRangeDays} hari</dd></div>
-            <div className="rounded-lg bg-neutral-50 p-2 dark:bg-neutral-950"><dt>Dalam rentang</dt><dd className="mt-1 font-semibold">{weekly.review.withinRangeDays} hari</dd></div>
-            <div className="rounded-lg bg-neutral-50 p-2 dark:bg-neutral-950"><dt>Di atas target</dt><dd className="mt-1 font-semibold">{weekly.review.aboveRangeDays} hari</dd></div>
-            <div className="rounded-lg bg-neutral-50 p-2 dark:bg-neutral-950"><dt>Belum lengkap</dt><dd className="mt-1 font-semibold">{weekly.review.incompleteDays} hari · belum dinilai</dd></div>
+            <div className="rounded-lg bg-neutral-50 p-2"><dt>Di bawah rentang</dt><dd className="mt-1 font-semibold">{weekly.review.belowRangeDays} hari</dd></div>
+            <div className="rounded-lg bg-neutral-50 p-2"><dt>Dalam rentang</dt><dd className="mt-1 font-semibold">{weekly.review.withinRangeDays} hari</dd></div>
+            <div className="rounded-lg bg-neutral-50 p-2"><dt>Di atas target</dt><dd className="mt-1 font-semibold">{weekly.review.aboveRangeDays} hari</dd></div>
+            <div className="rounded-lg bg-neutral-50 p-2"><dt>Belum lengkap</dt><dd className="mt-1 font-semibold">{weekly.review.incompleteDays} hari · belum dinilai</dd></div>
           </dl>
           {(weekly.review.bestDay || weekly.review.worstDay) && (
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -173,7 +173,7 @@ export default function WeeklyTab() {
               {weekly.review.worstDay && (
                 <div>
                   <div className="text-neutral-500">Paling jauh dari target</div>
-                  <div className="font-semibold text-neutral-600 dark:text-neutral-300">
+                  <div className="font-semibold text-neutral-600">
                     {weekly.review.worstDay.date.slice(5)} · {weekly.review.worstDay.caloriesIn} kcal
                   </div>
                 </div>
@@ -181,7 +181,7 @@ export default function WeeklyTab() {
             </div>
           )}
           {weekly.flags.length > 0 && (
-            <ul className="space-y-1.5 border-t border-neutral-100 pt-3 text-sm text-neutral-600 dark:border-neutral-800 dark:text-neutral-300">
+            <ul className="space-y-1.5 border-t border-neutral-100 pt-3 text-sm text-neutral-600">
               {weekly.flags.map((f) => (
                 <li key={f.id} className="flex gap-2">
                   <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-400" />
@@ -193,10 +193,10 @@ export default function WeeklyTab() {
         </section>
       )}
 
-      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+            <IconSparkle className="h-4 w-4 text-brand-600" />
             {aiSummary?.source === "template" ? "Ringkasan Otomatis" : aiSummary?.source === "ai" ? "Ringkasan AI" : "Rangkuman review"}
           </div>
           <button
@@ -210,7 +210,7 @@ export default function WeeklyTab() {
 
         {aiError && <div><p role="alert" className="text-sm text-red-500">{aiError}</p><button type="button" onClick={() => void loadSummary()} className="mt-2 rounded-lg border px-3 py-2 text-xs">Muat ulang ringkasan</button></div>}
         {aiSummary && <p className="text-xs text-neutral-500">Periode ringkasan: {aiSummary.periodStart} — {aiSummary.periodEnd}</p>}
-        {aiSummary && summaryStale && <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">Catatan atau periode berubah sejak ringkasan ini dibuat. Perbarui ringkasan agar sesuai dengan angka terbaru.</p>}
+        {aiSummary && summaryStale && <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Catatan atau periode berubah sejak ringkasan ini dibuat. Perbarui ringkasan agar sesuai dengan angka terbaru.</p>}
 
         {aiSummary?.source === "template" && !summaryStale && (
           <p className="text-xs text-neutral-400">
@@ -220,8 +220,8 @@ export default function WeeklyTab() {
 
         {aiSummary && !summaryStale ? (
           <>
-            <p className="text-sm text-neutral-600 dark:text-neutral-300">{aiSummary.summary}</p>
-            <ul className="space-y-1.5 text-sm text-neutral-600 dark:text-neutral-300">
+            <p className="text-sm text-neutral-600">{aiSummary.summary}</p>
+            <ul className="space-y-1.5 text-sm text-neutral-600">
               {aiSummary.recommendations.map((r, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-neutral-400" />
@@ -244,7 +244,7 @@ export default function WeeklyTab() {
 
       <WeeklyFocusCard editable />
 
-      <details className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <details className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
       <summary className="cursor-pointer text-sm font-medium">Rincian per hari · grafik asupan dan status catatan</summary>
       <div className="mt-4 space-y-4">
       <section>
@@ -256,12 +256,12 @@ export default function WeeklyTab() {
             return (
               <div key={d.date} className="relative flex h-full flex-1 flex-col items-center justify-end">
                 <div
-                  className="absolute w-full border-t border-dashed border-neutral-300 dark:border-neutral-700"
+                  className="absolute w-full border-t border-dashed border-neutral-300"
                   style={{ bottom: `${targetPct}%` }}
                 />
                 <div
                   className={`w-full rounded-t ${
-                    !d.hasData ? "bg-neutral-100 dark:bg-neutral-800" : d.foodLogStatus !== "complete" ? "bg-neutral-400" : "bg-brand-500"
+                    !d.hasData ? "bg-neutral-100" : d.foodLogStatus !== "complete" ? "bg-neutral-400" : "bg-brand-500"
                   }`}
                   style={{ height: `${heightPct}%` }}
                   title={`${d.date}: ${d.hasData ? `${d.caloriesIn} kcal` : "belum ada catatan"} · ${d.foodLogStatus}`}
@@ -283,13 +283,13 @@ export default function WeeklyTab() {
           .slice()
           .reverse()
           .map((d) => (
-            <div key={d.date} className="rounded-xl border border-neutral-100 bg-white px-4 py-3 text-sm shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+            <div key={d.date} className="rounded-xl border border-neutral-100 bg-white px-4 py-3 text-sm shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-neutral-500">{d.date}</span>
                 <b>{d.hasData ? `${d.caloriesIn} kcal` : "Belum dicatat"}</b>
               </div>
               <p className="mt-1 text-xs text-neutral-500">{d.foodLogStatus === "complete" ? "Lengkap" : d.foodLogStatus === "partial" ? "Parsial" : "Belum ada catatan makan"}</p>
-              <button type="button" disabled={savingDate !== null} onClick={() => setFoodLogComplete(d.date, d.foodLogStatus !== "complete")} className="mt-2 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs disabled:opacity-50 dark:border-neutral-700">
+              <button type="button" disabled={savingDate !== null} onClick={() => setFoodLogComplete(d.date, d.foodLogStatus !== "complete")} className="mt-2 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs disabled:opacity-50">
                 {savingDate === d.date ? "Menyimpan..." : d.foodLogStatus === "complete" ? "Buka kembali catatan" : "Semua asupan tanggal ini sudah dicatat"}
               </button>
             </div>

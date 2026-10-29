@@ -10,8 +10,8 @@ import { MAX_MEAL_NOTE_LENGTH } from "@/lib/mealNote";
 import { MealTimeField, Segmented } from "./MealFields";
 
 const CONFIDENCE_LABEL = { low: "rendah", medium: "sedang", high: "tinggi" } as const;
-const field = "w-full rounded-lg border border-neutral-300 px-1 py-1.5 text-center font-semibold dark:border-neutral-700 dark:bg-neutral-800";
-const stepper = "h-8 w-8 rounded-lg border border-neutral-300 text-base disabled:opacity-30 dark:border-neutral-700";
+const field = "w-full rounded-lg border border-neutral-300 px-1 py-1.5 text-center font-semibold";
+const stepper = "h-8 w-8 rounded-lg border border-neutral-300 text-base disabled:opacity-30";
 
 interface Props {
   analysis: FoodAnalysis;
@@ -96,7 +96,7 @@ export default function MealReview(props: Props) {
             rows={name.length > 40 ? 3 : 2}
             value={name}
             onChange={(e) => props.onName(e.target.value)}
-            className="w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-[15px] font-semibold leading-snug dark:border-neutral-700 dark:bg-neutral-800"
+            className="w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-[15px] font-semibold leading-snug"
           />
         </div>
       </div>
@@ -105,7 +105,7 @@ export default function MealReview(props: Props) {
           {analysis.portionNote} · keyakinan {CONFIDENCE_LABEL[analysis.confidence]}
         </div>
         {analysis.confidence === "low" && (
-          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+          <p className="mt-1 text-xs text-amber-600">
             Tebakannya masih kasar. Cek nama dan kalorinya dulu sebelum disimpan.
           </p>
         )}
@@ -130,8 +130,8 @@ export default function MealReview(props: Props) {
         </div>
       </div>
 
-      {kcalEdit !== null && <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">Kalori memakai angka yang kamu isi. Makro dan rincian di bawah tetap estimasi porsi, bukan perhitungan ulang dari kalori ini. <button type="button" onClick={() => props.onKcalEdit(null)} className="font-semibold underline">Kembali ke estimasi porsi</button></p>}
-      {proteinEdit !== null && <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">Protein memakai angka yang kamu isi. Kalori dan rincian di bawah tetap estimasi porsi. <button type="button" onClick={() => props.onProteinEdit(null)} className="font-semibold underline">Kembali ke estimasi porsi</button></p>}
+      {kcalEdit !== null && <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">Kalori memakai angka yang kamu isi. Makro dan rincian di bawah tetap estimasi porsi, bukan perhitungan ulang dari kalori ini. <button type="button" onClick={() => props.onKcalEdit(null)} className="font-semibold underline">Kembali ke estimasi porsi</button></p>}
+      {proteinEdit !== null && <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">Protein memakai angka yang kamu isi. Kalori dan rincian di bawah tetap estimasi porsi. <button type="button" onClick={() => props.onProteinEdit(null)} className="font-semibold underline">Kembali ke estimasi porsi</button></p>}
       {kcalEdit === null && (
         <p className="text-xs text-neutral-500">
           Perkiraan kasar, bisa sekitar {meal.low}–{meal.high} kcal. Koreksi di bawah kalau porsimu beda.
@@ -140,7 +140,7 @@ export default function MealReview(props: Props) {
       {(meal.sugar_g ?? 0) > 0 && <p className="text-xs text-neutral-500">Gula tambahan sekitar {meal.sugar_g} g.</p>}
 
       {analysis.components.length > 0 && (
-        <ul className="space-y-2.5 rounded-xl bg-neutral-50 p-3 text-xs dark:bg-neutral-800/60">
+        <ul className="space-y-2.5 rounded-xl bg-neutral-50 p-3 text-xs">
           <li className="pb-1 font-semibold text-neutral-500">{kcalEdit !== null || proteinEdit !== null ? "Rincian estimasi porsi (sebelum koreksi manual)" : "Rincian yang kamu makan"}</li>
           {meal.components.map((c, i) => {
             const scalable = analysis.components[i]?.role === "other";
@@ -148,7 +148,7 @@ export default function MealReview(props: Props) {
             return (
               <li key={i} className="space-y-1">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className={`min-w-0 break-words text-neutral-600 dark:text-neutral-300 ${scale === 0 ? "line-through opacity-60" : ""}`}>
+                  <span className={`min-w-0 break-words text-neutral-600 ${scale === 0 ? "line-through opacity-60" : ""}`}>
                     {c.name}
                     {c.grams > 0 && <span className="text-neutral-400"> · ±{c.grams} g</span>}
                   </span>
@@ -179,7 +179,7 @@ export default function MealReview(props: Props) {
               aria-label={`Kurangi ${staple.name}`}
               disabled={staple.grams + adjust.stapleDeltaG - STAPLE_STEP_G < 0}
               onClick={() => change({ stapleDeltaG: adjust.stapleDeltaG - STAPLE_STEP_G })}
-              className="h-9 w-9 rounded-lg border border-neutral-300 text-lg disabled:opacity-30 dark:border-neutral-700"
+              className="h-9 w-9 rounded-lg border border-neutral-300 text-lg disabled:opacity-30"
             >
               −
             </button>
@@ -188,7 +188,7 @@ export default function MealReview(props: Props) {
               aria-label={`Tambah ${staple.name}`}
               disabled={staple.grams + adjust.stapleDeltaG + STAPLE_STEP_G > 800}
               onClick={() => change({ stapleDeltaG: adjust.stapleDeltaG + STAPLE_STEP_G })}
-              className="h-9 w-9 rounded-lg border border-neutral-300 text-lg disabled:opacity-30 dark:border-neutral-700"
+              className="h-9 w-9 rounded-lg border border-neutral-300 text-lg disabled:opacity-30"
             >
               +
             </button>
@@ -212,8 +212,8 @@ export default function MealReview(props: Props) {
         options={[["1", "Habis"], ["0.75", "¾"], ["0.5", "½"], ["0.25", "¼"]]}
       />
 
-      <div className="space-y-1.5 rounded-xl border border-neutral-200 p-3 dark:border-neutral-700">
-        <label className="block text-xs font-medium text-neutral-600 dark:text-neutral-300" htmlFor={`${idPrefix}-note`}>Keterangan untuk AI (opsional)</label>
+      <div className="space-y-1.5 rounded-xl border border-neutral-200 p-3">
+        <label className="block text-xs font-medium text-neutral-600" htmlFor={`${idPrefix}-note`}>Keterangan untuk AI (opsional)</label>
         <div className="flex gap-2">
           <input
             id={`${idPrefix}-note`}
@@ -222,7 +222,7 @@ export default function MealReview(props: Props) {
             onChange={(e) => { props.onNote(e.target.value); setRefined(false); }}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void refine(); } }}
             placeholder="Mis. telur 3 butir, minyak sedikit"
-            className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+            className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm"
           />
           <button type="button" onClick={() => void refine()} disabled={!note.trim() || refining} className="shrink-0 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
             {refining ? "Menghitung…" : "Hitung ulang"}
@@ -233,8 +233,8 @@ export default function MealReview(props: Props) {
             ? "Tambahan atau perubahan dari yang kamu tulis, seperti telur jadi 3 butir atau minyak sedikit. AI menghitung ulang bahannya dari keterangan ini. Pengaturan di atas diulang dari awal."
             : "Hal yang tidak terlihat di foto, seperti jumlah telur. AI menghitung ulang bahannya dari keterangan ini, tanpa foto. Pengaturan di atas diulang dari awal."}
         </p>
-        {refined && <p role="status" className="text-xs font-medium text-brand-700 dark:text-brand-300">Sudah dihitung ulang. Cek angkanya di atas.</p>}
-        {refineError && <p role="alert" className="text-xs text-red-600 dark:text-red-300">{refineError}</p>}
+        {refined && <p role="status" className="text-xs font-medium text-brand-700">Sudah dihitung ulang. Cek angkanya di atas.</p>}
+        {refineError && <p role="alert" className="text-xs text-red-600">{refineError}</p>}
       </div>
 
       <MealTimeField value={time} onChange={props.onTime} timezone={timezone} />

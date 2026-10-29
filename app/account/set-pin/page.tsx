@@ -46,7 +46,7 @@ export default function SetPinPage() {
         </p>
       </div>
 
-      <div className="rounded-t-3xl bg-neutral-50 px-6 pb-10 pt-8 dark:bg-neutral-950">
+      <div className="rounded-t-3xl bg-neutral-50 px-6 pb-10 pt-8">
         <form onSubmit={handleSubmit} className="mx-auto w-full max-w-xs space-y-3">
           <div>
             <p className="mb-1 text-center text-sm text-neutral-500">PIN baru (6 digit)</p>
@@ -58,7 +58,7 @@ export default function SetPinPage() {
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
               placeholder="••••••"
-              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-xl tracking-[0.5em] outline-hidden focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-900"
+              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-xl tracking-[0.5em] outline-hidden focus:border-brand-500"
             />
           </div>
           <div>
@@ -70,7 +70,7 @@ export default function SetPinPage() {
               value={confirmPin}
               onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
               placeholder="••••••"
-              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-xl tracking-[0.5em] outline-hidden focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-900"
+              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3.5 text-center text-xl tracking-[0.5em] outline-hidden focus:border-brand-500"
             />
           </div>
           {error && <p className="text-center text-sm text-red-500">{error}</p>}

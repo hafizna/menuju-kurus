@@ -119,20 +119,20 @@ export default function OnboardingPage() {
   }
 
   const inputClass =
-    "w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-lg outline-hidden focus:border-brand-500 dark:border-neutral-800 dark:bg-neutral-900";
+    "w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-lg outline-hidden focus:border-brand-500";
   const optionClass = (active: boolean) =>
     `w-full rounded-2xl border p-4 text-left transition-colors ${
       active
-        ? "border-brand-500 bg-brand-50 dark:bg-brand-900/20"
-        : "border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900"
+        ? "border-brand-500 bg-brand-50"
+        : "border-neutral-200 bg-white"
     }`;
 
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-50 px-5 pb-8 pt-8 dark:bg-neutral-950">
+    <div className="flex min-h-screen flex-col bg-neutral-50 px-5 pb-8 pt-8">
       <div className="mb-6 flex items-center gap-3">
         <Mascot mood={step === STEPS ? "cheer" : "happy"} className="h-14 w-14 shrink-0" />
         <div className="flex-1">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
             <div
               className="h-full rounded-full bg-brand-500 transition-all duration-500"
               style={{ width: `${(step / STEPS) * 100}%` }}
@@ -189,33 +189,33 @@ export default function OnboardingPage() {
                 </button>
               ))}
             </div>
-            {attempted && errors.sex && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{errors.sex}</p>}
+            {attempted && errors.sex && <p role="alert" className="text-sm text-red-600">{errors.sex}</p>}
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">Usia</span>
                 <input inputMode="numeric" value={age} onChange={(e) => setAge(e.target.value)} placeholder="tahun" className={inputClass} />
-                {attempted && errors.age && <span className="mt-1 block text-xs text-red-600 dark:text-red-300">{errors.age}</span>}
+                {attempted && errors.age && <span className="mt-1 block text-xs text-red-600">{errors.age}</span>}
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">Tinggi</span>
                 <input inputMode="numeric" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="cm" className={inputClass} />
-                {attempted && errors.height && <span className="mt-1 block text-xs text-red-600 dark:text-red-300">{errors.height}</span>}
+                {attempted && errors.height && <span className="mt-1 block text-xs text-red-600">{errors.height}</span>}
               </label>
               <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">Berat sekarang</span>
                 <input inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="kg" className={inputClass} />
-                {attempted && errors.weight && <span className="mt-1 block text-xs text-red-600 dark:text-red-300">{errors.weight}</span>}
+                {attempted && errors.weight && <span className="mt-1 block text-xs text-red-600">{errors.weight}</span>}
               </label>
               {wantsWeightTarget && <label className="block">
                 <span className="mb-1 block text-sm text-neutral-500">Berat target</span>
                 <input inputMode="decimal" value={goalWeight} onChange={(e) => setGoalWeight(e.target.value)} placeholder="kg" className={inputClass} />
-                {attempted && errors.goalWeight && <span className="mt-1 block text-xs text-red-600 dark:text-red-300">{errors.goalWeight}</span>}
+                {attempted && errors.goalWeight && <span className="mt-1 block text-xs text-red-600">{errors.goalWeight}</span>}
               </label>}
             </div>
             <label className="block">
               <span className="mb-1 block text-sm text-neutral-500">Lingkar pinggang (opsional)</span>
               <input inputMode="decimal" value={waist} onChange={(e) => setWaist(e.target.value)} placeholder="cm, ukur setinggi pusar" className={inputClass} />
-              {attempted && errors.waist && <span className="mt-1 block text-xs text-red-600 dark:text-red-300">{errors.waist}</span>}
+              {attempted && errors.waist && <span className="mt-1 block text-xs text-red-600">{errors.waist}</span>}
             </label>
             <p className="text-xs text-neutral-400">
               Nggak wajib dan nggak dipakai buat menghitung target. Ini jadi titik awal buat melihat perubahan tubuhmu, selain angka timbangan.
@@ -259,7 +259,7 @@ export default function OnboardingPage() {
               ))}
             </ul>
             {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
-            {error && programSaved && <button type="button" onClick={() => { router.replace("/makan"); router.refresh(); }} className="text-sm font-medium text-brand-700 underline dark:text-brand-300">Lanjut dulu, lengkapi ukuran nanti</button>}
+            {error && programSaved && <button type="button" onClick={() => { router.replace("/makan"); router.refresh(); }} className="text-sm font-medium text-brand-700 underline">Lanjut dulu, lengkapi ukuran nanti</button>}
           </div>
         )}
       </div>
@@ -270,7 +270,7 @@ export default function OnboardingPage() {
             type="button"
             onClick={() => setStep(step - 1)}
             disabled={saving}
-            className="rounded-2xl border border-neutral-300 px-5 py-3.5 font-medium dark:border-neutral-700"
+            className="rounded-2xl border border-neutral-300 px-5 py-3.5 font-medium"
           >
             Kembali
           </button>

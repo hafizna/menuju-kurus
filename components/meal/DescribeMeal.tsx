@@ -48,7 +48,7 @@ export default function DescribeMeal({ text, onText, onEstimated }: Props) {
   }
 
   return (
-    <section aria-label="Tulis dan hitung" className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+    <section aria-label="Tulis dan hitung" className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
       <div>
         <h2 className="font-semibold">Tulis &amp; hitung makananmu</h2>
         <p className="mt-1 text-xs text-neutral-500">Tulis apa yang kamu makan dan berapa banyak. AI menghitungnya dengan ukuran baku yang sama untuk semua orang, lalu kamu cek dan koreksi.</p>
@@ -66,7 +66,7 @@ export default function DescribeMeal({ text, onText, onEstimated }: Props) {
               maxLength={MAX_MEAL_DESCRIPTION_LENGTH}
               onChange={(e) => { onText(e.target.value); setError(""); }}
               placeholder="Mis. nasi 1,5 centong, ayam goreng paha 1 potong, tempe 2 potong, teh manis 1 gelas"
-              className="mt-1 w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-sm leading-snug dark:border-neutral-700 dark:bg-neutral-800"
+              className="mt-1 w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-sm leading-snug"
             />
           </label>
 
@@ -74,16 +74,16 @@ export default function DescribeMeal({ text, onText, onEstimated }: Props) {
             <p className="mb-1.5 text-xs text-neutral-500">Ketuk untuk menambahkan:</p>
             <div className="flex flex-wrap gap-1.5">
               {PORTION_UNITS.map((unit) => (
-                <button key={unit.phrase} type="button" onClick={() => add(unit.phrase)} className="rounded-full border border-neutral-200 px-3 py-1.5 text-sm active:scale-95 dark:border-neutral-700">
+                <button key={unit.phrase} type="button" onClick={() => add(unit.phrase)} className="rounded-full border border-neutral-200 px-3 py-1.5 text-sm active:scale-95">
                   + {unit.phrase}
                 </button>
               ))}
             </div>
           </div>
 
-          <details className="rounded-xl bg-neutral-50 p-3 text-xs dark:bg-neutral-800/60">
-            <summary className="cursor-pointer font-medium text-neutral-600 dark:text-neutral-300">Ukuran baku yang dipakai</summary>
-            <ul className="mt-2 space-y-1 text-neutral-600 dark:text-neutral-300">
+          <details className="rounded-xl bg-neutral-50 p-3 text-xs">
+            <summary className="cursor-pointer font-medium text-neutral-600">Ukuran baku yang dipakai</summary>
+            <ul className="mt-2 space-y-1 text-neutral-600">
               {PORTION_UNITS.map((unit) => (
                 <li key={unit.food}><span className="font-medium">{unit.food}:</span> {unit.unit} = {unit.size}</li>
               ))}
@@ -91,7 +91,7 @@ export default function DescribeMeal({ text, onText, onEstimated }: Props) {
             <p className="mt-2 text-neutral-500">Kalau kamu tidak menulis jumlahnya, AI memakai satu porsi biasa dan menyebutkannya. Pakai angka dan satuan di atas supaya hasilnya tepat. Kalori satu centong nasi sama untuk siapa saja; targetmu sendiri yang menyesuaikan.</p>
           </details>
 
-          {error && <p role="alert" className="text-sm text-red-600 dark:text-red-300">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           <button type="button" onClick={() => void calculate()} disabled={!text.trim()} className="w-full rounded-xl bg-brand-600 py-3 font-semibold text-white disabled:opacity-50">
             Hitung
           </button>

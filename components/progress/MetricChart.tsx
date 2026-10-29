@@ -54,7 +54,7 @@ export default function MetricChart({
           y1={height - padding}
           y2={height - padding}
           stroke="currentColor"
-          className="text-neutral-200 dark:text-neutral-700"
+          className="text-neutral-200"
         />
         <text
           x={2}
@@ -101,7 +101,7 @@ export default function MetricChart({
                 cy={y(point.value)}
                 r={3.5}
                 fill="currentColor"
-                className="text-neutral-600 dark:text-neutral-300"
+                className="text-neutral-600"
               >
                 <title>
                   {point.date}: {formatMeasure(point.value)} {meta.unit}
@@ -154,7 +154,7 @@ export default function MetricChart({
               {points.map((point) => (
                 <tr
                   key={point.date}
-                  className="border-t border-neutral-100 dark:border-neutral-800"
+                  className="border-t border-neutral-100"
                 >
                   <td className="py-2">{point.date}</td>
                   <td>

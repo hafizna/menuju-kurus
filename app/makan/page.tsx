@@ -542,11 +542,11 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
 
   return (
     <div className="space-y-4">
-      {rollover && <section role="status" className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"><p>Draft untuk <strong>{draftDate}</strong> masih ada. Hari ini sudah {today.date}. Draft ini tetap memakai tanggal asalnya.</p>{allowPreviousDate ? <p className="text-xs">Kamu memilih melanjutkan tanggal {draftDate}. Cek jam makan sebelum menyimpan; catatan maksimal 36 jam yang lalu.</p> : <button type="button" disabled={busy} onClick={() => setAllowPreviousDate(true)} className="font-semibold underline">Lanjutkan draft {draftDate}</button>}<button type="button" disabled={busy} onClick={discard} className="block font-semibold underline">Buang dan mulai hari ini</button></section>}
-      {!rollover && previous && <section className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"><p>Masih ada draft dari {previous.date}. Tanggalnya tidak akan dipindah ke hari ini.</p><button type="button" disabled={busy || dirty} onClick={() => { switchDraft(previous.date, previous.draft, true); setPrevious(null); }} className="font-semibold underline disabled:opacity-50">Lanjutkan draft {previous.date}</button>{dirty && <p className="text-xs">Selesaikan atau buang draft hari ini sebelum membuka draft sebelumnya.</p>}</section>}
-      {busy && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800 dark:bg-brand-950/30 dark:text-brand-200">Sedang memastikan catatan tersimpan. Draft dikunci sebentar agar perubahanmu tetap aman.</p>}
+      {rollover && <section role="status" className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p>Draft untuk <strong>{draftDate}</strong> masih ada. Hari ini sudah {today.date}. Draft ini tetap memakai tanggal asalnya.</p>{allowPreviousDate ? <p className="text-xs">Kamu memilih melanjutkan tanggal {draftDate}. Cek jam makan sebelum menyimpan; catatan maksimal 36 jam yang lalu.</p> : <button type="button" disabled={busy} onClick={() => setAllowPreviousDate(true)} className="font-semibold underline">Lanjutkan draft {draftDate}</button>}<button type="button" disabled={busy} onClick={discard} className="block font-semibold underline">Buang dan mulai hari ini</button></section>}
+      {!rollover && previous && <section className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p>Masih ada draft dari {previous.date}. Tanggalnya tidak akan dipindah ke hari ini.</p><button type="button" disabled={busy || dirty} onClick={() => { switchDraft(previous.date, previous.draft, true); setPrevious(null); }} className="font-semibold underline disabled:opacity-50">Lanjutkan draft {previous.date}</button>{dirty && <p className="text-xs">Selesaikan atau buang draft hari ini sebelum membuka draft sebelumnya.</p>}</section>}
+      {busy && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800">Sedang memastikan catatan tersimpan. Draft dikunci sebentar agar perubahanmu tetap aman.</p>}
       <fieldset disabled={busy || reviewPrevious} className="min-w-0 space-y-4">
-      {dirty && !rollover && <div className="flex items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-xs text-brand-800 dark:border-brand-900 dark:bg-brand-950/30 dark:text-brand-200"><p>{restored ? "Draft-mu kembali." : "Draft disimpan selama sesi ini."} Kamu bisa pindah halaman lalu lanjut. Foto hanya di memori tab ini.</p><button type="button" onClick={discard} disabled={busy} className="shrink-0 font-semibold underline">Buang draft</button></div>}
+      {dirty && !rollover && <div className="flex items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-xs text-brand-800"><p>{restored ? "Draft-mu kembali." : "Draft disimpan selama sesi ini."} Kamu bisa pindah halaman lalu lanjut. Foto hanya di memori tab ini.</p><button type="button" onClick={discard} disabled={busy} className="shrink-0 font-semibold underline">Buang draft</button></div>}
       {(["environment", undefined] as const).map((capture) => (
         <input
           key={capture ?? "gallery"}
@@ -564,7 +564,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
       ))}
 
       {saved && (
-        <p role="status" className="rounded-xl bg-brand-50 px-4 py-2 text-center text-sm text-brand-700 dark:bg-brand-950/30 dark:text-brand-300">
+        <p role="status" className="rounded-xl bg-brand-50 px-4 py-2 text-center text-sm text-brand-700">
           <Mascot mood={celebrating ? "cheer" : "happy"} className="mx-auto mb-1 h-14 w-14" />
           Tersimpan: {saved} ✓
           {undoId && (
@@ -576,9 +576,9 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
       )}
 
       {!preview && !result && (
-        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+        <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
           <div><h2 className="font-semibold">Apa yang kamu makan?</h2><p className="mt-1 text-xs text-neutral-500">Mulai dari foto atau isi sendiri, lalu cek sebelum menyimpan.</p></div>
-          <label className="block text-xs text-neutral-500">Keterangan untuk AI (opsional)<input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Mis. telur 3 butir" className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800" /></label>
+          <label className="block text-xs text-neutral-500">Keterangan untuk AI (opsional)<input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Mis. telur 3 butir" className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm" /></label>
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => cameraRef.current?.click()}
@@ -589,7 +589,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
             </button>
             <button
               onClick={() => galleryRef.current?.click()}
-              className="flex flex-col items-center gap-1.5 rounded-2xl border border-brand-300 px-3 py-5 text-brand-700 dark:border-brand-800 dark:text-brand-300"
+              className="flex flex-col items-center gap-1.5 rounded-2xl border border-brand-300 px-3 py-5 text-brand-700"
             >
               <IconBowl className="h-6 w-6" />
               <span className="text-sm font-semibold">Dari galeri</span>
@@ -603,18 +603,18 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
               if (!describeOpen) setTimeout(() => describeRef.current?.scrollIntoView({ behavior: mealScrollBehavior(), block: "start" }), 60);
             }}
             aria-expanded={describeOpen}
-            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-brand-300 px-4 py-3 text-left dark:border-brand-800"
+            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-brand-300 px-4 py-3 text-left"
           >
             <span>
-              <span className="block text-sm font-semibold text-brand-700 dark:text-brand-300">Tulis &amp; hitung</span>
+              <span className="block text-sm font-semibold text-brand-700">Tulis &amp; hitung</span>
               <span className="block text-xs text-neutral-500">Tanpa foto. Tulis makanan dan ukurannya, AI menghitung.</span>
             </span>
-            <span aria-hidden="true" className="text-lg text-brand-700 dark:text-brand-300">{describeOpen ? "−" : "+"}</span>
+            <span aria-hidden="true" className="text-lg text-brand-700">{describeOpen ? "−" : "+"}</span>
           </button>
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => { setManualOpen((v) => !v); setDescribeOpen(false); }}
-              className="rounded-xl border border-neutral-200 py-2.5 text-sm font-medium dark:border-neutral-700"
+              className="rounded-xl border border-neutral-200 py-2.5 text-sm font-medium"
             >
               {manualOpen ? "Sembunyikan form" : "Tulis manual"}
             </button>
@@ -622,7 +622,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
               href="/makan/habits"
               aria-disabled={busy || reviewPrevious}
               onClick={(event) => { if (busy || reviewPrevious) event.preventDefault(); }}
-              className="rounded-xl border border-neutral-200 py-2.5 text-center text-sm font-medium dark:border-neutral-700"
+              className="rounded-xl border border-neutral-200 py-2.5 text-center text-sm font-medium"
             >
               Menu favorit →
             </Link>
@@ -635,7 +635,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
                   key={item.name}
                   type="button"
                   onClick={() => quickAdd(item)}
-                  className="rounded-full border border-neutral-200 px-3 py-1.5 text-sm active:scale-95 dark:border-neutral-700"
+                  className="rounded-full border border-neutral-200 px-3 py-1.5 text-sm active:scale-95"
                 >
                   {item.name} <span className="text-xs text-neutral-400">{item.kcal}</span>
                 </button>
@@ -647,11 +647,11 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
 
       {describeOpen && !result && !preview && <div ref={describeRef} className="scroll-mt-4"><DescribeMeal text={describeText} onText={setDescribeText} onEstimated={describedEstimate} /></div>}
 
-      {!preview && !result && repeatMeals.length > 0 && <section className="space-y-2"><div className="flex items-center justify-between px-1"><h2 className="text-sm font-semibold">Makan yang sama lagi?</h2><Link href="/makan/habits" className="text-xs text-brand-700">Lihat pola →</Link></div><p className="px-1 text-xs text-neutral-500">Dari catatanmu sendiri. Cek porsi dan jam sebelum menambah.</p><div className="grid grid-cols-1 gap-2">{repeatMeals.map((item) => <button type="button" key={item.key} onClick={() => { setQuick(item); setQuickPortion("1"); setQuickTime(currentTime()); }} className="flex items-center justify-between gap-3 rounded-2xl border border-neutral-100 bg-white p-3.5 text-left shadow-xs dark:border-neutral-800 dark:bg-neutral-900"><span className="min-w-0"><strong className="block truncate text-sm">{item.name}</strong><span className="text-xs text-neutral-500">{item.detail}</span></span><span className="shrink-0 text-sm font-semibold text-brand-700">{item.kcal} kcal +</span></button>)}</div></section>}
+      {!preview && !result && repeatMeals.length > 0 && <section className="space-y-2"><div className="flex items-center justify-between px-1"><h2 className="text-sm font-semibold">Makan yang sama lagi?</h2><Link href="/makan/habits" className="text-xs text-brand-700">Lihat pola →</Link></div><p className="px-1 text-xs text-neutral-500">Dari catatanmu sendiri. Cek porsi dan jam sebelum menambah.</p><div className="grid grid-cols-1 gap-2">{repeatMeals.map((item) => <button type="button" key={item.key} onClick={() => { setQuick(item); setQuickPortion("1"); setQuickTime(currentTime()); }} className="flex items-center justify-between gap-3 rounded-2xl border border-neutral-100 bg-white p-3.5 text-left shadow-xs"><span className="min-w-0"><strong className="block truncate text-sm">{item.name}</strong><span className="text-xs text-neutral-500">{item.detail}</span></span><span className="shrink-0 text-sm font-semibold text-brand-700">{item.kcal} kcal +</span></button>)}</div></section>}
 
-      {preview && !result && !sheet && <section className="space-y-3 rounded-2xl border border-brand-200 bg-white p-4 dark:border-brand-900 dark:bg-neutral-900"><p className="text-sm">Fotomu masih di sini. Lanjutkan membaca atau isi makanan secara manual.</p><div className="flex gap-2"><button type="button" onClick={() => lastFile.current && handleFile(lastFile.current)} className="flex-1 rounded-xl bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white">Baca foto lagi</button><button type="button" onClick={() => setManualOpen(true)} className="rounded-xl border border-neutral-200 px-3 py-2.5 text-sm">Isi manual</button></div></section>}
+      {preview && !result && !sheet && <section className="space-y-3 rounded-2xl border border-brand-200 bg-white p-4"><p className="text-sm">Fotomu masih di sini. Lanjutkan membaca atau isi makanan secara manual.</p><div className="flex gap-2"><button type="button" onClick={() => lastFile.current && handleFile(lastFile.current)} className="flex-1 rounded-xl bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white">Baca foto lagi</button><button type="button" onClick={() => setManualOpen(true)} className="rounded-xl border border-neutral-200 px-3 py-2.5 text-sm">Isi manual</button></div></section>}
 
-      {quick && <section role="dialog" aria-label="Cek makanan berulang" className="space-y-3 rounded-2xl border-2 border-brand-200 bg-white p-4 shadow-xs dark:border-brand-800 dark:bg-neutral-900"><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold">{quick.name}</h2><p className="mt-1 text-xs text-neutral-500">{quick.portion} · {quick.detail}</p></div><button type="button" onClick={() => setQuick(null)} disabled={saving} aria-label="Tutup pilihan makanan" className="p-1">✕</button></div><label className="flex items-center justify-between gap-3 text-sm">Jumlah porsi<input aria-label="Jumlah porsi" type="number" min="0.25" max="10" step="0.25" value={quickPortion} onChange={(e) => setQuickPortion(e.target.value)} className="w-24 rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800" /></label><p className="text-sm font-semibold tabular-nums">≈ {Math.round(quick.kcal * (Number(quickPortion) || 0))} kcal · {Math.round(quick.protein * (Number(quickPortion) || 0))} g protein{quick.sugar ? ` · ${Math.round(quick.sugar * (Number(quickPortion) || 0))} g gula tambahan` : ""}</p><MealTimeField value={quickTime} onChange={setQuickTime} timezone={timezone} /><button type="button" onClick={saveQuick} disabled={saving} className="w-full rounded-xl bg-brand-600 py-3 font-semibold text-white disabled:opacity-50">{saving ? "Menyimpan…" : rollover ? `Tambahkan ke ${draftDate}` : "Tambahkan ke hari ini"}</button></section>}
+      {quick && <section role="dialog" aria-label="Cek makanan berulang" className="space-y-3 rounded-2xl border-2 border-brand-200 bg-white p-4 shadow-xs"><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold">{quick.name}</h2><p className="mt-1 text-xs text-neutral-500">{quick.portion} · {quick.detail}</p></div><button type="button" onClick={() => setQuick(null)} disabled={saving} aria-label="Tutup pilihan makanan" className="p-1">✕</button></div><label className="flex items-center justify-between gap-3 text-sm">Jumlah porsi<input aria-label="Jumlah porsi" type="number" min="0.25" max="10" step="0.25" value={quickPortion} onChange={(e) => setQuickPortion(e.target.value)} className="w-24 rounded-lg border border-neutral-300 px-3 py-2" /></label><p className="text-sm font-semibold tabular-nums">≈ {Math.round(quick.kcal * (Number(quickPortion) || 0))} kcal · {Math.round(quick.protein * (Number(quickPortion) || 0))} g protein{quick.sugar ? ` · ${Math.round(quick.sugar * (Number(quickPortion) || 0))} g gula tambahan` : ""}</p><MealTimeField value={quickTime} onChange={setQuickTime} timezone={timezone} /><button type="button" onClick={saveQuick} disabled={saving} className="w-full rounded-xl bg-brand-600 py-3 font-semibold text-white disabled:opacity-50">{saving ? "Menyimpan…" : rollover ? `Tambahkan ke ${draftDate}` : "Tambahkan ke hari ini"}</button></section>}
 
       {manualOpen && (
         <ManualForm
@@ -696,7 +696,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
       )}
 
       {result && (
-        <section ref={resultRef} className="scroll-mt-4 space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+        <section ref={resultRef} className="scroll-mt-4 space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
           <MealReview
             analysis={result}
             name={name}
@@ -727,7 +727,7 @@ function CatatTab({ today, onSaved }: { today: TodayData; onSaved: () => void })
             <button
               onClick={discard}
               disabled={saving}
-              className="rounded-xl border border-neutral-300 px-4 py-3 text-sm font-medium dark:border-neutral-700"
+              className="rounded-xl border border-neutral-300 px-4 py-3 text-sm font-medium"
             >
               Buang draft
             </button>
@@ -793,9 +793,9 @@ function ManualForm({ draft, onChange, onSaved, date, timezone, lockKey, saveOri
     }
   }
 
-  const input = "w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800";
+  const input = "w-full rounded-lg border border-neutral-300 px-3 py-2";
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+    <form onSubmit={submit} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
       <h2 className="font-semibold">Tulis makananmu</h2>
       <label className="block text-xs text-neutral-500">Nama makanan<input autoFocus value={name} onChange={(e) => change({ name: e.target.value })} placeholder="Mis. nasi goreng" className={`${input} mt-1`} /></label>
       <div className="grid grid-cols-2 gap-2">
@@ -861,14 +861,14 @@ function CariTab() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
         <div className="text-sm font-medium">Aku sedang mencari...</div>
         <div className="grid grid-cols-3 gap-2">
           {INTENTS.map(([value, label]) => (
             <button
               key={value}
               onClick={() => setIntent(value)}
-              className={`rounded-xl border px-2 py-2 text-sm ${intent === value ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950/30" : "border-neutral-200 dark:border-neutral-700"}`}
+              className={`rounded-xl border px-2 py-2 text-sm ${intent === value ? "border-brand-500 bg-brand-50 text-brand-700" : "border-neutral-200"}`}
             >
               {label}
             </button>
@@ -879,7 +879,7 @@ function CariTab() {
             <button
               key={value}
               onClick={() => toggleObjective(value)}
-              className={`rounded-full px-3 py-1.5 text-xs ${objectives.includes(value) ? "bg-brand-600 text-white" : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"}`}
+              className={`rounded-full px-3 py-1.5 text-xs ${objectives.includes(value) ? "bg-brand-600 text-white" : "bg-neutral-100 text-neutral-600"}`}
             >
               {label}
             </button>
@@ -889,7 +889,7 @@ function CariTab() {
           value={pantry}
           onChange={(e) => setPantry(e.target.value)}
           placeholder="Bahan yang ada, misalnya: timun, telur, yogurt, ayam"
-          className="min-h-20 w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
+          className="min-h-20 w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm"
         />
         <button onClick={() => run(false)} disabled={loading} className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">
           {loading ? "Mencari..." : "Cari yang paling bikin kenyang"}
@@ -898,15 +898,15 @@ function CariTab() {
 
       {result?.strategy && (
         <>
-          <section className="rounded-2xl bg-brand-50 p-4 dark:bg-brand-950/30">
+          <section className="rounded-2xl bg-brand-50 p-4">
             <div className="text-sm font-medium">Ide buat makan berikutnya</div>
             <div className="mt-1 text-sm">Sisa {result.input.remainingCalories} kcal · sisa protein {result.input.remainingProteinG} g</div>
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">{result.strategy.message}</p>
+            <p className="mt-2 text-sm text-neutral-600">{result.strategy.message}</p>
           </section>
 
           <section className="space-y-3">
             {result.strategy.recommendations.map((food) => (
-              <article key={food.id} className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+              <article key={food.id} className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="font-medium">{food.name}</div>
@@ -923,10 +923,10 @@ function CariTab() {
             ))}
           </section>
 
-          <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
+          <section className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-semibold">
-                <IconSparkle className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                <IconSparkle className="h-4 w-4 text-brand-600" />
                 Alasan pilihan ini
               </div>
               <button onClick={() => run(true)} disabled={loading} className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">
@@ -938,7 +938,7 @@ function CariTab() {
             </p>
             {result.ai ? (
               <>
-                <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">{result.ai.summary}</p>
+                <p className="mt-3 text-sm text-neutral-600">{result.ai.summary}</p>
                 <ul className="mt-2 space-y-1.5 text-sm">
                   {result.ai.suggestions.map((x, i) => (
                     <li key={i} className="flex gap-2">

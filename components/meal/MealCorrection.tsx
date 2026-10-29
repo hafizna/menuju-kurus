@@ -17,7 +17,7 @@ interface Props {
   onSaved: (message: string) => void;
 }
 
-const input = "w-full rounded-lg border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800";
+const input = "w-full rounded-lg border border-neutral-300 px-3 py-2";
 
 async function patchMeal(body: Record<string, unknown>) {
   const response = await fetch("/api/log", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -106,20 +106,20 @@ export default function MealCorrection({ meal, date, timezone, onClose, onSaved 
         aria-modal="true"
         aria-labelledby="meal-fix-title"
         tabIndex={-1}
-        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-4 shadow-xl outline-none sm:rounded-3xl dark:bg-neutral-900"
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-4 shadow-xl outline-none sm:rounded-3xl"
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <h2 id="meal-fix-title" className="text-lg font-semibold">Koreksi makanan</h2>
             <p className="mt-0.5 text-xs text-neutral-500">{date} · tersimpan sebagai {meal.source === "photo" ? "hasil foto" : breakdown?.described ? "hasil hitung dari tulisan" : "catatan manual"}</p>
           </div>
-          <button type="button" onClick={onClose} disabled={saving} aria-label="Tutup koreksi" className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800">✕</button>
+          <button type="button" onClick={onClose} disabled={saving} aria-label="Tutup koreksi" className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100">✕</button>
         </div>
 
         <fieldset disabled={saving} className="min-w-0 space-y-3">
           {analysis ? (
             <>
-            {breakdown?.described && <p className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600 dark:bg-neutral-800/60 dark:text-neutral-300">Yang kamu tulis: {breakdown.described}</p>}
+            {breakdown?.described && <p className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600">Yang kamu tulis: {breakdown.described}</p>}
             <MealReview
               idPrefix="fix"
               from={breakdown?.described ? "text" : "photo"}
@@ -138,7 +138,7 @@ export default function MealCorrection({ meal, date, timezone, onClose, onSaved 
             </>
           ) : (
             <div className="space-y-3">
-              {meal.source === "photo" && <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">Rincian bahan tidak tersimpan untuk catatan ini, jadi hanya angkanya yang bisa dikoreksi.</p>}
+              {meal.source === "photo" && <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">Rincian bahan tidak tersimpan untuk catatan ini, jadi hanya angkanya yang bisa dikoreksi.</p>}
               <label className="block text-xs text-neutral-500">Nama makanan<input value={name} onChange={(e) => setName(e.target.value)} className={`${input} mt-1`} /></label>
               <div className="grid grid-cols-2 gap-2">
                 <label className="text-xs text-neutral-500">Kalori (kcal)<input aria-label="Kalori" value={plain.kcal} onChange={(e) => setPlain({ ...plain, kcal: digits(e.target.value) })} inputMode="numeric" className={`${input} mt-1`} /></label>
@@ -152,9 +152,9 @@ export default function MealCorrection({ meal, date, timezone, onClose, onSaved 
           )}
         </fieldset>
 
-        {error && <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-300">{error}</p>}
+        {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
         <div className="mt-4 flex gap-2">
-          <button type="button" onClick={onClose} disabled={saving} className="rounded-xl border border-neutral-300 px-4 py-3 text-sm font-medium dark:border-neutral-700">Batal</button>
+          <button type="button" onClick={onClose} disabled={saving} className="rounded-xl border border-neutral-300 px-4 py-3 text-sm font-medium">Batal</button>
           <button type="button" onClick={() => void save()} disabled={saving} className="flex-1 rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">{saving ? "Menyimpan..." : "Simpan koreksi"}</button>
         </div>
       </div>

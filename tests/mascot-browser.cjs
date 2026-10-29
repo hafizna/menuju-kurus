@@ -11,7 +11,6 @@ module.exports = async function verifyMascot({ page, base, projectRoot, today })
   const hero = page.getByRole("region", { name: "Sapaan harian", exact: true });
   const mascot = hero.locator(".kukang");
   const capture = name => hero.screenshot({ path: path.join(projectRoot, `.next/validation/mascot-${name}.png`) });
-  const setTheme = async theme => page.evaluate(theme => { localStorage.setItem("mk_theme", theme); window.dispatchEvent(new Event("mk-theme")); }, theme);
   async function scenario(hour, { meals = 0, calories = 0, protein = 0, sugar = 0, knownSugar = 0, complete = false, timezone = "Asia/Jakarta" } = {}) {
     fixture = structuredClone(original);
     fixture.settings.timezone = timezone;
@@ -61,31 +60,30 @@ module.exports = async function verifyMascot({ page, base, projectRoot, today })
     await expectMood("work");
     assert.equal(await mascot.locator('[data-prop="laptop"]').count(), 1);
     await expectMovement(".kukang-arm--left");
-    await setTheme("dark");
-    await capture("work-dark");
+    await capture("work");
     await scenario(16, { meals: 2, calories: 1400, protein: 30 });
     await expectMood("protein");
     assert.equal(await mascot.locator('[data-prop="drumstick"]').count(), 1);
     await expectMovement(".kukang-feeding-arm");
-    await capture("protein-dark");
+    await capture("protein");
     await scenario(16, { meals: 2, calories: 1400, protein: 30, sugar: 65, knownSugar: 1 });
     await expectMood("sugar");
     assert.equal(await mascot.locator('[data-prop="ice-cream"]').count(), 1);
     await expectMovement(".kukang-cheeks");
-    await capture("sugar-dark");
+    await capture("sugar");
     await page.setViewportSize({ width: 320, height: 720 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, "sugar hero 320px overflow");
-    await capture("sugar-320-dark");
+    await capture("sugar-320");
     await page.setViewportSize({ width: 390, height: 844 });
     await scenario(23, { meals: 2, calories: 1400, protein: 30, sugar: 65, knownSugar: 1 });
     await expectMood("neutral");
     assert.equal(await mascot.locator(".kukang-zzz").count(), 3);
     await expectMovement(".kukang-rig");
-    await capture("sleep-dark");
+    await capture("sleep");
     await page.emulateMedia({ reducedMotion: "reduce" });
     assert.equal(await mascot.locator(".kukang-motion").evaluateAll(nodes => nodes.every(node => getComputedStyle(node).animationName === "none")), true);
     assert.equal(await mascot.locator(".kukang-zzz").evaluateAll(nodes => nodes.every(node => Number(getComputedStyle(node).opacity) > 0)), true, "sleep disappeared with reduced motion");
-    await capture("sleep-static-dark");
+    await capture("sleep-static");
     await page.emulateMedia({ reducedMotion: "no-preference" });
 
     // Clock timers let us check the automatic rotation and off-screen/motion
@@ -127,7 +125,6 @@ module.exports = async function verifyMascot({ page, base, projectRoot, today })
   } finally {
     await page.unroute("**/api/today", todayRoute);
     await page.emulateMedia({ reducedMotion: "no-preference" });
-    await setTheme("light");
     await page.clock.setFixedTime(new Date());
     await page.goto(base);
   }
@@ -135,13 +132,10 @@ module.exports = async function verifyMascot({ page, base, projectRoot, today })
     await page.goto(`${base}${destination}`);
     await page.locator(".journal-header").waitFor();
     await page.evaluate(() => scrollTo(0, 0));
-    await page.screenshot({ path: path.join(projectRoot, `.next/validation/journal-${name}-light.png`) });
-    await setTheme("dark");
-    await page.screenshot({ path: path.join(projectRoot, `.next/validation/journal-${name}-dark.png`) });
+    await page.screenshot({ path: path.join(projectRoot, `.next/validation/journal-${name}.png`) });
     await page.setViewportSize({ width: 320, height: 720 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, `${name} journal 320px overflow`);
     await page.setViewportSize({ width: 390, height: 844 });
-    await setTheme("light");
   }
   await page.goto(base);
   console.log("Mascot: PASS — profile timezone, varied time-of-day poses, automatic random rotation, food context, visible joint movement, static sleep and reduced-motion/off-screen pauses.");
