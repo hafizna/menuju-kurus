@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { IconCamera, IconSparkle, IconBowl } from "@/components/icons";
 import type { DayLog } from "@/lib/types";
 import type { DaySummary } from "@/lib/day";
@@ -13,6 +13,7 @@ import { mealTotals, portionSummary, NO_ADJUST, type MealAdjust } from "@/lib/me
 import DescribeMeal from "@/components/meal/DescribeMeal";
 import MealReview from "@/components/meal/MealReview";
 import MealHistory from "@/components/meal/MealHistory";
+import RestaurantIntelligence from "@/components/RestaurantIntelligence";
 import { MealTimeField, nowHHMM } from "@/components/meal/MealFields";
 import { emptyMealDraft, hasMealDraft, mealDraftKey, mealDraftUserPrefix, mealTimeIso, priorMealDraft, readMealDraft, recentMealChoices, serializeMealDraft, type ManualMealDraft, type MealDraft, type RepeatMeal } from "@/lib/mealDraft";
 import type { HabitStrategy } from "@/lib/habits";
@@ -31,6 +32,7 @@ interface TodayData {
 function MakanContent() {
   const searchParams = useSearchParams();
   const tab = searchParams.get("mode") === "cari" ? "cari" : "catat";
+  const where = searchParams.get("where") === "luar" ? "luar" : "rumah";
   const [today, setToday] = useState<TodayData | null>(null);
   const [loadError, setLoadError] = useState("");
 
@@ -62,7 +64,7 @@ function MakanContent() {
 
       {today && <div hidden={tab !== "catat"}><CatatTab key={today.userId} today={today} onSaved={reload} /></div>}
       {!today && !loadError && <p role="status" className="p-4 text-sm text-neutral-500">Menyiapkan catatanmu…</p>}
-      {tab === "cari" && <CariTab />}
+      {tab === "cari" && <CariTab where={where} onSaved={reload} />}
 
       <MealHistory todayDate={today?.date ?? null} todayLog={today?.log ?? null} timezone={today?.settings.timezone ?? "Asia/Jakarta"} targets={{ kcal: today?.settings.dailyTargetKcal ?? 0, protein: today?.settings.proteinTargetG ?? 0 }} onChanged={reload} />
     </div>
@@ -813,7 +815,33 @@ function ManualForm({ draft, onChange, onSaved, date, timezone, lockKey, saveOri
   );
 }
 
-// ---------- Cari makan (satiety / hunger-mode recommendation) ----------
+// ---------- Ide makan: di rumah (satiety / hunger-mode) atau di luar (menu Indonesia) ----------
+
+const WHERE = [["rumah", "Di rumah"], ["luar", "Di luar"]] as const;
+
+// Both lists stay mounted so switching back keeps what was already found.
+function CariTab({ where, onSaved }: { where: "rumah" | "luar"; onSaved: () => void }) {
+  const router = useRouter();
+  return (
+    <div className="space-y-4">
+      <div role="group" aria-label="Makan di mana?" className="grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1">
+        {WHERE.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={where === value}
+            onClick={() => router.replace(value === "luar" ? "/makan?mode=cari&where=luar" : "/makan?mode=cari", { scroll: false })}
+            className={`rounded-lg py-2.5 text-sm font-medium transition-colors ${where === value ? "bg-white text-brand-700 shadow-xs" : "text-neutral-500"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div hidden={where !== "rumah"}><HomeIdeas /></div>
+      <div hidden={where !== "luar"}><RestaurantIntelligence onSaved={onSaved} /></div>
+    </div>
+  );
+}
 
 const INTENTS = [
   ["hungry", "😩 Lapar"], ["sweet", "🍫 Manis"], ["savory", "🧂 Gurih"],
@@ -834,7 +862,7 @@ type SatietyResult = {
   aiError?: string;
 };
 
-function CariTab() {
+function HomeIdeas() {
   const [intent, setIntent] = useState("hungry");
   const [objectives, setObjectives] = useState<string[]>(["high_volume", "high_protein"]);
   const [pantry, setPantry] = useState("");

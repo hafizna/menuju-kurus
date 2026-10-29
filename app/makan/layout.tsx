@@ -15,21 +15,17 @@ function linkClass(active: boolean): string {
 function MakanNav() {
   const pathname = usePathname();
   const mode = useSearchParams().get("mode");
-  const restaurantActive = pathname.startsWith("/makan/restaurant");
   const habitsActive = pathname.startsWith("/makan/habits");
-  const cariActive = !restaurantActive && !habitsActive && mode === "cari";
-  const catatActive = !restaurantActive && !habitsActive && !cariActive;
+  const cariActive = !habitsActive && mode === "cari";
+  const catatActive = !habitsActive && !cariActive;
 
   return (
-    <nav aria-label="Pilihan makan" className="grid grid-cols-4 gap-1 rounded-2xl border border-brand-100 bg-brand-50/60 p-1">
+    <nav aria-label="Pilihan makan" className="grid grid-cols-3 gap-1 rounded-2xl border border-brand-100 bg-brand-50/60 p-1">
       <Link href="/makan" aria-current={catatActive ? "page" : undefined} className={linkClass(catatActive)}>
         Catat
       </Link>
       <Link href="/makan?mode=cari" aria-current={cariActive ? "page" : undefined} className={linkClass(cariActive)}>
         Ide makan
-      </Link>
-      <Link href="/makan/restaurant" aria-current={restaurantActive ? "page" : undefined} className={linkClass(restaurantActive)}>
-        Restoran
       </Link>
       <Link href="/makan/habits" aria-current={habitsActive ? "page" : undefined} className={linkClass(habitsActive)}>
         Favorit

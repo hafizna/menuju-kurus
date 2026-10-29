@@ -80,7 +80,7 @@ export const RESTAURANT_MEALS: RestaurantMeal[] = [
   meal("pecel-ayam", "Pecel ayam + nasi", ["nasi pecel ayam", "ayam goreng lalapan", "ayam penyet"], "ayam", "Pecel ayam / ayam penyet", "nasi 180 g, ayam goreng 1 potong, lalapan, sambal", 680, 34, 70, 28, 4, 4, ["ayam", "goreng", "nasi", "lalapan", "sambal"], "Setengah nasi atau ayam tanpa kulit menghemat kalori tanpa kompensasi ekstrem."),
   meal("chicken-katsu-rice", "Chicken katsu rice", ["nasi katsu", "katsu ayam", "chicken katsu"], "ayam", "Kedai Jepang / rice bowl", "nasi 180 g, chicken katsu 1 potong, saus", 750, 35, 86, 29, 3, 4, ["ayam", "katsu", "nasi", "tepung", "goreng"], "Tepung, minyak, dan saus membuatnya lebih tinggi kalori daripada ayam panggang."),
 
-  meal("bakso-kuah", "Bakso kuah tanpa mi", ["bakso", "bakso kuah", "bakso polos"], "bakso_mie", "Kedai bakso", "5 bakso sedang, tahu, sayur, kuah", 390, 27, 31, 17, 3, 4, ["bakso", "kuah", "daging", "tanpa mi"], "Tanpa mi lebih mudah masuk budget; gorengan dan saus dihitung terpisah."),
+  meal("bakso-kuah", "Bakso kuah tanpa mi", ["bakso", "bakso kuah", "bakso polos"], "bakso_mie", "Kedai bakso", "5 bakso sedang, tahu, sayur, kuah", 390, 27, 31, 17, 3, 4, ["bakso", "kuah", "daging", "tanpa mi"], "Tanpa mi lebih mudah muat di jatah kalorimu; gorengan dan saus dihitung terpisah."),
   meal("bakso-mie", "Bakso lengkap dengan mi", ["bakso mie", "bakso bihun", "bakso lengkap"], "bakso_mie", "Kedai bakso", "5 bakso sedang, mi/bihun, tahu, sayur, kuah", 570, 29, 68, 20, 4, 4, ["bakso", "mi", "bihun", "kuah", "daging"], "Porsi mi adalah pembeda utama dibanding bakso kuah tanpa mi."),
   meal("mie-ayam", "Mi ayam", ["mie ayam", "bakmi ayam", "mi ayam biasa"], "bakso_mie", "Kedai mi ayam", "1 mangkuk mi, topping ayam, sayur", 520, 24, 70, 17, 4, 3, ["mi", "mie", "ayam", "bakmi", "kuah"], "Minyak ayam dan ukuran mi berbeda antarkedai; pangsit dihitung terpisah."),
   meal("mie-ayam-bakso", "Mi ayam bakso", ["mie ayam bakso", "mi ayam bakso", "bakmi bakso"], "bakso_mie", "Kedai mi ayam", "1 mangkuk mi ayam + 2 bakso", 650, 32, 76, 24, 4, 4, ["mi", "mie", "ayam", "bakso", "bakmi"], "Protein naik dibanding mi ayam biasa, tetapi kalorinya juga meningkat."),
@@ -118,9 +118,9 @@ function queryScore(item: RestaurantMeal, query: string): number {
 
 function decisionFor(item: RestaurantMeal, remainingCalories: number): Pick<RestaurantRecommendation, "fitLabel" | "decision"> {
   const delta = item.calories - remainingCalories;
-  if (delta <= 0) return { fitLabel: "pas", decision: `Masih menyisakan sekitar ${Math.abs(delta)} kcal dari budget hari ini.` };
-  if (delta <= 150) return { fitLabel: "masih_masuk", decision: `Sedikit di atas sisa budget (${delta} kcal); kurangi nasi atau saus.` };
-  return { fitLabel: "melewati", decision: `Melewati sisa budget sekitar ${delta} kcal. Pilih porsi lebih kecil atau menu alternatif.` };
+  if (delta <= 0) return { fitLabel: "pas", decision: `Masih menyisakan sekitar ${Math.abs(delta)} kcal dari jatah hari ini.` };
+  if (delta <= 150) return { fitLabel: "masih_masuk", decision: `Sedikit melebihi sisa jatah (${delta} kcal); kurangi nasi atau saus.` };
+  return { fitLabel: "melewati", decision: `Melebihi sisa jatah sekitar ${delta} kcal. Pilih porsi lebih kecil atau menu lain.` };
 }
 
 export function buildRestaurantStrategy(input: RestaurantInput): RestaurantStrategy {
@@ -150,10 +150,10 @@ export function buildRestaurantStrategy(input: RestaurantInput): RestaurantStrat
 
   const queryMatched = recommendations.length > 0;
   const message = normalizedQuery && !queryMatched
-    ? "Menu belum ada di library lokal. Coba kata yang lebih umum: ayam geprek, nasi Padang, bakso, mi ayam, atau soto."
+    ? "Menu itu belum ada di daftarku. Coba kata yang lebih umum: ayam geprek, nasi Padang, bakso, mi ayam, atau soto."
     : remainingCalories <= 0
-      ? "Budget hari ini sudah habis. Hasil tetap ditampilkan agar keputusan tidak berubah menjadi kompensasi ekstrem besok."
-      : `Pilihan diurutkan berdasarkan kecocokan menu, sisa ${remainingCalories} kcal, kebutuhan protein, rasa kenyang, dan goal aktifmu.`;
+      ? "Jatah kalori hari ini sudah habis. Pilihan tetap kutampilkan supaya kamu tidak perlu menebak, dan besok tidak perlu menggantinya dengan makan jauh lebih sedikit."
+      : `Pilihan diurutkan berdasarkan kecocokan menu, sisa ${remainingCalories} kcal, kebutuhan protein, rasa kenyang, dan tujuanmu.`;
 
   return {
     message,

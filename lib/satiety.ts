@@ -47,7 +47,7 @@ export const SATIETY_FOODS: SatietyFood[] = [
   { id: "air-popcorn", name: "Popcorn tanpa butter", serving: "5 cangkir", calories: 155, proteinG: 5, fiberG: 6, volume: 5, tags: ["savory", "crispy", "quick", "high_volume", "high_fiber", "low_calorie", "vegetarian", "popcorn"], why: "Volumenya besar untuk kalori yang relatif rendah dan cocok saat ingin terus mengunyah." },
   { id: "oat-egg", name: "Oat gurih dengan telur", serving: "1 mangkuk", calories: 330, proteinG: 22, fiberG: 7, volume: 4, tags: ["savory", "comfort", "hungry", "high_fiber", "vegetarian", "oat", "telur"], why: "Oat memberi serat dan telur menambah protein sehingga lebih tahan lama." },
   { id: "watermelon-yogurt", name: "Semangka dan yogurt", serving: "1 mangkuk besar", calories: 180, proteinG: 12, fiberG: 2, volume: 5, tags: ["sweet", "quick", "high_volume", "low_calorie", "vegetarian", "semangka", "yogurt"], why: "Semangka memberi volume dan rasa manis, sedangkan yogurt mengurangi kemungkinan cepat lapar lagi." },
-  { id: "chicken-rice-bowl", name: "Chicken rice bowl porsi terukur", serving: "ayam 120 g + nasi 100 g + sayuran", calories: 480, proteinG: 39, fiberG: 5, volume: 4, tags: ["savory", "comfort", "hungry", "high_protein", "ayam", "nasi", "sayur"], why: "Porsi protein dominan dengan nasi terukur memberi rasa puas tanpa menghabiskan budget secara tidak terkendali." },
+  { id: "chicken-rice-bowl", name: "Chicken rice bowl porsi terukur", serving: "ayam 120 g + nasi 100 g + sayuran", calories: 480, proteinG: 39, fiberG: 5, volume: 4, tags: ["savory", "comfort", "hungry", "high_protein", "ayam", "nasi", "sayur"], why: "Porsi protein dominan dengan nasi terukur memberi rasa puas tanpa menghabiskan jatah kalori sekaligus." },
 ];
 
 function fullness(food: SatietyFood): number {
@@ -84,7 +84,7 @@ export function buildSatietyStrategy(input: SatietyStrategyInput): SatietyStrate
     .slice(0, 5);
 
   const message = remaining <= 0
-    ? "Budget hari ini sudah habis. Pilih opsi sangat ringan bila benar-benar lapar, lalu kembali ke target normal besok tanpa kompensasi ekstrem."
+    ? "Jatah kalori hari ini sudah habis. Pilih yang sangat ringan kalau benar-benar lapar, lalu kembali ke target biasa besok, tanpa mengganti dengan makan jauh lebih sedikit."
     : `Gunakan sekitar ${mealCalorieBudget} kcal untuk pilihan yang paling memuaskan, dengan prioritas ${proteinTargetG > 0 ? `hingga ${proteinTargetG} g protein` : "volume dan serat"}.`;
 
   return {

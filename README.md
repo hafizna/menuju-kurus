@@ -28,7 +28,7 @@ Tampilan **Rumah Kukang** memakai ilustrasi kanopi dan maskot SVG orisinal, deng
 Empat tab di bottom nav, disusun sebagai alur keputusan harian, bukan daftar fitur:
 
 - **Home** (`/`) — status hari ini dan Personal Adaptive Coach dengan konteks Sekarang, Lapar, Sangat lapar, Craving, atau Makan di luar.
-- **Makan** (`/makan`) — tiga konteks: Catat (foto + Nutrition Intelligence), Restoran (menu Indonesia tanpa foto), dan Kebiasaan (quick add + pola 28 hari), plus riwayat makan hari ini.
+- **Makan** (`/makan`) — tiga konteks: Catat (foto, tulis & hitung, atau isi manual), Ide makan (saran makan **di rumah** dari Satiety Intelligence dan **di luar** dari menu Indonesia tanpa foto), dan Favorit (quick add + pola 28 hari), plus riwayat makan per hari. Alamat lama `/makan/restaurant` mengarah ke Ide makan → Di luar.
 - **Progress** (`/progress`) — tiga tab menurut pertanyaannya. **Ringkasan**: review 7 hari dengan ringkasan AI dan fokus mingguan, lalu pola jangka panjang dan evaluasi target. **Tubuh**: pencatatan ukuran, perubahan, body fat dan komposisi, riwayat, grafik, dan avatar skematis. **Kebugaran**: VO₂ max, detak istirahat, serta kardio dan latihan beban dari catatan Gerak hari ini. Tautan lama `?tab=weight` membuka Tubuh dan `?tab=weekly` membuka Ringkasan.
 - **Profil** (`/settings`) — "Program Saya": Program & target, Data tubuh, Aktivitas & fitness, Integrasi, Akun.
 
@@ -64,7 +64,7 @@ Fullness Score adalah heuristik produk, bukan pengukuran klinis. Rekomendasi tid
 
 ## Restaurant Intelligence
 
-Tersedia di **Makan → Restoran**:
+Tersedia di **Makan → Ide makan → Di luar**:
 
 - Pencarian teks untuk menu warteg, rumah makan Padang, ayam, bakso/mi, soto, fast food, dan kafe.
 - Estimasi kalori dan makro dari library lokal, bukan keputusan AI.
@@ -74,7 +74,7 @@ Tersedia di **Makan → Restoran**:
 
 ## Habit Intelligence
 
-Tersedia di **Makan → Kebiasaan**:
+Tersedia di **Makan → Favorit**:
 
 - Menganalisis rolling 28 hari tanpa menyimpan profil kebiasaan baru di luar log yang sudah ada.
 - Menu masuk quick add setelah muncul minimal dua kali.

@@ -45,9 +45,9 @@ type RestaurantResponse = {
 };
 
 function fitLabel(label: RestaurantMeal["fitLabel"]): string {
-  if (label === "pas") return "Masuk budget";
-  if (label === "masih_masuk") return "Perlu sedikit penyesuaian";
-  return "Di atas budget";
+  if (label === "pas") return "Masih muat";
+  if (label === "masih_masuk") return "Perlu sedikit disesuaikan";
+  return "Melebihi sisa jatah";
 }
 
 function fitClass(label: RestaurantMeal["fitLabel"]): string {
@@ -120,9 +120,9 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
     <div className="space-y-4">
       <form onSubmit={search} className="space-y-3 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xs">
         <div>
-          <div className="text-sm font-semibold">Cari menu Indonesia tanpa foto</div>
+          <div className="text-sm font-semibold">Cari menu makan di luar</div>
           <p className="mt-1 text-xs text-neutral-500">
-            Decision engine lokal mencocokkan menu, porsi umum, sisa kalori, protein, dan goal-mu.
+            Ketik menu yang kamu incar. Aku cocokkan dengan sisa kalori dan proteinmu hari ini, lalu kamu bisa langsung mencatatnya tanpa foto.
           </p>
         </div>
 
@@ -151,7 +151,7 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
         </div>
 
         <button type="submit" disabled={loading} className="w-full rounded-xl bg-brand-600 py-3 font-medium text-white disabled:opacity-50">
-          {loading ? "Mencocokkan menu..." : "Cari keputusan terbaik"}
+          {loading ? "Mencari menu..." : "Carikan pilihan yang pas"}
         </button>
       </form>
 
@@ -160,7 +160,7 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
       {result && (
         <>
           <section className="rounded-2xl bg-brand-50 p-4">
-            <div className="text-sm font-medium">Konteks keputusan saat ini</div>
+            <div className="text-sm font-medium">Sisa jatahmu hari ini</div>
             <div className="mt-1 text-sm">
               Sisa {result.input.remainingCalories} kcal · protein tersisa {result.input.remainingProteinG} g
             </div>
@@ -171,8 +171,8 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3 px-1">
                 <div>
-                  <div className="text-sm font-medium">Asumsi porsi</div>
-                  <div className="text-xs text-neutral-500">Koreksi sebelum mencatat.</div>
+                  <div className="text-sm font-medium">Ukuran porsi</div>
+                  <div className="text-xs text-neutral-500">Sesuaikan dulu sebelum dicatat.</div>
                 </div>
                 <div className="flex gap-1 rounded-xl bg-neutral-100 p-1">
                   {PORTIONS.map((value) => (
@@ -231,14 +231,14 @@ export default function RestaurantIntelligence({ onSaved }: { onSaved: () => voi
 
                     <div className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600">
                       <div className="font-medium text-neutral-700">
-                        Fullness {"★".repeat(meal.fullnessScore)}{"☆".repeat(5 - meal.fullnessScore)} · keyakinan {meal.confidence}
+                        Kenyangnya {"★".repeat(meal.fullnessScore)}{"☆".repeat(5 - meal.fullnessScore)} · keyakinan {meal.confidence === "high" ? "tinggi" : "sedang"}
                       </div>
                       <p className="mt-1">
                         {adjustedDelta <= 0
-                          ? `Masih menyisakan sekitar ${Math.abs(adjustedDelta)} kcal dari budget hari ini.`
+                          ? `Masih menyisakan sekitar ${Math.abs(adjustedDelta)} kcal dari jatah hari ini.`
                           : adjustedDelta <= 150
-                            ? `Sekitar ${adjustedDelta} kcal di atas sisa budget; kurangi nasi atau saus bila ingin lebih dekat target.`
-                            : `Sekitar ${adjustedDelta} kcal di atas sisa budget. Pertimbangkan porsi lebih kecil atau menu lain.`}
+                            ? `Sekitar ${adjustedDelta} kcal melebihi sisa jatahmu; kurangi nasi atau saus kalau mau lebih dekat ke target.`
+                            : `Sekitar ${adjustedDelta} kcal melebihi sisa jatahmu. Coba porsi lebih kecil atau menu lain.`}
                       </p>
                       <p className="mt-1 text-neutral-500">{meal.note}</p>
                     </div>

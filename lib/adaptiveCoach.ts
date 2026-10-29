@@ -201,7 +201,7 @@ export function buildAdaptiveCoach(
         "Aku urutkan menu restoran Indonesia berdasarkan sisa kalori, protein, dan tujuanmu, lengkap dengan perkiraan porsinya.",
       evidence: `sisa ${Math.max(0, summary.remaining)} kcal dan ${proteinRemaining} g protein hari ini`,
       priority: 130,
-      href: "/makan/restaurant",
+      href: "/makan?mode=cari&where=luar",
       actionLabel: "Lihat menu restoran",
     });
   }
