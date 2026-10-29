@@ -245,6 +245,7 @@ let child, browser;
   await require("./meal-correction-browser.cjs")({ page, base, store, today, offset });
   await require("./describe-browser.cjs")({ page, base, store, today, projectRoot });
   await require("./repeat-meals-browser.cjs")({ page, base, today, projectRoot });
+  await require("./day-recap-browser.cjs")({ page, base, store, today, offset, projectRoot });
 
   // A draft survives the recommendation mode, other meal routes and a reload.
   await page.goto(`${base}/makan`);
@@ -369,6 +370,8 @@ let child, browser;
   await page.unroute("**/api/today");
   await page.getByRole("button", { name: "Coba muat lagi", exact: true }).click();
   await page.getByRole("button", { name: "Foto sekarang", exact: true }).waitFor();
+  const itemsToggle = page.locator('[aria-controls="riwayat-items"]');
+  if ((await itemsToggle.getAttribute("aria-expanded")) !== "true") await itemsToggle.click();
   assert.equal((await page.locator("#riwayat").innerText()).includes("Invalid Date"), false, "legacy history times rendered Invalid Date");
   assert.ok((await page.locator("#riwayat").innerText()).includes("12:00"), "legacy meal time was not preserved");
   assert.ok((await page.locator("#riwayat").innerText()).includes("18:00"), "legacy activity time was not preserved");

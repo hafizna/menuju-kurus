@@ -5,8 +5,10 @@ import { IconBolt, IconBowl } from "@/components/icons";
 import { describeActivity } from "@/lib/activity";
 import { lastNDateKeys } from "@/lib/dates";
 import { formatMealTime } from "@/lib/mealDraft";
+import { recapDay } from "@/lib/dayRecap";
 import { adjustMeal } from "@/lib/mealMath";
 import type { DayLog, MealEntry } from "@/lib/types";
+import DayRecap from "./DayRecap";
 import MealCorrection from "./MealCorrection";
 
 // The last seven days can be opened and corrected, the same window the weekly
@@ -24,10 +26,12 @@ interface Props {
   todayDate: string | null;
   todayLog: DayLog | null;
   timezone: string;
+  /** Daily calorie and protein targets, for the rings. */
+  targets: { kcal: number; protein: number };
   onChanged: () => void;
 }
 
-export default function MealHistory({ todayDate, todayLog, timezone, onChanged }: Props) {
+export default function MealHistory({ todayDate, todayLog, timezone, targets, onChanged }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [pastLog, setPastLog] = useState<DayLog | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -35,6 +39,10 @@ export default function MealHistory({ todayDate, todayLog, timezone, onChanged }
   const [fixing, setFixing] = useState<MealEntry | null>(null);
   const [notice, setNotice] = useState("");
   const [removing, setRemoving] = useState<string | null>(null);
+  // The day shows as rings first; the meals behind them open on a tap.
+  const [itemsOpen, setItemsOpen] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [completeError, setCompleteError] = useState("");
   const [failed, setFailed] = useState<{ type: "meal" | "burn"; id: string; message: string } | null>(null);
   const trigger = useRef<HTMLElement | null>(null);
 
@@ -77,6 +85,18 @@ export default function MealHistory({ todayDate, todayLog, timezone, onChanged }
     finally { setRemoving(null); }
   }
 
+  async function markComplete() {
+    if (!log || completing) return;
+    setCompleting(true); setCompleteError("");
+    try {
+      const response = await fetch("/api/log", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ date: log.date, foodLogComplete: true }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Status belum tersimpan. Coba lagi.");
+      await refresh();
+    } catch (cause) { setCompleteError(cause instanceof Error ? cause.message : "Status belum tersimpan. Coba lagi."); }
+    finally { setCompleting(false); }
+  }
+
   function closeFix() {
     setFixing(null);
     trigger.current?.focus();
@@ -95,14 +115,14 @@ export default function MealHistory({ todayDate, todayLog, timezone, onChanged }
             key={day}
             type="button"
             aria-pressed={day === date}
-            onClick={() => { setSelected(day === todayDate ? null : day); setOpenId(null); setFailed(null); setNotice(""); }}
+            onClick={() => { setSelected(day === todayDate ? null : day); setOpenId(null); setItemsOpen(false); setCompleteError(""); setFailed(null); setNotice(""); }}
             className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${day === date ? "border-brand-600 bg-brand-600 text-white" : "border-neutral-300 text-neutral-600 dark:border-neutral-700 dark:text-neutral-300"}`}
           >
             {dayLabel(day, todayDate)}
           </button>
         ))}
       </div>
-      <p className="px-1 text-xs text-neutral-500">Ketuk makanan untuk melihat rincian dan mengoreksinya, sampai {DAYS - 1} hari ke belakang.</p>
+      <p className="px-1 text-xs text-neutral-500">Ketuk ringkasan untuk melihat tiap makanan, lalu ketuk makanan untuk rincian dan koreksi. Bisa sampai {DAYS - 1} hari ke belakang.</p>
 
       {notice && <p role="status" className="rounded-xl bg-brand-50 p-3 text-sm text-brand-800 dark:bg-brand-950/30 dark:text-brand-200">{notice}</p>}
       {failed && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{failed.message} <button type="button" disabled={Boolean(removing)} onClick={() => removeEntry(failed.type, failed.id)} className="font-semibold underline">Coba hapus lagi</button></p>}
@@ -113,6 +133,20 @@ export default function MealHistory({ todayDate, todayLog, timezone, onChanged }
           {isToday ? "Belum ada catatan hari ini. Mulai dengan satu makanan saja." : "Tidak ada catatan pada hari ini."}
         </p>
       )}
+      {log && entries.length > 0 && (
+        <DayRecap
+          key={log.date}
+          recap={recapDay(log, targets)}
+          open={itemsOpen}
+          onToggle={() => setItemsOpen((value) => !value)}
+          controls="riwayat-items"
+          isToday={isToday}
+          completing={completing}
+          completeError={completeError}
+          onComplete={() => void markComplete()}
+        />
+      )}
+      <div id="riwayat-items" hidden={!itemsOpen} className="space-y-2">
       {entries.map((entry) => {
         const open = entry.kind === "meal" && openId === entry.id;
         const heading = (
@@ -158,6 +192,7 @@ export default function MealHistory({ todayDate, todayLog, timezone, onChanged }
           </div>
         );
       })}
+      </div>
 
       {fixing && (
         <MealCorrection

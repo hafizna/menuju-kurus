@@ -22,7 +22,7 @@ import JournalHeader from "@/components/JournalHeader";
 interface TodayData {
   userId: string;
   date: string;
-  settings: { timezone: string };
+  settings: { timezone: string; dailyTargetKcal: number; proteinTargetG: number };
   habits: HabitStrategy;
   log: DayLog;
   summary: DaySummary;
@@ -64,7 +64,7 @@ function MakanContent() {
       {!today && !loadError && <p role="status" className="p-4 text-sm text-neutral-500">Menyiapkan catatanmu…</p>}
       {tab === "cari" && <CariTab />}
 
-      <MealHistory todayDate={today?.date ?? null} todayLog={today?.log ?? null} timezone={today?.settings.timezone ?? "Asia/Jakarta"} onChanged={reload} />
+      <MealHistory todayDate={today?.date ?? null} todayLog={today?.log ?? null} timezone={today?.settings.timezone ?? "Asia/Jakarta"} targets={{ kcal: today?.settings.dailyTargetKcal ?? 0, protein: today?.settings.proteinTargetG ?? 0 }} onChanged={reload} />
     </div>
   );
 }
