@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
-// Restoran is now "Di luar" inside Ide makan. Old links and bookmarks land there.
+// Restoran was removed; Ide makan is the one place for meal ideas.
+// Old links and bookmarks land there.
 export default function RestaurantPage() {
-  redirect("/makan?mode=cari&where=luar");
+  redirect("/makan?mode=cari");
 }

@@ -138,7 +138,7 @@ function headlineFor(
   if (status === "recover")
     return "Santai dulu hari ini, besok balik ke ritme biasa";
   if (moment === "eating_out")
-    return "Makan di luar? Pilih menu yang paling pas buat sisa budgetmu";
+    return "Makan di luar? Tulis menunya dulu, aku hitung kalorinya";
   if (moment === "very_hungry")
     return "Sangat lapar? Makan yang lengkap, jangan ditahan-tahan";
   if (moment === "craving")
@@ -196,13 +196,13 @@ export function buildAdaptiveCoach(
   if (moment === "eating_out") {
     recommendations.push({
       id: "restaurant",
-      title: "Bandingkan menu dulu sebelum pesan",
+      title: "Tulis menu yang mau dipesan",
       detail:
-        "Aku urutkan menu restoran Indonesia berdasarkan sisa kalori, protein, dan tujuanmu, lengkap dengan perkiraan porsinya.",
+        "Ketik menu dan ukurannya, misalnya nasi Padang ayam bakar. Aku hitung perkiraan kalori dan proteinnya supaya kamu bisa menimbang dulu. Simpan hanya kalau jadi dimakan.",
       evidence: `sisa ${Math.max(0, summary.remaining)} kcal dan ${proteinRemaining} g protein hari ini`,
       priority: 130,
-      href: "/makan?mode=cari&where=luar",
-      actionLabel: "Lihat menu restoran",
+      href: "/makan",
+      actionLabel: "Tulis & hitung",
     });
   }
 

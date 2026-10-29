@@ -50,7 +50,6 @@ const inviteRoute = require('../app/api/auth/invite/route');
 const healthRoute = require('../app/api/health-sync/route');
 const todayRoute = require('../app/api/today/route');
 const trendsRoute = require('../app/api/trends/route');
-const restaurantRoute = require('../app/api/restaurant/route');
 const satietyRoute = require('../app/api/satiety/route');
 const exerciseRoute = require('../app/api/exercise-credit/route');
 const { computeStreak } = require('../lib/day');
@@ -264,7 +263,7 @@ test('third-user Health Sync writes only third-user keys and keeps food confirma
   assert.equal((await healthRoute.POST(request('/api/health-sync', 'POST', { calories: 100 }, null))).status, 401);
 });
 
-test('Home, trends, restaurant, and satiety share intake budget with no exercise compensation', async () => {
+test('Home, trends, and satiety share intake budget with no exercise compensation', async () => {
   await logRoute.POST(request('/api/log', 'POST', { type: 'meal', calories: 2000 }));
   await logRoute.POST(request('/api/log', 'POST', { type: 'burn', calories: 800 }));
   const today = await (await todayRoute.GET(request('/api/today'))).json();
@@ -272,11 +271,9 @@ test('Home, trends, restaurant, and satiety share intake budget with no exercise
   assert.equal(today.summary.onTrack, false);
   assert.equal(today.weeklyBudget.consumed, 2000);
   assert.equal(today.weeklyBudget.isComplete, false);
-  for (const [route, handler] of [['/api/restaurant', restaurantRoute], ['/api/satiety', satietyRoute]]) {
-    const response = await handler.POST(request(route, 'POST', {}));
-    assert.equal(response.status, 200);
-    assert.equal((await response.json()).input.remainingCalories, 0);
-  }
+  const satiety = await satietyRoute.POST(request('/api/satiety', 'POST', {}));
+  assert.equal(satiety.status, 200);
+  assert.equal((await satiety.json()).input.remainingCalories, 0);
   const trends = await (await trendsRoute.GET(request('/api/trends'))).json();
   assert.equal(trends.successRate, null);
   assert.equal(trends.days.at(-1).caloriesIn, 2000);

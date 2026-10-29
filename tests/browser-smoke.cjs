@@ -247,7 +247,7 @@ let child, browser;
   await require("./repeat-meals-browser.cjs")({ page, base, today, projectRoot });
   await require("./day-recap-browser.cjs")({ page, base, store, today, offset, projectRoot });
   await require("./light-only-browser.cjs")({ page, base });
-  await require("./ide-makan-browser.cjs")({ page, base, store, today, projectRoot });
+  await require("./ide-makan-browser.cjs")({ page, base, projectRoot });
 
   // A draft survives the recommendation mode, other meal routes and a reload.
   await page.goto(`${base}/makan`);
