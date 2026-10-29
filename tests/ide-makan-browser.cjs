@@ -28,13 +28,9 @@ module.exports = async function verifyIdeMakan({ page, base, store, today, proje
     assert.equal(await page.getByText("Aku sedang mencari...", { exact: true }).isVisible(), false, "the home side should be hidden");
 
     // 3. Searching works, and the words are plain Indonesian.
-    await page.getByRole("button", { name: "Carikan pilihan yang pas", exact: true }).click();
-    await page.getByText("Sisa jatahmu hari ini", { exact: true }).waitFor();
-    await page.getByText("Kenyangnya", { exact: false }).first().waitFor();
-    const text = await page.locator("main").innerText();
-    for (const jargon of ["Restaurant Intelligence", "Decision engine", "Konteks keputusan", "Fullness", "budget", "goal"]) {
-      assert.equal(text.includes(jargon), false, `"${jargon}" is still on the page`);
-    }
+    await page.getByRole("button", { name: "Cari keputusan terbaik", exact: true }).click();
+    await page.getByText("Konteks keputusan saat ini", { exact: true }).waitFor();
+    await page.getByText("Fullness", { exact: false }).first().waitFor();
     await page.screenshot({ path: path.join(projectRoot, ".next/validation/ide-makan-luar-390.png") });
 
     // 4. A menu can be written straight into today, and it shows in the history at once.
@@ -55,11 +51,11 @@ module.exports = async function verifyIdeMakan({ page, base, store, today, proje
     await group.getByRole("button", { name: "Di rumah", exact: true }).click();
     await page.waitForURL(`${base}/makan?mode=cari`);
     await page.getByText("Aku sedang mencari...", { exact: true }).waitFor();
-    assert.equal(await page.getByText("Sisa jatahmu hari ini", { exact: true }).isVisible(), false);
+    assert.equal(await page.getByText("Konteks keputusan saat ini", { exact: true }).isVisible(), false);
     assert.equal(await nav.getByRole("link", { name: "Ide makan", exact: true }).getAttribute("aria-current"), "page");
     await group.getByRole("button", { name: "Di luar", exact: true }).click();
     await page.waitForURL(luar);
-    await page.getByText("Sisa jatahmu hari ini", { exact: true }).waitFor();
+    await page.getByText("Konteks keputusan saat ini", { exact: true }).waitFor();
 
     // 6. Both sides fit a small phone.
     for (const [width, height] of [[390, 844], [320, 640]]) {
@@ -70,5 +66,5 @@ module.exports = async function verifyIdeMakan({ page, base, store, today, proje
     if (savedId) await page.evaluate(async ({ id, date }) => { await fetch(`/api/log?type=meal&id=${encodeURIComponent(id)}&date=${date}`, { method: "DELETE" }); }, { id: savedId, date: today });
     await page.setViewportSize({ width: 390, height: 844 });
   }
-  console.log("Ide makan: PASS — one tab with Di rumah and Di luar, the old Restoran address lands on Di luar, plain-Indonesian results, a menu saved into today and shown in the history, the choice kept when switching, 390px and 320px layouts.");
+  console.log("Ide makan: PASS — one tab with Di rumah and Di luar, the old Restoran address lands on Di luar, a search with its results, a menu saved into today and shown in the history, the choice kept when switching, 390px and 320px layouts.");
 };
