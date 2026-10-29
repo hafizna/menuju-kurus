@@ -13,6 +13,7 @@ export interface HomeHeroCopy {
 }
 
 const GENTLE = "Nggak perlu sempurna. Catat yang kamu ingat, pelan-pelan.";
+const FIRST_MEAL = "Yuk, catat makan pertamamu hari ini.";
 
 /**
  * Headline and supporting line for the home greeting. They describe the state
@@ -27,7 +28,7 @@ export function buildHomeHero(input: HomeHeroInput): HomeHeroCopy {
   if (foodLogComplete) {
     return { headline: "Catatanmu sudah lengkap.", support: "Terima kasih sudah meluangkan waktu untuk dirimu." };
   }
-  if (!hasMeals && firstRun) return { headline: "Mulai dari satu catatan.", support: GENTLE };
+  if (!hasMeals && firstRun) return { headline: FIRST_MEAL, support: GENTLE };
 
   // Matches the mascot's rest window, so the greeting and the scene agree.
   if (validHour && (localHour >= 22 || localHour < 5)) {
@@ -41,13 +42,13 @@ export function buildHomeHero(input: HomeHeroInput): HomeHeroCopy {
   if (!hasMeals) {
     return validHour && localHour >= 18
       ? { headline: "Belum ada catatan hari ini.", support: "Satu catatan kecil sudah cukup." }
-      : { headline: "Mulai dari satu catatan.", support: GENTLE };
+      : { headline: FIRST_MEAL, support: GENTLE };
   }
   if (validHour && localHour >= 18) {
     return {
-      headline: "Hari ini hampir selesai.",
-      support: "Ada makan, minum, atau camilan yang belum dicatat? Tambahkan, lalu tutup hari.",
+      headline: "Ada yang belum dicatat hari ini?",
+      support: "Cek lagi makan, minum, dan camilanmu. Kalau sudah semua, tutup harinya.",
     };
   }
-  return { headline: "Hari ini masih berjalan.", support: GENTLE };
+  return { headline: "Sudah makan apa saja hari ini?", support: GENTLE };
 }
